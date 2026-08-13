@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width">
+  <title>ChatGPT Assistant | Green Market</title>
+  <link rel="stylesheet" href="style.css">
+  <style>.chat-container{max-width:600px;margin:50px auto;padding:20px;background:white;border-radius:20px;box-shadow:0 10px 30px rgba(0,0,0,0.1);}</style>
+</head>
+<body>
+  <header class="header" style="justify-content:center;">
+    <div class="logo">🤖 مساعد Green Market AI (ChatGPT)</div>
+  </header>
+
+  <div class="chat-container">
+    <div id="chat-messages" style="height:400px;overflow-y:auto;border:1px solid #ddd;padding:10px;border-radius:10px;margin-bottom:10px;"></div>
+    <input type="text" id="msg-input" placeholder="اسأل عن المنتجات، التوصيل، أو الطلبات... (GPT powered)" style="width:80%;padding:10px;">
+    <button class="btn" onclick="sendMsg()" style="width:18%;padding:10px;">إرسال</button>
+    <p style="font-size:0.8em;color:#666;margin-top:10px;">
+      أدخل OpenAI API Key لـ GPT-4: <input id="api-key" type="password" placeholder="sk-..." style="width:200px;">
+      <br>بدون key: Rule-based bot.
+    </p>
+  </div>
+
+  <footer style="text-align:center;">
+    <p>مهندس عمار عادل المصوعي | 712275038</p>
+  </footer>
+
+  <script>
+    const messages = document.getElementById('chat-messages');
+    function addMsg(text, isUser=false) {
+      const div = document.createElement('div');
+      div.style.marginBottom = '10px';
+      div.style.textAlign = isUser ? 'right' : 'left';
+      div.innerHTML = `<strong>${isUser ? 'أنت' : 'AI'}</strong>: ${text}`;
+      messages.appendChild(div);
+      messages.scrollTop = messages.scrollHeight;
+    }
+
+    async function sendMsg() {
+      const input = document.getElementById('msg-input');
+      const msg = input.value.trim();
+      if(!msg) return;
+      addMsg(msg, true);
+      input.value = '';
+
+      const apiKey = document.getElementById('api-key').value;
+      if(apiKey && apiKey.startsWith('sk-')) {
+        // Real GPT
+        try {
+          const res = await fetch('https://api.openai.com/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${apiKey}`,
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              model: 'gpt-3.5-turbo',
+              messages: [{role:'user', content: `Green Market veggie store assistant (Arabic): ${msg}`}],
+              max_tokens: 200
+            })
+          });
+          const data = await res.json();
+          addMsg(data.choices[0].message.content);
+        } catch(e) {
+          addMsg('خطأ API: ' + e.message);
+        }
+      } else {
+        // Rule-based fallback
+        let reply = 'مرحبا! أساعدك في:';
+        if(msg.includes('طلب')) reply += ' اطلب من السلة.';
+        else if(msg.includes('توصيل')) reply += ' مواقع في delivery.html.';
+        else if(msg.includes('منتج')) reply += ' كل المنتجات في products.html.';
+        else reply += ' متجر خضروات عالمي!';
+        addMsg(reply);
+      }
+    }
+
+    // Enter key
+    document.getElementById('msg-input').addEventListener('keypress', e => {if(e.key==='Enter') sendMsg();});
+    addMsg('مرحبا! أنا مساعد Green Market. كيف أساعدك؟');
+  </script>
+</body>
+</html>
+

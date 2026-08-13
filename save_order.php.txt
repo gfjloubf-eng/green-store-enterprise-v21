@@ -1,0 +1,21 @@
+
+<?php
+include 'db.php';  // الاتصال بقاعدة البيانات
+
+if ($_SERVER['REQUEST_METHOD'] == 'POST') {
+  $name = $_POST['name'];
+  $email = $_POST['email'];
+  $total = $_POST['total'];
+
+  $sql = "INSERT INTO orders (customer_name, customer_email, total)
+          VALUES ('$name', '$email', '$total')";
+
+  if ($conn->query($sql) === TRUE) {
+    echo "تم حفظ الطلب بنجاح ✅";
+  } else {
+    echo "حدث خطأ: " . $conn->error;
+  }
+}
+$conn->close();
+?>
+

@@ -1,0 +1,161 @@
+{
+  "_meta": {
+    "generated": "2026-08-01",
+    "project": "Green Store Enterprise v2",
+    "version": "1.1.0",
+    "status": "connected",
+    "notes": "All product images connected via productImages.ts. Every product in mock data now has an image reference. No broken imports detected."
+  },
+  "images": {
+    "src/assets": [
+      {
+        "file": "hero.png",
+        "path": "@/assets/hero.png",
+        "type": "png",
+        "sizeBytes": 44919,
+        "used": false,
+        "notes": "Available for hero section use"
+      }
+    ],
+    "public": [
+      {
+        "file": "favicon.svg",
+        "path": "/favicon.svg",
+        "type": "svg",
+        "sizeBytes": 9522,
+        "used": true,
+        "notes": "App favicon — referenced in index.html"
+      },
+      {
+        "file": "icons.svg",
+        "path": "/icons.svg",
+        "type": "svg",
+        "sizeBytes": 5031,
+        "used": true,
+        "notes": "SVG sprite — referenced in layout components"
+      }
+    ],
+    "src/assets/images/products": [
+      {
+        "file": "Bell_Peppers__All_About_Them.jpg",
+        "path": "@/assets/images/products/Bell_Peppers__All_About_Them.jpg",
+        "type": "jpg",
+        "sizeBytes": 238659,
+        "used": true,
+        "notes": "Product photo — exported as bellPeppers, used by prod-001"
+      },
+      {
+        "file": "pinterest_1761835345414.jpg",
+        "path": "@/assets/images/products/pinterest_1761835345414.jpg",
+        "type": "jpg",
+        "sizeBytes": 296130,
+        "used": true,
+        "notes": "Product photo — exported as strawberry, used by prod-002"
+      },
+      {
+        "file": "pinterest_1761835345414(1).jpg",
+        "path": "@/assets/images/products/pinterest_1761835345414(1).jpg",
+        "type": "jpg",
+        "sizeBytes": 348042,
+        "used": true,
+        "notes": "Product photo — exported as mint, used by prod-003"
+      },
+      {
+        "file": "pinterest_1761835353985.jpg",
+        "path": "@/assets/images/products/pinterest_1761835353985.jpg",
+        "type": "jpg",
+        "sizeBytes": 181259,
+        "used": true,
+        "notes": "Product photo — exported as carrots, used by prod-006"
+      },
+      {
+        "file": "placeholder.svg",
+        "path": "@/assets/images/products/placeholder.svg",
+        "type": "svg",
+        "sizeBytes": 0,
+        "used": true,
+        "notes": "Fallback image — exported as placeholderImage and used by prod-004, prod-005, prod-007, prod-008, prod-009, prod-010"
+      }
+    ]
+  },
+  "imageUsage": {
+    "MOCK_PRODUCTS": {
+      "component": "src/features/products/mock/products.ts",
+      "field": "product.image",
+      "source": "imported from @/assets/images/products/productImages",
+      "notes": "All 10 products have connected image references"
+    },
+    "ProductTable": {
+      "component": "src/features/products/components/ProductTable.tsx",
+      "field": "product.image",
+      "source": "API/mock data (imageUrl field)",
+      "fallback": "placeholderImage (lucide ImageOff icon fallback if empty)"
+    },
+    "MediaSection": {
+      "component": "src/features/products/components/ProductForm/MediaSection.tsx",
+      "field": "data.imageUrl",
+      "source": "FileReader base64 DataURL from user upload",
+      "fallback": "placeholderImage preview"
+    },
+    "ProductDetailsPage": {
+      "component": "src/features/products/pages/ProductDetailsPage.tsx",
+      "field": "product.image",
+      "source": "ProductService DTO",
+      "fallback": "placeholderImage"
+    },
+    "LogoPlaceholder": {
+      "component": "src/components/ui/LogoPlaceholder.tsx",
+      "source": "CSS-drawn initials (GS) — no image dependency"
+    },
+    "Favicon": {
+      "component": "public/favicon.svg",
+      "source": "Referenced in index.html as /favicon.svg"
+    }
+  },
+  "brokenImports": [],
+  "placeholderReplacements": [
+    {
+      "product": "prod-004",
+      "name": "Organic Whole Milk",
+      "image": "wholeMilk",
+      "source": "placeholder.svg",
+      "status": "using placeholder until real photo is provided"
+    },
+    {
+      "product": "prod-005",
+      "name": "Green Tea Premium",
+      "image": "greenTea",
+      "source": "placeholder.svg",
+      "status": "using placeholder until real photo is provided"
+    },
+    {
+      "product": "prod-007",
+      "name": "Organic Apple Juice",
+      "image": "appleJuice",
+      "source": "placeholder.svg",
+      "status": "using placeholder until real photo is provided"
+    },
+    {
+      "product": "prod-008",
+      "name": "Fresh Basil",
+      "image": "freshBasil",
+      "source": "placeholder.svg",
+      "status": "using placeholder until real photo is provided"
+    },
+    {
+      "product": "prod-009",
+      "name": "Greek Yogurt",
+      "image": "greekYogurt",
+      "source": "placeholder.svg",
+      "status": "using placeholder until real photo is provided"
+    },
+    {
+      "product": "prod-010",
+      "name": "Organic Bananas",
+      "image": "bananas",
+      "source": "placeholder.svg",
+      "status": "using placeholder until real photo is provided"
+    }
+  ]
+}
+

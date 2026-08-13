@@ -1,0 +1,303 @@
+export interface SignInRequest {
+  identifier: string;
+  password: string;
+  deviceId?: string;
+}
+
+export interface AuthResult {
+  accessToken: string;
+  refreshToken: string;
+  expiresIn: number;
+}
+
+const getApiBase = (): string => {
+  const envUrl = (import.meta as any).env?.VITE_API_URL;
+  if (envUrl) return envUrl.replace(/\/+$/, '');
+  return 'http://127.0.0.1:3000';
+};
+
+function resolveUrl(input: RequestInfo): RequestInfo {
+  if (typeof input === 'string' && input.startsWith('/')) {
+    return `${getApiBase()}${input}`;
+  }
+  return input;
+}
+
+export async function parseJsonSafe(res: Response) {
+  try {
+    return await res.json();
+  } catch {
+    return null;
+  }
+}
+
+export async function signIn(req: SignInRequest): Promise<AuthResult> {
+  const res = await fetch(`${getApiBase()}/auth/sign-in`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(req),
+  });
+
+  const payload = await parseJsonSafe(res);
+
+  if (!res.ok) {
+    const message = payload?.error?.message ?? res.statusText;
+    const code = payload?.error?.code ?? 'error';
+    const err: any = new Error(message);
+    err.code = code;
+    err.status = res.status;
+    throw err;
+  }
+
+  const data = payload?.data as AuthResult | undefined;
+  if (!data) throw new Error('invalid_response');
+  return data;
+}
+
+export async function signUp(req: { name: string; email: string; password: string; confirmPassword?: string; phone?: string }): Promise<AuthResult> {
+  const res = await fetch(`${getApiBase()}/auth/sign-up`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(req),
+  });
+
+  const payload = await parseJsonSafe(res);
+
+  if (!res.ok) {
+    const message = payload?.error?.message ?? res.statusText;
+    const code = payload?.error?.code ?? 'error';
+    const err: any = new Error(message);
+    err.code = code;
+    err.status = res.status;
+    throw err;
+  }
+
+  const data = payload?.data as AuthResult | undefined;
+  if (!data) throw new Error('invalid_response');
+  return data;
+}
+
+export async function changePassword(req: { currentPassword: string; newPassword: string; confirmPassword?: string }): Promise<void> {
+  const res = await fetchWithAuth('/auth/change-password', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(req),
+  });
+
+  if (!res.ok) {
+    const payload = await parseJsonSafe(res);
+    const message = payload?.error?.message ?? res.statusText;
+    const err: any = new Error(message);
+    err.status = res.status;
+    throw err;
+  }
+}
+
+export async function forgotPassword(email: string): Promise<void> {
+  const res = await fetch(`${getApiBase()}/auth/forgot-password`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email }),
+  });
+
+  if (!res.ok) {
+    const payload = await parseJsonSafe(res);
+    const message = payload?.error?.message ?? res.statusText;
+    const err: any = new Error(message);
+    err.status = res.status;
+    throw err;
+  }
+}
+
+export async function resetPassword(req: { token: string; newPassword: string; confirmPassword?: string }): Promise<void> {
+  const res = await fetch(`${getApiBase()}/auth/reset-password`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(req),
+  });
+
+  if (!res.ok) {
+    const payload = await parseJsonSafe(res);
+    const message = payload?.error?.message ?? res.statusText;
+    const err: any = new Error(message);
+    err.status = res.status;
+    throw err;
+  }
+}
+
+export async function updateProfile(req: { name?: string; displayName?: string; phone?: string }): Promise<any> {
+  const res = await fetchWithAuth('/auth/profile', {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(req),
+  });
+
+  const payload = await parseJsonSafe(res);
+  if (!res.ok) {
+    const message = payload?.error?.message ?? res.statusText;
+    const err: any = new Error(message);
+    err.status = res.status;
+    throw err;
+  }
+  return payload?.data;
+}
+
+export async function refresh(refreshToken: string): Promise<AuthResult> {
+  const res = await fetch(`${getApiBase()}/auth/refresh`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ refreshToken }),
+  });
+
+  const payload = await parseJsonSafe(res);
+  if (!res.ok) {
+    const message = payload?.error?.message ?? res.statusText;
+    const err: any = new Error(message);
+    err.status = res.status;
+    throw err;
+  }
+
+  const data = payload?.data as AuthResult | undefined;
+  if (!data) throw new Error('invalid_response');
+  return data;
+}
+
+export async function getCurrentUser(): Promise<any> {
+  const res = await fetchWithAuth(`${getApiBase()}/auth/me`, { method: 'GET' });
+  const payload = await parseJsonSafe(res);
+  if (!res.ok) {
+    const message = payload?.error?.message ?? res.statusText;
+    const err: any = new Error(message);
+    err.status = res.status;
+    throw err;
+  }
+
+  return payload?.data ?? null;
+}
+
+// Token storage helpers — read from localStorage or sessionStorage (same keys as AuthProvider)
+function readToken(key: string): string | null {
+  try {
+    const v = window.localStorage.getItem(key);
+    if (v) return v;
+    return window.sessionStorage.getItem(key);
+  } catch {
+    return null;
+  }
+}
+
+function writeToken(key: string, value: string | null, remember = true) {
+  try {
+    if (remember) {
+      if (value === null) window.localStorage.removeItem(key);
+      else window.localStorage.setItem(key, value);
+      window.sessionStorage.removeItem(key);
+    } else {
+      if (value === null) window.sessionStorage.removeItem(key);
+      else window.sessionStorage.setItem(key, value);
+      window.localStorage.removeItem(key);
+    }
+  } catch {}
+}
+
+export function getStoredAccessToken(): string | null {
+  return readToken('gs_access_token');
+}
+
+export function getStoredRefreshToken(): string | null {
+  return readToken('gs_refresh_token');
+}
+
+export function setStoredTokens(result: AuthResult, remember = true) {
+  writeToken('gs_access_token', result.accessToken, remember);
+  writeToken('gs_refresh_token', result.refreshToken, remember);
+  try {
+    const s = String(result.expiresIn ?? '');
+    writeToken('gs_expires_in', s, remember);
+  } catch {}
+}
+
+export function clearStoredTokens() {
+  try {
+    writeToken('gs_access_token', null, true);
+    writeToken('gs_access_token', null, false);
+    writeToken('gs_refresh_token', null, true);
+    writeToken('gs_refresh_token', null, false);
+    writeToken('gs_expires_in', null, true);
+    writeToken('gs_expires_in', null, false);
+
+    sessionStorage.removeItem('gs_access_token');
+    sessionStorage.removeItem('gs_refresh_token');
+    sessionStorage.removeItem('gs_expires_in');
+  } catch {}
+}
+
+// fetch wrapper with automatic refresh + retry
+let refreshPromise: Promise<void> | null = null;
+
+export async function fetchWithAuth(input: RequestInfo, init?: RequestInit, retry = true): Promise<Response> {
+  const targetUrl = resolveUrl(input);
+  const access = getStoredAccessToken();
+  const headers = new Headers(init?.headers ?? {});
+  if (access) headers.set('Authorization', `Bearer ${access}`);
+
+  const res = await fetch(targetUrl, { ...init, headers });
+
+  if (res.status !== 401) return res;
+
+  // 401 — attempt refresh (only once)
+  if (!retry) return res;
+
+  const refreshToken = getStoredRefreshToken();
+  if (!refreshToken) return res;
+
+  // ensure only one refresh runs at a time
+  if (!refreshPromise) {
+    refreshPromise = (async () => {
+      try {
+        const newTokens = await refresh(refreshToken);
+        setStoredTokens(newTokens, true);
+      } catch (err) {
+        clearStoredTokens();
+        throw err;
+      } finally {
+        refreshPromise = null;
+      }
+    })();
+  }
+
+  try {
+    await refreshPromise;
+  } catch (e) {
+    return res;
+  }
+
+  const access2 = getStoredAccessToken();
+  const headers2 = new Headers(init?.headers ?? {});
+  if (access2) headers2.set('Authorization', `Bearer ${access2}`);
+  return fetch(targetUrl, { ...init, headers: headers2 });
+}
+
+export async function logout(): Promise<void> {
+  const refreshToken = getStoredRefreshToken();
+  try {
+    if (refreshToken) {
+      await fetch(`${getApiBase()}/auth/logout`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ refreshToken }),
+      });
+    }
+  } catch (e) {
+    // ignore network errors — proceed to clear local tokens
+  }
+
+  clearStoredTokens();
+
+  try {
+    if (typeof window !== 'undefined') {
+      window.location.href = '/login';
+    }
+  } catch {}
+}
+

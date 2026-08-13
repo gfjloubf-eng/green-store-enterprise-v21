@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>تسجيل الدخول | Green Market</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <section style="padding:100px 60px;text-align:center;">
+    <h2>تسجيل الدخول / التسجيل</h2>
+    <form id="auth-form" style="max-width:400px;margin:auto;">
+      <input type="email" id="email" placeholder="البريد" required>
+      <input type="password" id="pass" placeholder="كلمة السر" required>
+      <input type="tel" id="phone" placeholder="الهاتف (اختياري)">
+      <button type="submit" class="btn">دخول / تسجيل</button>
+    </form>
+    <p>دمو: email test@test.com pass 123 | سيتم تطوير PHP auth قريباً.</p>
+  </section>
+  <footer style="text-align:center;">
+    <p>عمار عادل المصوعي 712275038</p>
+  </footer>
+  <script>
+    document.getElementById('auth-form').onsubmit = e => {
+      e.preventDefault();
+      alert('تم التسجيل/الدخول (session demo)');
+      window.location = 'index.html';
+    };
+  </script>
+</body>
+</html>
+

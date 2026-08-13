@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>مواقع التوصيل | Green Market</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+  <link rel="stylesheet" href="style.css">
+  <style>#map {height: 500px; border-radius:20px;}</style>
+</head>
+<body>
+  <header class="header">
+    <div class="logo">🌿 Green Market - التوصيل</div>
+    <nav><a href="index.html">الرئيسية</a> <a href="cart.html">سلة</a></nav>
+  </header>
+
+  <section style="padding:60px;text-align:center;">
+    <h2>مواقع التوصيل والتتبع</h2>
+    <p>اختر موقع التوصيل أو تتبع طلبك على الخريطة</p>
+    <div id="map"></div>
+    <div style="margin-top:20px;">
+      <input type="text" id="track-order" placeholder="رقم الطلب للتتبع">
+      <button class="btn" onclick="trackOrder()">تتبع</button>
+    </div>
+  </section>
+
+  <footer style="text-align:center;padding:20px;background:#4CAF50;color:white;">
+    <p>مهندس عمار عادل المصوعي | 712275038 | Green Market Global</p>
+  </footer>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script>
+    // Leaflet free maps (no API key needed)
+    const map = L.map('map').setView([15.5527, 48.5227], 12); // Sanaa
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+
+    // Load locations from DB
+    fetch('api.php?action=locations')
+      .then(r=>r.json())
+      .then(d=> {
+        d.locations.forEach(loc => {
+          L.marker([loc.lat, loc.lng]).addTo(map)
+            .bindPopup(`<b>${loc.name}</b><br>${loc.addr}`);
+        });
+      });
+
+    function trackOrder() {
+      const id = document.getElementById('track-order').value;
+      if(id) {
+        alert(`جاري تتبع الطلب ${id}... (دمو: في الطريق)`);
+        // Fetch order status, add marker
+      }
+    }
+  </script>
+</body>
+</html>
+

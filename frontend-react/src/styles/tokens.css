@@ -1,0 +1,436 @@
+/* ============================================================
+   GSDS v1.1 — Design Tokens (CSS Custom Properties)
+   Green Store Design System — Enterprise UI Foundation
+   ============================================================
+   Semantic Design Tokens for the Green Store identity.
+   Dark mode defaults with light mode overrides.
+   ============================================================ */
+
+:root {
+  /* ────────────────────────────────────────────────
+     Color: Brand — Primary Green Palette
+     ──────────────────────────────────────────────── */
+  --gs-primary: #059669;
+  --gs-primary-hover: #047857;
+  --gs-primary-active: #065F46;
+  --gs-primary-soft: rgba(5, 150, 105, 0.12);
+  --gs-primary-soft-hover: rgba(5, 150, 105, 0.2);
+  --gs-primary-contrast: #FFFFFF;
+
+  --gs-emerald-deep: #065F46;
+  --gs-emerald: #059669;
+  --gs-emerald-fresh: #10B981;
+  --gs-mint: #6EE7B7;
+
+  /* ────────────────────────────────────────────────
+     Color: Secondary — Neutral / Stone
+     ──────────────────────────────────────────────── */
+  --gs-secondary: #78716C;
+  --gs-secondary-hover: #6B6560;
+  --gs-secondary-soft: rgba(120, 113, 108, 0.1);
+  --gs-secondary-contrast: #FFFFFF;
+
+  /* ────────────────────────────────────────────────
+     Color: Accent — Golden Amber & Sky Blue
+     ──────────────────────────────────────────────── */
+  --gs-accent: #D97706;
+  --gs-accent-hover: #B45309;
+  --gs-accent-soft: rgba(217, 119, 6, 0.12);
+  --gs-accent-contrast: #FFFFFF;
+
+  --gs-accent-blue: #0EA5E9;
+  --gs-accent-blue-soft: rgba(14, 165, 233, 0.12);
+
+  /* ────────────────────────────────────────────────
+     Color: Status — Semantic
+     ──────────────────────────────────────────────── */
+  --gs-success: #10B981;
+  --gs-success-soft: rgba(16, 185, 129, 0.12);
+  --gs-success-contrast: #FFFFFF;
+
+  --gs-warning: #F59E0B;
+  --gs-warning-soft: rgba(245, 158, 11, 0.12);
+  --gs-warning-contrast: #FFFFFF;
+
+  --gs-danger: #EF4444;
+  --gs-danger-soft: rgba(239, 68, 68, 0.12);
+  --gs-danger-contrast: #FFFFFF;
+
+  --gs-info: #3B82F6;
+  --gs-info-soft: rgba(59, 130, 246, 0.12);
+  --gs-info-contrast: #FFFFFF;
+
+  /* ────────────────────────────────────────────────
+     Color: Surface & Background — Dark Mode (Deep Forest)
+     ──────────────────────────────────────────────── */
+  --gs-background: #0D1B14;
+  --gs-surface: #162B20;
+  --gs-surface-elevated: #1E3827;
+  --gs-card: #162B20;
+  --gs-card-hover: #1E3827;
+
+  --gs-border: #2D4A38;
+  --gs-border-hover: #3D5F48;
+  --gs-border-subtle: #1F3629;
+  --gs-divider: #2D4A38;
+
+  --gs-overlay: rgba(0, 0, 0, 0.25);
+  --gs-overlay-blur: rgba(0, 0, 0, 0.20);
+
+  /* ────────────────────────────────────────────────
+     Color: Text — Dark Mode
+     ──────────────────────────────────────────────── */
+  --gs-foreground: #F0FDF4;
+  --gs-foreground-secondary: #A7C4B3;
+  --gs-foreground-muted: #6B8F7A;
+  --gs-foreground-disabled: #4A6B56;
+  --gs-foreground-inverse: #0D1B14;
+
+  /* ────────────────────────────────────────────────
+     Color: Muted / Neutral backgrounds
+     ──────────────────────────────────────────────── */
+  --gs-muted: #1F3629;
+  --gs-muted-hover: #2D4A38;
+  --gs-muted-foreground: #6B8F7A;
+
+  /* ────────────────────────────────────────────────
+     Typography — Font Families
+     ──────────────────────────────────────────────── */
+  --gs-font-arabic: 'Cairo', 'IBM Plex Sans Arabic', system-ui, -apple-system, sans-serif;
+  --gs-font-english: 'Inter', system-ui, -apple-system, sans-serif;
+  --gs-font-mono: 'JetBrains Mono', 'Fira Code', monospace;
+
+  /* ────────────────────────────────────────────────
+     Typography — Font Size Scale
+     ──────────────────────────────────────────────── */
+  --gs-text-display: 2rem;       /* 32px */
+  --gs-text-h1: 1.5rem;          /* 24px */
+  --gs-text-h2: 1.25rem;         /* 20px */
+  --gs-text-h3: 1.125rem;        /* 18px */
+  --gs-text-h4: 1rem;            /* 16px */
+  --gs-text-body: 0.875rem;      /* 14px */
+  --gs-text-small: 0.75rem;      /* 12px */
+  --gs-text-micro: 0.625rem;     /* 10px */
+
+  /* ────────────────────────────────────────────────
+     Typography — Line Heights
+     ──────────────────────────────────────────────── */
+  --gs-leading-display: 1.2;
+  --gs-leading-h1: 1.3;
+  --gs-leading-h2: 1.35;
+  --gs-leading-h3: 1.4;
+  --gs-leading-h4: 1.45;
+  --gs-leading-body: 1.5;
+  --gs-leading-small: 1.4;
+  --gs-leading-micro: 1.3;
+
+  /* ────────────────────────────────────────────────
+     Typography — Font Weights
+     ──────────────────────────────────────────────── */
+  --gs-weight-regular: 400;
+  --gs-weight-medium: 500;
+  --gs-weight-semibold: 600;
+  --gs-weight-bold: 700;
+
+  /* ────────────────────────────────────────────────
+     Typography — Letter Spacing
+     ──────────────────────────────────────────────── */
+  --gs-tracking-tight: -0.025em;
+  --gs-tracking-normal: 0;
+  --gs-tracking-wide: 0.025em;
+  --gs-tracking-wider: 0.05em;
+
+  /* ────────────────────────────────────────────────
+     Spacing — 8px Grid System
+     ──────────────────────────────────────────────── */
+  --gs-space-0: 0px;
+  --gs-space-px: 1px;
+  --gs-space-0_5: 2px;
+  --gs-space-1: 4px;
+  --gs-space-1_5: 6px;
+  --gs-space-2: 8px;
+  --gs-space-2_5: 10px;
+  --gs-space-3: 12px;
+  --gs-space-3_5: 14px;
+  --gs-space-4: 16px;
+  --gs-space-5: 20px;
+  --gs-space-6: 24px;
+  --gs-space-7: 28px;
+  --gs-space-8: 32px;
+  --gs-space-9: 36px;
+  --gs-space-10: 40px;
+  --gs-space-11: 44px;
+  --gs-space-12: 48px;
+  --gs-space-14: 56px;
+  --gs-space-16: 64px;
+
+  /* ────────────────────────────────────────────────
+     Border Radius
+     ──────────────────────────────────────────────── */
+  --gs-radius-none: 0px;
+  --gs-radius-sm: 4px;
+  --gs-radius-md: 6px;
+  --gs-radius-lg: 8px;
+  --gs-radius-xl: 12px;
+  --gs-radius-2xl: 16px;
+  --gs-radius-full: 9999px;
+
+  /* ────────────────────────────────────────────────
+     Shadows — Dark Mode (Deep Forest)
+     ──────────────────────────────────────────────── */
+  --gs-shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --gs-shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.35);
+  --gs-shadow-md: 0 4px 6px rgba(0, 0, 0, 0.35);
+  --gs-shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.4);
+  --gs-shadow-xl: 0 20px 25px rgba(0, 0, 0, 0.45);
+  --gs-shadow-2xl: 0 25px 50px rgba(0, 0, 0, 0.5);
+  --gs-shadow-card: 0 1px 3px rgba(0, 0, 0, 0.35);
+  --gs-shadow-dropdown: 0 4px 16px rgba(0, 0, 0, 0.45);
+  --gs-shadow-modal: 0 12px 48px rgba(0, 0, 0, 0.55);
+
+  /* ────────────────────────────────────────────────
+     Motion — Duration & Easing
+     ──────────────────────────────────────────────── */
+  --gs-duration-instant: 0ms;
+  --gs-duration-fast: 150ms;
+  --gs-duration-normal: 200ms;
+  --gs-duration-medium: 250ms;
+  --gs-duration-slow: 350ms;
+  --gs-duration-slower: 500ms;
+
+  --gs-ease-linear: linear;
+  --gs-ease-in: cubic-bezier(0.4, 0, 1, 1);
+  --gs-ease-out: cubic-bezier(0, 0, 0.2, 1);
+  --gs-ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
+  --gs-ease-bounce: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --gs-ease-spring: cubic-bezier(0.175, 0.885, 0.32, 1.275);
+
+  /* ────────────────────────────────────────────────
+     Layout — App Shell Dimensions
+     ──────────────────────────────────────────────── */
+  --gs-topbar-height: 64px;
+  --gs-sidebar-width: 260px;
+  --gs-sidebar-collapsed: 64px;
+  --gs-footer-height: 32px;
+
+  /* ────────────────────────────────────────────────
+     Z-Index Scale
+     ──────────────────────────────────────────────── */
+  --gs-z-base: 0;
+  --gs-z-dropdown: 100;
+  --gs-z-sticky: 200;
+  --gs-z-overlay: 300;
+  --gs-z-modal: 400;
+  --gs-z-toast: 500;
+  --gs-z-tooltip: 600;
+
+  /* ────────────────────────────────────────────────
+     Backdrop Filter
+     ──────────────────────────────────────────────── */
+  --gs-blur-sm: 4px;
+  --gs-blur-md: 8px;
+  --gs-blur-lg: 12px;
+  --gs-blur-xl: 24px;
+}
+
+/* ============================================================
+   Light Mode Overrides — Fresh & Clean
+   ============================================================ */
+[data-theme='light'] {
+  /* Surface & Background */
+  --gs-background: #F0F7F4;
+  --gs-surface: #FFFFFF;
+  --gs-surface-elevated: #FFFFFF;
+  --gs-card: #FFFFFF;
+  --gs-card-hover: #F8FCF9;
+
+  --gs-border: #DCE8E0;
+  --gs-border-hover: #BCCDC2;
+  --gs-border-subtle: #E8F0EB;
+  --gs-divider: #DCE8E0;
+
+  --gs-overlay: rgba(0, 0, 0, 0.3);
+  --gs-overlay-blur: rgba(0, 0, 0, 0.15);
+
+  /* Text */
+  --gs-foreground: #0D1B14;
+  --gs-foreground-secondary: #3D5F48;
+  --gs-foreground-muted: #6B8F7A;
+  --gs-foreground-disabled: #9CB0A3;
+  --gs-foreground-inverse: #F0FDF4;
+
+  /* Muted */
+  --gs-muted: #E8F0EB;
+  --gs-muted-hover: #DCE8E0;
+  --gs-muted-foreground: #6B8F7A;
+
+  /* Primary soft */
+  --gs-primary-soft: rgba(5, 150, 105, 0.08);
+  --gs-primary-soft-hover: rgba(5, 150, 105, 0.14);
+
+  /* Shadows — Lighter for light mode */
+  --gs-shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.04);
+  --gs-shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.06);
+  --gs-shadow-md: 0 4px 6px rgba(0, 0, 0, 0.06);
+  --gs-shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.08);
+  --gs-shadow-xl: 0 20px 25px rgba(0, 0, 0, 0.1);
+  --gs-shadow-2xl: 0 25px 50px rgba(0, 0, 0, 0.15);
+  --gs-shadow-card: 0 1px 3px rgba(0, 0, 0, 0.06);
+  --gs-shadow-dropdown: 0 4px 16px rgba(0, 0, 0, 0.1);
+  --gs-shadow-modal: 0 12px 48px rgba(0, 0, 0, 0.18);
+}
+
+/* ============================================================
+   Legacy Token Aliases (GSDS v1.0 compatibility)
+   Maps old --gsd-* tokens to new --gs-* tokens
+   ============================================================ */
+:root {
+  /* Brand */
+  --gsd-color-primary-default: var(--gs-primary);
+  --gsd-color-primary-hover: var(--gs-primary-hover);
+  --gsd-color-primary-active: var(--gs-primary-active);
+  --gsd-color-primary-soft: var(--gs-primary-soft);
+  --gsd-color-forest-dark: var(--gs-emerald-deep);
+
+  /* Surface */
+  --gsd-color-bg-app: var(--gs-background);
+  --gsd-color-bg-surface: var(--gs-surface);
+  --gsd-color-bg-elevated: var(--gs-surface-elevated);
+  --gsd-color-border-default: var(--gs-border);
+  --gsd-color-border-hover: var(--gs-border-hover);
+
+  /* Text */
+  --gsd-color-text-primary: var(--gs-foreground);
+  --gsd-color-text-secondary: var(--gs-foreground-secondary);
+  --gsd-color-text-muted: var(--gs-foreground-muted);
+  --gsd-color-text-disabled: var(--gs-foreground-disabled);
+
+  /* Status */
+  --gsd-color-status-success: var(--gs-success);
+  --gsd-color-status-warning: var(--gs-warning);
+  --gsd-color-status-danger: var(--gs-danger);
+  --gsd-color-status-info: var(--gs-info);
+
+  /* Typography */
+  --gsd-font-family-arabic: var(--gs-font-arabic);
+  --gsd-font-family-english: var(--gs-font-english);
+  --gsd-font-family-mono: var(--gs-font-mono);
+
+  /* Font Size */
+  --gsd-font-size-display: var(--gs-text-display);
+  --gsd-font-size-h1: var(--gs-text-h1);
+  --gsd-font-size-h2: var(--gs-text-h2);
+  --gsd-font-size-h3: var(--gs-text-h3);
+  --gsd-font-size-body: var(--gs-text-body);
+  --gsd-font-size-small: var(--gs-text-small);
+  --gsd-font-size-micro: var(--gs-text-micro);
+
+  /* Line Heights */
+  --gsd-line-height-display: var(--gs-leading-display);
+  --gsd-line-height-h1: var(--gs-leading-h1);
+  --gsd-line-height-h2: var(--gs-leading-h2);
+  --gsd-line-height-h3: var(--gs-leading-h3);
+  --gsd-line-height-body: var(--gs-leading-body);
+  --gsd-line-height-small: var(--gs-leading-small);
+  --gsd-line-height-micro: var(--gs-leading-micro);
+
+  /* Font Weights */
+  --gsd-font-weight-regular: var(--gs-weight-regular);
+  --gsd-font-weight-medium: var(--gs-weight-medium);
+  --gsd-font-weight-semibold: var(--gs-weight-semibold);
+  --gsd-font-weight-bold: var(--gs-weight-bold);
+
+  /* Spacing */
+  --gsd-space-2xs: var(--gs-space-0_5);
+  --gsd-space-xs: var(--gs-space-1);
+  --gsd-space-sm: var(--gs-space-2);
+  --gsd-space-md: var(--gs-space-3);
+  --gsd-space-lg: var(--gs-space-4);
+  --gsd-space-xl: var(--gs-space-6);
+  --gsd-space-2xl: var(--gs-space-8);
+  --gsd-space-3xl: var(--gs-space-12);
+
+  /* Shadows */
+  --gsd-shadow-card: var(--gs-shadow-card);
+  --gsd-shadow-dropdown: var(--gs-shadow-dropdown);
+  --gsd-shadow-modal: var(--gs-shadow-modal);
+
+  /* Motion */
+  --gsd-duration-fast: var(--gs-duration-fast);
+  --gsd-duration-medium: var(--gs-duration-medium);
+  --gsd-duration-slow: var(--gs-duration-slow);
+  --gsd-ease-standard: var(--gs-ease-in-out);
+
+  /* Layout */
+  --gsd-topbar-height: var(--gs-topbar-height);
+  --gsd-sidebar-width-expanded: var(--gs-sidebar-width);
+  --gsd-sidebar-width-collapsed: var(--gs-sidebar-collapsed);
+  --gsd-statusbar-height: var(--gs-footer-height);
+}
+
+/* Mobile-first overrides (max-width: 767px) — increase readability, touch targets, and spacing */
+@media (max-width: 767px) {
+  :root {
+    /* Typography */
+    --gs-text-h1: 1.375rem; /* 22px */
+    --gs-text-h2: 1.125rem; /* 18px */
+    --gs-text-h3: 1rem;     /* 16px */
+    --gs-text-h4: 0.9375rem;/* 15px */
+    --gs-text-body: 0.9375rem; /* 15px */
+
+    /* Line heights slightly looser on mobile */
+    --gs-leading-h1: 1.35;
+    --gs-leading-h2: 1.4;
+    --gs-leading-h3: 1.45;
+    --gs-leading-body: 1.6;
+
+    /* Layout */
+    --gs-topbar-height: 64px;
+
+    /* Spacing — enforce 16px base padding */
+    --gs-space-4: 16px;
+    --gs-space-6: 24px;
+
+    /* Button / input touch sizes */
+    --gsd-btn-md-height: 52px;
+    --gsd-input-height: 52px;
+
+    /* Drawer width tuned for mobile */
+    --gs-mobile-drawer-width: 80%;
+    --gs-mobile-drawer-max: 300px;
+  }
+
+  /* Buttons and inputs larger on mobile for comfortable tapping */
+  .gsd-btn--md {
+    min-height: var(--gsd-btn-md-height);
+    height: auto;
+    padding-top: 0.5rem;
+    padding-bottom: 0.5rem;
+  }
+
+  .gsd-input {
+    height: var(--gsd-input-height);
+    padding-left: var(--gs-space-3);
+    padding-right: var(--gs-space-3);
+    font-size: var(--gs-text-body);
+  }
+
+  /* Cards: full width and comfortable spacing */
+  .gsd-card {
+    border-radius: 1rem;
+    padding: 0.75rem;
+  }
+
+  /* Topbar size */
+  .gsd-topbar {
+    height: var(--gs-topbar-height);
+    min-height: var(--gs-topbar-height);
+  }
+
+  /* Sidebar / Drawer tweaks for mobile */
+  .gsd-sidebar {
+    width: var(--gs-mobile-drawer-width) !important;
+    max-width: var(--gs-mobile-drawer-max) !important;
+  }
+}
+

@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>لوحة الإدارة | Green Market</title>
+  <link rel="stylesheet" href="style.css">
+  <style>table{width:100%;border-collapse:collapse;} th,td{padding:10px;border:1px solid #ddd;}</style>
+</head>
+<body>
+  <header class="header">
+    <div class="logo">👨‍💼 Admin Panel Global</div>
+    <nav><a href="index.html">المتجر</a></nav>
+  </header>
+
+  <section style="padding:40px 60px;">
+    <h2>الطلبات الأخيرة</h2>
+    <table>
+      <tr><th>رقم</th><th>عميل</th><th>إجمالي</th><th>حالة</th><th>تاريخ</th></tr>
+      <tbody id="orders-tbody"></tbody>
+    </table>
+
+    <h2 style="margin-top:40px;">المنتجات</h2>
+    <table>
+      <tr><th>اسم</th><th>سعر</th><th>مخزون</th></tr>
+      <tbody id="products-tbody"></tbody>
+    </table>
+  </section>
+
+  <footer>عمار عادل المصوعي 712275038</footer>
+
+  <script>
+    async function loadAdmin() {
+      // Orders
+      const ores = await (await fetch('api.php?action=orders')).json();
+      const otbody = document.getElementById('orders-tbody');
+      ores.orders.forEach(o => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `<td>${o.id}</td><td>${o.customer_name}</td><td>$${o.total}</td><td>${o.status}</td><td>${o.created_at}</td>`;
+        otbody.appendChild(tr);
+      });
+
+      // Products
+      const pros = await (await fetch('api.php?action=products')).json();
+      const ptbody = document.getElementById('products-tbody');
+      pros.products.slice(0,10).forEach(p => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `<td>${p.name}</td><td>$${p.price}</td><td>${p.stock}</td>`;
+        ptbody.appendChild(tr);
+      });
+    }
+    loadAdmin();
+  </script>
+</body>
+</html>
+

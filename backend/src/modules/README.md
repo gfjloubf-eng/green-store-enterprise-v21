@@ -1,0 +1,1 @@
+Modules folder: place domain modules here (e.g., auth, users, products). Each module should group controllers, services, repositories, and tests.

@@ -1,0 +1,25 @@
+{
+  "scripts": {
+    "build": "cd frontend-react && npm run build",
+    "prisma:validate": "npx prisma validate --schema backend/prisma/schema.prisma --config backend/prisma/prisma.config.ts",
+    "prisma:migrate:status": "npx prisma migrate status --schema backend/prisma/schema.prisma --config backend/prisma/prisma.config.ts"
+  },
+  "prisma": {
+    "seed": "ts-node --transpile-only backend/prisma/seed.ts"
+  },
+  "dependencies": {
+    "@react-three/drei": "^10.7.7",
+    "@react-three/fiber": "^9.5.0",
+    "framer-motion": "^12.38.0",
+    "lucide-react": "^1.7.0",
+    "react-router-dom": "^7.14.0",
+    "three": "^0.183.2",
+    "zustand": "^5.0.12",
+    "argon2": "^0.30.0"
+  },
+
+  "devDependencies": {
+    "@prisma/client": "^7.9.1",
+    "prisma": "^7.9.1"
+  }
+}

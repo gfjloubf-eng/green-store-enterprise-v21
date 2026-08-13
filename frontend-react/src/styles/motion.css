@@ -1,0 +1,149 @@
+/* ============================================================
+   GSDS v1.1 — Motion Design System
+   Green Store Design System — Enterprise UI Foundation
+   ============================================================
+   Professional, fast, smooth animations.
+   No excessive effects.
+   ============================================================ */
+
+/* ────────────────────────────────────────────────
+   Keyframes
+   ──────────────────────────────────────────────── */
+
+@keyframes gs-fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes gs-fade-out {
+  from { opacity: 1; }
+  to   { opacity: 0; }
+}
+
+@keyframes gs-slide-up {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes gs-slide-down {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes gs-slide-left {
+  from {
+    opacity: 0;
+    transform: translateX(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes gs-slide-right {
+  from {
+    opacity: 0;
+    transform: translateX(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes gs-scale-in {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes gs-shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+@keyframes gs-spin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+@keyframes gs-pulse {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0.5; }
+}
+
+/* ────────────────────────────────────────────────
+   Animation Utility Classes
+   ──────────────────────────────────────────────── */
+
+.gs-animate-fade-in {
+  animation: gs-fade-in var(--gs-duration-fast) var(--gs-ease-out) forwards;
+}
+
+.gs-animate-slide-up {
+  animation: gs-slide-up var(--gs-duration-normal) var(--gs-ease-out) forwards;
+}
+
+.gs-animate-slide-down {
+  animation: gs-slide-down var(--gs-duration-normal) var(--gs-ease-out) forwards;
+}
+
+.gs-animate-scale-in {
+  animation: gs-scale-in var(--gs-duration-normal) var(--gs-ease-out) forwards;
+}
+
+.gs-animate-shimmer {
+  background: linear-gradient(
+    90deg,
+    var(--gs-muted) 25%,
+    var(--gs-muted-hover) 50%,
+    var(--gs-muted) 75%
+  );
+  background-size: 200% 100%;
+  animation: gs-shimmer 1.5s ease-in-out infinite;
+}
+
+.gs-animate-spin {
+  animation: gs-spin 1s linear infinite;
+}
+
+.gs-animate-pulse {
+  animation: gs-pulse 2s ease-in-out infinite;
+}
+
+/* ────────────────────────────────────────────────
+   Reduced Motion — Accessibility
+   ──────────────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+

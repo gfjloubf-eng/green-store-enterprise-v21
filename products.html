@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>المنتجات | Green Market</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="header">
+    <div class="logo">🌿 Green Market Global</div>
+    <nav class="navbar">
+      <a href="index.html">الرئيسية</a>
+      <a href="#products" class="active">المنتجات</a>
+      <a href="cart.html">السلة</a>
+      <a href="delivery.html">التوصيل</a>
+      <a href="login.html">تسجيل الدخول</a>
+    </nav>
+  </header>
+
+  <section class="products" style="padding:100px 60px;">
+    <h2>كل المنتجات المتاحة</h2>
+    <input type="text" id="search" placeholder="ابحث عن منتج..." style="width:300px;padding:10px;margin-bottom:20px;">
+    <div class="product-grid" id="product-grid">
+      <!-- Dynamic -->
+    </div>
+  </section>
+
+  <footer style="text-align:center;padding:20px;background:#4CAF50;color:white;">
+    <p>© 2025 Green Market Global | المهندس عمار عادل المصوعي | 712275038</p>
+  </footer>
+
+  <script>
+    async function loadProducts(q='') {
+      const url = q ? `api.php?action=products&q=${encodeURIComponent(q)}` : 'api.php?action=products';
+      const res = await fetch(url);
+      const data = await res.json();
+      const grid = document.getElementById('product-grid');
+      grid.innerHTML = '';
+      data.products.forEach(p => {
+        const div = document.createElement('div');
+        div.className = 'product';
+        div.innerHTML = `
+          <img src="${p.img}" alt="${p.name}" onerror="this.src='photo/default.jpg'">
+          <h3>${p.name}</h3>
+          <p>${p.description || ''}</p>
+          <p><strong>$${p.price}</strong> | المخزون: ${p.stock}</p>
+          <button class="btn add-to-cart" data-id="${p.id}" data-name="${p.name}" data-price="${p.price}">أضف</button>
+        `;
+        grid.appendChild(div);
+      });
+      attachListeners();
+    }
+
+    function attachListeners() {
+      document.querySelectorAll('.add-to-cart').forEach(btn => {
+        btn.onclick = () => {
+          // Same cart logic as script.js
+          const id = btn.dataset.id, name=btn.dataset.name, price=parseFloat(btn.dataset.price);
+          let cart = JSON.parse(localStorage.getItem('cart')||'[]');
+          const ex = cart.find(it => it.id==id || it.name===name);
+          if(ex) ex.quantity++; else cart.push({id,name,price,quantity:1});
+          localStorage.setItem('cart',JSON.stringify(cart));
+          alert('✅ مضاف');
+        };
+      });
+    }
+
+    document.getElementById('search').oninput = (e) => loadProducts(e.target.value);
+
+    loadProducts();
+  </script>
+</body>
+</html>
+

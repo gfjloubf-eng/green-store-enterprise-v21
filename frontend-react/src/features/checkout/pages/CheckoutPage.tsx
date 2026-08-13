@@ -1,0 +1,226 @@
+import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { MapPin, Clock, Tag, ShoppingBag, AlertCircle, CheckCircle2, ArrowRight } from 'lucide-react';
+import { createOrder } from '@/services/orderClient';
+import { getCart, type Cart } from '@/services/cartClient';
+
+export function CheckoutPage() {
+  const navigate = useNavigate();
+  const [cart, setCart] = useState<Cart | null>(null);
+  const [paymentMethod, setPaymentMethod] = useState<'CASH_ON_DELIVERY' | 'CARD'>('CASH_ON_DELIVERY');
+  const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
+  const [notes, setNotes] = useState('');
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState(false);
+
+  useEffect(() => {
+    getCart()
+      .then((c) => setCart(c))
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, []);
+
+  const handlePlaceOrder = async () => {
+    if (!cart || !cart.items || cart.items.length === 0) {
+      setError('سلة التسوق فارغة');
+      return;
+    }
+
+    setSubmitting(true);
+    setError(null);
+    try {
+      const order = await createOrder({ notes: notes.trim() || undefined });
+      
+      // Initiate / Attach Payment Transaction
+      const { createPayment } = await import('@/services/paymentClient');
+      await createPayment({
+        orderId: order.id,
+        paymentMethod,
+        idempotencyKey: `IDEM-${order.id}-${Date.now()}`,
+      });
+
+      setSuccess(true);
+      setTimeout(() => {
+        navigate(`/orders/${order.id}`);
+      }, 1200);
+    } catch (err: any) {
+      setError(err?.message || 'فشل إنشاء الطلب والدفع. يرجى المحاولة لاحقاً.');
+      setSubmitting(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[50vh] gap-3" dir="rtl">
+        <div className="h-8 w-8 animate-spin rounded-full border-3 border-emerald-500 border-t-transparent" />
+        <span className="text-sm font-medium [color:var(--gs-foreground-secondary)]">جاري تجهيز بيانات الطلب...</span>
+      </div>
+    );
+  }
+
+  const items = cart?.items ?? [];
+
+  return (
+    <div className="flex flex-col gap-6 pb-12" dir="rtl">
+      <header className="space-y-1">
+        <h1 className="text-2xl font-bold [color:var(--gs-foreground)]">إتمام الطلب والدفع</h1>
+        <p className="text-xs text-[var(--gs-foreground-secondary)]">مراجعة العناصر والتسليم قبل تأكيد الطلب الحقيقي.</p>
+      </header>
+
+      {error && (
+        <div className="rounded-2xl bg-rose-500/10 border border-rose-500/20 p-4 text-xs text-rose-600 flex items-center gap-2">
+          <AlertCircle className="h-4 w-4 shrink-0" />
+          <span>{error}</span>
+        </div>
+      )}
+
+      {success && (
+        <div className="rounded-2xl bg-emerald-500/10 border border-emerald-500/20 p-4 text-xs text-emerald-700 flex items-center gap-2">
+          <CheckCircle2 className="h-4 w-4 shrink-0" />
+          <span>تم إنشاء الطلب بنجاح! جاري التوجيه إلى تفاصيل الطلب...</span>
+        </div>
+      )}
+
+      {items.length === 0 ? (
+        <div className="gsd-card rounded-3xl p-10 text-center space-y-4 border border-[var(--gs-border)] bg-[var(--gs-surface)]">
+          <ShoppingBag className="h-12 w-12 text-emerald-600 mx-auto" />
+          <h2 className="text-base font-bold">لا يوجد عناصر في السلة لإتمام الطلب</h2>
+          <button
+            type="button"
+            onClick={() => navigate('/products')}
+            className="gsd-btn gsd-btn--primary gsd-btn--md rounded-xl px-5 py-2 text-xs"
+          >
+            تصفح المنتجات الآن
+          </button>
+        </div>
+      ) : (
+        <div className="grid gap-6 lg:grid-cols-[1fr_360px]">
+          <div className="space-y-6">
+            {/* Delivery Address */}
+            <section className="gsd-card rounded-3xl border border-[var(--gs-border)] bg-[var(--gs-surface)] p-5 space-y-3">
+              <div className="flex items-center gap-2 text-sm font-bold text-emerald-600">
+                <MapPin className="h-5 w-5" />
+                <span>عنوان التسليم والمستلم</span>
+              </div>
+              <div className="rounded-2xl bg-[var(--gs-background)] p-4 text-xs space-y-1">
+                <div className="font-semibold [color:var(--gs-foreground)]">عنوان التوصيل السريع</div>
+                <div className="text-[var(--gs-foreground-secondary)]">المملكة العربية السعودية، جدة / الرياض</div>
+              </div>
+            </section>
+
+            {/* Delivery Time */}
+            <section className="gsd-card rounded-3xl border border-[var(--gs-border)] bg-[var(--gs-surface)] p-5 space-y-3">
+              <div className="flex items-center gap-2 text-sm font-bold text-emerald-600">
+                <Clock className="h-5 w-5" />
+                <span>وقت التوصيل المتوقع</span>
+              </div>
+              <div className="rounded-2xl bg-emerald-500/10 border border-emerald-500/20 p-4 text-xs font-semibold text-emerald-700">
+                التسليم المباشر فور تأكيد الطلب خلال 30 دقيقة
+              </div>
+            </section>
+
+            {/* Payment Method */}
+            <section className="gsd-card rounded-3xl border border-[var(--gs-border)] bg-[var(--gs-surface)] p-5 space-y-3">
+              <div className="flex items-center gap-2 text-sm font-bold text-emerald-600">
+                <Tag className="h-5 w-5" />
+                <span>طريقة الدفع (Payment Method)</span>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <button
+                  type="button"
+                  onClick={() => setPaymentMethod('CASH_ON_DELIVERY')}
+                  className={`p-3.5 rounded-2xl border text-xs font-bold text-right transition ${
+                    paymentMethod === 'CASH_ON_DELIVERY'
+                      ? 'border-emerald-600 bg-emerald-500/10 text-emerald-700'
+                      : 'border-[var(--gs-border)] bg-[var(--gs-background)] text-[var(--gs-foreground-secondary)] hover:bg-[var(--gs-muted)]'
+                  }`}
+                >
+                  الدفع عند الاستلام (COD)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setPaymentMethod('CARD')}
+                  className={`p-3.5 rounded-2xl border text-xs font-bold text-right transition ${
+                    paymentMethod === 'CARD'
+                      ? 'border-emerald-600 bg-emerald-500/10 text-emerald-700'
+                      : 'border-[var(--gs-border)] bg-[var(--gs-background)] text-[var(--gs-foreground-secondary)] hover:bg-[var(--gs-muted)]'
+                  }`}
+                >
+                  بطاقة مدى / ائتمان (Card)
+                </button>
+              </div>
+            </section>
+
+            {/* Order Notes */}
+            <section className="gsd-card rounded-3xl border border-[var(--gs-border)] bg-[var(--gs-surface)] p-5 space-y-3">
+              <div className="flex items-center gap-2 text-sm font-bold text-emerald-600">
+                <Tag className="h-5 w-5" />
+                <span>ملاحظات إضافية على الطلب</span>
+              </div>
+              <textarea
+                rows={3}
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                placeholder="أضف أي إرشادات خاصة بالتوصيل أو التغليف..."
+                className="gsd-input w-full rounded-2xl border border-[var(--gs-border)] bg-[var(--gs-background)] p-3 text-xs"
+              />
+            </section>
+          </div>
+
+          {/* Order Summary & Finalize Action */}
+          <div className="gsd-card rounded-3xl p-5 border border-[var(--gs-border)] bg-[var(--gs-surface)] h-fit space-y-4">
+            <h2 className="text-base font-bold [color:var(--gs-foreground)] border-b border-[var(--gs-border)] pb-3">
+              ملخص الفاتورة ({items.length} منتجات)
+            </h2>
+
+            <div className="space-y-2 text-xs divide-y divide-[var(--gs-border-subtle)]">
+              {items.map((item) => (
+                <div key={item.id} className="pt-2 flex justify-between">
+                  <div>
+                    <span className="font-semibold text-[var(--gs-foreground)]">{item.product?.name || item.productId}</span>
+                    <span className="text-[var(--gs-foreground-muted)] block">الكمية: {item.quantity} × {item.unitPrice.toFixed(2)} ر.س</span>
+                  </div>
+                  <strong className="text-emerald-600">{item.totalPrice.toFixed(2)} ر.س</strong>
+                </div>
+              ))}
+            </div>
+
+            <div className="border-t border-[var(--gs-border)] pt-3 space-y-1 text-xs">
+              <div className="flex justify-between text-[var(--gs-foreground-secondary)]">
+                <span>المجموع الفرعي:</span>
+                <strong className="text-[var(--gs-foreground)]">{(cart?.subtotal ?? 0).toFixed(2)} ر.س</strong>
+              </div>
+              <div className="flex justify-between text-[var(--gs-foreground-secondary)]">
+                <span>رسوم التوصيل والضريبة:</span>
+                <strong className="text-[var(--gs-foreground)]">0.00 ر.س</strong>
+              </div>
+              <div className="flex justify-between text-sm font-bold text-emerald-600 pt-2 border-t border-[var(--gs-border-subtle)]">
+                <span>الإجمالي النهائي:</span>
+                <span>{(cart?.grandTotal ?? 0).toFixed(2)} ر.س</span>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              disabled={submitting}
+              onClick={handlePlaceOrder}
+              className="gsd-btn gsd-btn--primary gsd-btn--lg w-full rounded-2xl py-3 text-sm font-semibold flex items-center justify-center gap-2 mt-4"
+            >
+              {submitting ? (
+                <div className="h-5 w-5 animate-spin rounded-full border-2 border-white border-t-transparent" />
+              ) : (
+                <>
+                  تأكيد وإنشاء الطلب الآن
+                  <ArrowRight className="h-4 w-4" />
+                </>
+              )}
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+export default CheckoutPage;

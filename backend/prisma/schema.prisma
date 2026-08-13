@@ -1,0 +1,1083 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Tenant {
+  id              String           @id @default(uuid())
+  name            String
+  slug            String           @unique
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  deletedAt       DateTime?
+  brands          Brand[]
+  categories      Category[]
+  customers       Customer[]
+  deliveryDrivers DeliveryDriver[]
+  deliveryZones   DeliveryZone[]
+  orders          Order[]
+  products        Product[]
+  roles           Role[]
+  shippingMethods ShippingMethod[]
+  stores          Store[]
+  tags            Tag[]
+  units           Unit[]
+  users           User[]
+
+  @@map("tenants")
+}
+
+model Store {
+  id           String         @id @default(uuid())
+  tenantId     String
+  name         String
+  slug         String
+  description  String?
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+  deletedAt    DateTime?
+  branches     Branch[]
+  openingHours OpeningHours[]
+  orders       Order[]
+  ratings      StoreRating[]
+  reviews      StoreReview[]
+  settings     StoreSetting?
+  tenant       Tenant         @relation(fields: [tenantId], references: [id])
+
+  @@unique([tenantId, slug])
+  @@index([tenantId])
+  @@map("stores")
+}
+
+model Branch {
+  id         String      @id @default(uuid())
+  storeId    String
+  name       String
+  code       String
+  addressId  String?
+  phone      String?
+  isMain     Boolean     @default(false)
+  createdAt  DateTime    @default(now())
+  updatedAt  DateTime    @updatedAt
+  deletedAt  DateTime?
+  address    Address?    @relation(fields: [addressId], references: [id])
+  store      Store       @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  orders     Order[]
+  userRoles  UserRole[]
+  warehouses Warehouse[]
+
+  @@unique([storeId, code])
+  @@index([storeId])
+  @@map("branches")
+}
+
+model User {
+  id                      String                   @id @default(uuid())
+  tenantId                String?
+  email                   String                   @unique
+  phone                   String?                  @unique
+  displayName             String?
+  passwordHash            String?
+  isActive                Boolean                  @default(true)
+  isVerified              Boolean                  @default(false)
+  createdAt               DateTime                 @default(now())
+  updatedAt               DateTime                 @updatedAt
+  deletedAt               DateTime?
+  activityLogs            ActivityLog[]
+  auditLogs               AuditLog[]               @relation("ActorAuditLogs")
+  customers               Customer[]
+  devices                 Device[]
+  emailVerifications      EmailVerification[]
+  loginHistory            LoginHistory[]
+  notificationPreferences NotificationPreference[]
+  notifications           Notification[]
+  passwordResets          PasswordReset[]
+  refreshTokens           RefreshToken[]
+  securityLogs            SecurityLog[]
+  sessions                Session[]
+  stockMovements          StockMovement[]
+  roles                   UserRole[]
+  tenant                  Tenant?                  @relation(fields: [tenantId], references: [id])
+
+  @@index([tenantId])
+  @@map("users")
+}
+
+model Role {
+  id          String           @id @default(uuid())
+  tenantId    String?
+  name        RoleName
+  description String?
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+  deletedAt   DateTime?
+  permissions RolePermission[]
+  tenant      Tenant?          @relation(fields: [tenantId], references: [id])
+  userRoles   UserRole[]
+
+  @@unique([tenantId, name])
+  @@index([tenantId])
+  @@map("roles")
+}
+
+model Permission {
+  id              String           @id @default(uuid())
+  resource        String
+  action          PermissionAction
+  description     String?
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  rolePermissions RolePermission[]
+
+  @@unique([resource, action])
+  @@map("permissions")
+}
+
+model RolePermission {
+  id           String     @id @default(uuid())
+  roleId       String
+  permissionId String
+  createdAt    DateTime   @default(now())
+  permission   Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+  role         Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@unique([roleId, permissionId])
+  @@index([permissionId])
+  @@map("role_permissions")
+}
+
+model UserRole {
+  id        String   @id @default(uuid())
+  userId    String
+  roleId    String
+  branchId  String?
+  createdAt DateTime @default(now())
+  branch    Branch?  @relation(fields: [branchId], references: [id])
+  role      Role     @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, roleId, branchId])
+  @@index([roleId])
+  @@map("user_roles")
+}
+
+model Session {
+  id        String    @id @default(uuid())
+  userId    String
+  token     String
+  ipAddress String?
+  userAgent String?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  expiresAt DateTime?
+  revoked   Boolean   @default(false)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("sessions")
+}
+
+model RefreshToken {
+  id        String   @id @default(uuid())
+  userId    String
+  tokenHash String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  expiresAt DateTime
+  revoked   Boolean  @default(false)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("refresh_tokens")
+}
+
+model LoginHistory {
+  id        String   @id @default(uuid())
+  userId    String?
+  email     String?
+  ipAddress String?
+  userAgent String?
+  success   Boolean  @default(false)
+  reason    String?
+  createdAt DateTime @default(now())
+  user      User?    @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@map("login_history")
+}
+
+model PasswordReset {
+  id        String   @id @default(uuid())
+  userId    String
+  tokenHash String
+  expiresAt DateTime
+  used      Boolean  @default(false)
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("password_resets")
+}
+
+model EmailVerification {
+  id        String   @id @default(uuid())
+  userId    String
+  tokenHash String
+  expiresAt DateTime
+  verified  Boolean  @default(false)
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("email_verifications")
+}
+
+model Device {
+  id         String    @id @default(uuid())
+  userId     String
+  deviceId   String
+  name       String?
+  lastSeenAt DateTime?
+  createdAt  DateTime  @default(now())
+  user       User      @relation(fields: [userId], references: [id])
+
+  @@unique([userId, deviceId])
+  @@index([userId])
+  @@map("devices")
+}
+
+model Address {
+  id         String            @id @default(uuid())
+  tenantId   String?
+  label      String?
+  line1      String
+  line2      String?
+  city       String
+  state      String?
+  postalCode String?
+  country    String
+  latitude   Float?
+  longitude  Float?
+  createdAt  DateTime          @default(now())
+  updatedAt  DateTime          @updatedAt
+  branches   Branch[]
+  customers  CustomerAddress[]
+  suppliers  SupplierAddress[]
+  warehouses Warehouse[]
+
+  @@index([tenantId])
+  @@map("addresses")
+}
+
+model Supplier {
+  id             String            @id @default(uuid())
+  tenantId       String?
+  name           String
+  code           String?
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+  deletedAt      DateTime?
+  purchaseOrders PurchaseOrder[]
+  addresses      SupplierAddress[]
+  contacts       SupplierContact[]
+
+  @@index([tenantId])
+  @@map("suppliers")
+}
+
+model SupplierContact {
+  id         String   @id @default(uuid())
+  supplierId String
+  name       String
+  email      String?
+  phone      String?
+  createdAt  DateTime @default(now())
+  supplier   Supplier @relation(fields: [supplierId], references: [id])
+
+  @@index([supplierId])
+  @@map("supplier_contacts")
+}
+
+model SupplierAddress {
+  id         String   @id @default(uuid())
+  supplierId String
+  addressId  String
+  createdAt  DateTime @default(now())
+  address    Address  @relation(fields: [addressId], references: [id])
+  supplier   Supplier @relation(fields: [supplierId], references: [id])
+
+  @@unique([supplierId, addressId])
+  @@map("supplier_addresses")
+}
+
+model PurchaseOrder {
+  id         String         @id @default(uuid())
+  supplierId String
+  tenantId   String?
+  code       String         @unique
+  status     String
+  total      Float          @default(0)
+  currency   String         @default("USD")
+  createdAt  DateTime       @default(now())
+  updatedAt  DateTime       @updatedAt
+  items      PurchaseItem[]
+  supplier   Supplier       @relation(fields: [supplierId], references: [id])
+
+  @@index([supplierId])
+  @@map("purchase_orders")
+}
+
+model PurchaseItem {
+  id              String        @id @default(uuid())
+  purchaseOrderId String
+  productId       String
+  sku             String?
+  quantity        Int           @default(0)
+  unitPrice       Float         @default(0)
+  createdAt       DateTime      @default(now())
+  purchaseOrder   PurchaseOrder @relation(fields: [purchaseOrderId], references: [id], onDelete: Cascade)
+
+  @@index([purchaseOrderId])
+  @@index([productId])
+  @@map("purchase_items")
+}
+
+model Category {
+  id            String        @id @default(uuid())
+  tenantId      String?
+  name          String
+  slug          String
+  parentId      String?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  deletedAt     DateTime?
+  parent        Category?     @relation("CategoryChildren", fields: [parentId], references: [id])
+  children      Category[]    @relation("CategoryChildren")
+  tenant        Tenant?       @relation(fields: [tenantId], references: [id])
+  products      Product[]
+  subcategories Subcategory[]
+
+  @@unique([tenantId, slug])
+  @@index([tenantId])
+  @@map("categories")
+}
+
+model Subcategory {
+  id         String    @id @default(uuid())
+  categoryId String
+  name       String
+  slug       String
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  deletedAt  DateTime?
+  products   Product[]
+  category   Category  @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  @@unique([categoryId, slug])
+  @@index([categoryId])
+  @@map("subcategories")
+}
+
+model Brand {
+  id        String    @id @default(uuid())
+  tenantId  String?
+  name      String
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+  tenant    Tenant?   @relation(fields: [tenantId], references: [id])
+  products  Product[]
+
+  @@unique([tenantId, name])
+  @@index([tenantId])
+  @@map("brands")
+}
+
+model Unit {
+  id        String    @id @default(uuid())
+  tenantId  String?
+  name      String
+  symbol    String?
+  type      UnitType
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+  products  Product[]
+  tenant    Tenant?   @relation(fields: [tenantId], references: [id])
+
+  @@unique([tenantId, name])
+  @@map("units")
+}
+
+model Tag {
+  id        String       @id @default(uuid())
+  tenantId  String?
+  name      String
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+  deletedAt DateTime?
+  products  ProductTag[]
+  tenant    Tenant?      @relation(fields: [tenantId], references: [id])
+
+  @@unique([tenantId, name])
+  @@map("tags")
+}
+
+model Product {
+  id            String             @id @default(uuid())
+  tenantId      String?
+  sku           String?
+  name          String
+  slug          String
+  description   String?
+  brandId       String?
+  unitId        String?
+  categoryId    String?
+  subcategoryId String?
+  isPublished   Boolean            @default(false)
+  createdAt     DateTime           @default(now())
+  updatedAt     DateTime           @updatedAt
+  deletedAt     DateTime?
+  cartItems     CartItem[]
+  favorites     Favorite[]
+  inventories   Inventory[]
+  orderItems    OrderItem[]
+  attributes    ProductAttribute[]
+  images        ProductImage[]
+  tags          ProductTag[]
+  variants      ProductVariant[]
+  brand         Brand?             @relation(fields: [brandId], references: [id])
+  category      Category?          @relation(fields: [categoryId], references: [id])
+  subcategory   Subcategory?       @relation(fields: [subcategoryId], references: [id])
+  tenant        Tenant?            @relation(fields: [tenantId], references: [id])
+  unit          Unit?              @relation(fields: [unitId], references: [id])
+
+  @@unique([tenantId, slug])
+  @@unique([tenantId, sku])
+  @@index([tenantId])
+  @@map("products")
+}
+
+model ProductImage {
+  id        String   @id @default(uuid())
+  productId String
+  url       String
+  altText   String?
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([productId])
+  @@map("product_images")
+}
+
+model ProductVariant {
+  id          String      @id @default(uuid())
+  productId   String
+  sku         String?     @unique
+  name        String?
+  barcode     String?
+  price       Float       @default(0)
+  createdAt   DateTime    @default(now())
+  cartItems   CartItem[]
+  inventories Inventory[]
+  orderItems  OrderItem[]
+  product     Product     @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([productId])
+  @@map("product_variants")
+}
+
+model ProductAttribute {
+  id        String   @id @default(uuid())
+  productId String
+  key       String
+  value     String
+  createdAt DateTime @default(now())
+  product   Product  @relation(fields: [productId], references: [id])
+
+  @@index([productId])
+  @@map("product_attributes")
+}
+
+model ProductTag {
+  id        String  @id @default(uuid())
+  productId String
+  tagId     String
+  product   Product @relation(fields: [productId], references: [id])
+  tag       Tag     @relation(fields: [tagId], references: [id])
+
+  @@unique([productId, tagId])
+  @@map("product_tags")
+}
+
+model Warehouse {
+  id            String          @id @default(uuid())
+  branchId      String?
+  name          String
+  code          String?
+  addressId     String?
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+  deletedAt     DateTime?
+  inventories   Inventory[]
+  transfersFrom StockTransfer[] @relation("TransferFrom")
+  transfersTo   StockTransfer[] @relation("TransferTo")
+  address       Address?        @relation(fields: [addressId], references: [id])
+  branch        Branch?         @relation(fields: [branchId], references: [id])
+
+  @@index([branchId])
+  @@map("warehouses")
+}
+
+model Inventory {
+  id               String          @id @default(uuid())
+  warehouseId      String
+  productId        String
+  productVariantId String?
+  quantity         Int             @default(0)
+  reserved         Int             @default(0)
+  available        Int             @default(0)
+  safetyStock      Int             @default(0)
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+  product          Product         @relation(fields: [productId], references: [id], onDelete: Cascade)
+  productVariant   ProductVariant? @relation(fields: [productVariantId], references: [id])
+  warehouse        Warehouse       @relation(fields: [warehouseId], references: [id], onDelete: Cascade)
+  movements        StockMovement[]
+
+  @@unique([warehouseId, productId, productVariantId])
+  @@index([warehouseId, productId])
+  @@index([productId])
+  @@map("inventories")
+}
+
+model StockMovement {
+  id            String            @id @default(uuid())
+  inventoryId   String
+  type          StockMovementType
+  quantity      Int
+  referenceId   String?
+  createdAt     DateTime          @default(now())
+  performedById String?
+  inventory     Inventory         @relation(fields: [inventoryId], references: [id], onDelete: Cascade)
+  performedBy   User?             @relation(fields: [performedById], references: [id])
+
+  @@index([inventoryId])
+  @@index([performedById])
+  @@map("stock_movements")
+}
+
+model StockTransfer {
+  id              String              @id @default(uuid())
+  fromWarehouseId String
+  toWarehouseId   String
+  status          StockTransferStatus
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+  fromWarehouse   Warehouse           @relation("TransferFrom", fields: [fromWarehouseId], references: [id])
+  toWarehouse     Warehouse           @relation("TransferTo", fields: [toWarehouseId], references: [id])
+
+  @@index([fromWarehouseId, toWarehouseId])
+  @@map("stock_transfers")
+}
+
+model Customer {
+  id           String            @id @default(uuid())
+  tenantId     String?
+  userId       String?
+  customerCode String            @unique
+  firstName    String
+  lastName     String
+  fullName     String
+  phone        String?           @unique
+  email        String?           @unique
+  passwordHash String?
+  status       String            @default("ACTIVE")
+  notes        String?
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
+  deletedAt    DateTime?
+  carts        Cart[]
+  addresses    CustomerAddress[]
+  tenant       Tenant?           @relation(fields: [tenantId], references: [id])
+  user         User?             @relation(fields: [userId], references: [id])
+  favorites    Favorite[]
+  orders       Order[]
+  storeRatings StoreRating[]
+  storeReviews StoreReview[]
+
+  @@index([tenantId])
+  @@map("customers")
+}
+
+model CustomerAddress {
+  id            String   @id @default(uuid())
+  customerId    String
+  addressId     String
+  label         String?
+  recipientName String
+  phone         String
+  country       String
+  city          String
+  district      String
+  street        String
+  building      String?
+  floor         String?
+  landmark      String?
+  latitude      Float?
+  longitude     Float?
+  isDefault     Boolean  @default(false)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  address       Address  @relation(fields: [addressId], references: [id], onDelete: Cascade)
+  customer      Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  @@unique([customerId, addressId])
+  @@index([addressId])
+  @@map("customer_addresses")
+}
+
+model Favorite {
+  id         String   @id @default(uuid())
+  customerId String
+  productId  String
+  createdAt  DateTime @default(now())
+  customer   Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  product    Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@unique([customerId, productId])
+  @@index([productId])
+  @@map("favorites")
+}
+
+model Cart {
+  id         String     @id @default(uuid())
+  customerId String
+  createdAt  DateTime   @default(now())
+  updatedAt  DateTime   @updatedAt
+  items      CartItem[]
+  customer   Customer   @relation(fields: [customerId], references: [id])
+
+  @@index([customerId])
+  @@map("carts")
+}
+
+model CartItem {
+  id        String          @id @default(uuid())
+  cartId    String
+  productId String
+  variantId String?
+  quantity  Int             @default(1)
+  unitPrice Float           @default(0)
+  createdAt DateTime        @default(now())
+  cart      Cart            @relation(fields: [cartId], references: [id], onDelete: Cascade)
+  product   Product         @relation(fields: [productId], references: [id], onDelete: Cascade)
+  variant   ProductVariant? @relation(fields: [variantId], references: [id])
+
+  @@index([cartId])
+  @@index([productId])
+  @@index([variantId])
+  @@map("cart_items")
+}
+
+model Order {
+  id         String             @id @default(uuid())
+  tenantId   String?
+  storeId    String?
+  branchId   String?
+  customerId String?
+  code       String
+  status     OrderStatus
+  subtotal   Float              @default(0)
+  shipping   Float              @default(0)
+  tax        Float              @default(0)
+  total      Float              @default(0)
+  currency   String             @default("USD")
+  placedAt   DateTime?
+  createdAt  DateTime           @default(now())
+  updatedAt  DateTime           @updatedAt
+  deletedAt  DateTime?
+  delivery   DeliveryTracking[]
+  invoices   Invoice[]
+  items      OrderItem[]
+  branch     Branch?            @relation(fields: [branchId], references: [id])
+  customer   Customer?          @relation(fields: [customerId], references: [id])
+  store      Store?             @relation(fields: [storeId], references: [id])
+  tenant     Tenant?            @relation(fields: [tenantId], references: [id])
+  payments   Payment[]
+
+  @@unique([tenantId, code])
+  @@index([customerId, storeId, branchId])
+  @@map("orders")
+}
+
+model OrderItem {
+  id        String          @id @default(uuid())
+  orderId   String
+  productId String
+  variantId String?
+  sku       String?
+  name      String
+  quantity  Int             @default(1)
+  unitPrice Float           @default(0)
+  taxAmount Float           @default(0)
+  total     Float           @default(0)
+  order     Order           @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product   Product         @relation(fields: [productId], references: [id])
+  variant   ProductVariant? @relation(fields: [variantId], references: [id])
+
+  @@index([orderId])
+  @@index([productId])
+  @@index([variantId])
+  @@map("order_items")
+}
+
+model Invoice {
+  id        String    @id @default(uuid())
+  orderId   String
+  number    String
+  issuedAt  DateTime  @default(now())
+  dueAt     DateTime?
+  total     Float     @default(0)
+  createdAt DateTime  @default(now())
+  order     Order     @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@unique([orderId, number])
+  @@index([orderId])
+  @@map("invoices")
+}
+
+model Payment {
+  id          String        @id @default(uuid())
+  orderId     String?
+  amount      Float         @default(0)
+  method      String?
+  status      PaymentStatus
+  providerRef String?
+  paidAt      DateTime?
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  order       Order?        @relation(fields: [orderId], references: [id])
+  refunds     Refund[]
+
+  @@index([orderId])
+  @@map("payments")
+}
+
+model Refund {
+  id        String   @id @default(uuid())
+  paymentId String
+  amount    Float    @default(0)
+  reason    String?
+  createdAt DateTime @default(now())
+  payment   Payment  @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+
+  @@index([paymentId])
+  @@map("refunds")
+}
+
+model Coupon {
+  id          String    @id @default(uuid())
+  code        String    @unique
+  description String?
+  discount    Float     @default(0)
+  startsAt    DateTime?
+  endsAt      DateTime?
+  active      Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+
+  @@map("coupons")
+}
+
+model Tax {
+  id        String   @id @default(uuid())
+  name      String
+  type      TaxType
+  value     Float
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  @@map("taxes")
+}
+
+model DeliveryDriver {
+  id          String             @id @default(uuid())
+  tenantId    String?
+  name        String
+  phone       String?
+  vehicleInfo String?
+  createdAt   DateTime           @default(now())
+  tenant      Tenant?            @relation(fields: [tenantId], references: [id])
+  deliveries  DeliveryTracking[]
+
+  @@index([tenantId])
+  @@map("delivery_drivers")
+}
+
+model DeliveryZone {
+  id         String             @id @default(uuid())
+  tenantId   String?
+  name       String
+  polygon    String?
+  createdAt  DateTime           @default(now())
+  deliveries DeliveryTracking[]
+  tenant     Tenant?            @relation(fields: [tenantId], references: [id])
+
+  @@index([tenantId])
+  @@map("delivery_zones")
+}
+
+model ShippingMethod {
+  id         String             @id @default(uuid())
+  tenantId   String?
+  name       String
+  carrier    String?
+  cost       Float              @default(0)
+  createdAt  DateTime           @default(now())
+  deliveries DeliveryTracking[]
+  tenant     Tenant?            @relation(fields: [tenantId], references: [id])
+
+  @@index([tenantId])
+  @@map("shipping_methods")
+}
+
+model DeliveryTracking {
+  id          String          @id @default(uuid())
+  orderId     String
+  driverId    String?
+  methodId    String?
+  zoneId      String?
+  status      DeliveryStatus
+  trackingRef String?
+  eta         DateTime?
+  startedAt   DateTime?
+  deliveredAt DateTime?
+  createdAt   DateTime        @default(now())
+  driver      DeliveryDriver? @relation(fields: [driverId], references: [id])
+  method      ShippingMethod? @relation(fields: [methodId], references: [id])
+  order       Order           @relation(fields: [orderId], references: [id])
+  zone        DeliveryZone?   @relation(fields: [zoneId], references: [id])
+
+  @@index([orderId])
+  @@map("delivery_tracking")
+}
+
+model StoreRating {
+  id         String    @id @default(uuid())
+  storeId    String
+  customerId String?
+  rating     Int
+  comment    String?
+  createdAt  DateTime  @default(now())
+  customer   Customer? @relation(fields: [customerId], references: [id])
+  store      Store     @relation(fields: [storeId], references: [id])
+
+  @@index([storeId])
+  @@map("store_ratings")
+}
+
+model StoreReview {
+  id         String    @id @default(uuid())
+  storeId    String
+  customerId String?
+  title      String?
+  body       String?
+  approved   Boolean   @default(false)
+  createdAt  DateTime  @default(now())
+  customer   Customer? @relation(fields: [customerId], references: [id])
+  store      Store     @relation(fields: [storeId], references: [id])
+
+  @@index([storeId])
+  @@map("store_reviews")
+}
+
+model OpeningHours {
+  id        String   @id @default(uuid())
+  storeId   String
+  weekday   Int
+  opensAt   String
+  closesAt  String
+  createdAt DateTime @default(now())
+  store     Store    @relation(fields: [storeId], references: [id])
+
+  @@index([storeId, weekday])
+  @@map("opening_hours")
+}
+
+model Notification {
+  id        String   @id @default(uuid())
+  tenantId  String?
+  userId    String?
+  title     String
+  body      String
+  channel   String?
+  read      Boolean  @default(false)
+  payload   String?
+  createdAt DateTime @default(now())
+  user      User?    @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@map("notifications")
+}
+
+model NotificationPreference {
+  id        String   @id @default(uuid())
+  userId    String
+  channel   String
+  enabled   Boolean  @default(true)
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id])
+
+  @@unique([userId, channel])
+  @@map("notification_preferences")
+}
+
+model SystemSetting {
+  id          String   @id @default(uuid())
+  key         String   @unique
+  value       String
+  description String?
+  createdAt   DateTime @default(now())
+
+  @@map("system_settings")
+}
+
+model StoreSetting {
+  id        String   @id @default(uuid())
+  storeId   String   @unique
+  settings  String
+  createdAt DateTime @default(now())
+  store     Store    @relation(fields: [storeId], references: [id])
+
+  @@map("store_settings")
+}
+
+model AuditLog {
+  id         String   @id @default(uuid())
+  tenantId   String?
+  actorId    String?
+  action     String
+  resource   String
+  resourceId String?
+  before     String?
+  after      String?
+  ipAddress  String?
+  userAgent  String?
+  createdAt  DateTime @default(now())
+  actor      User?    @relation("ActorAuditLogs", fields: [actorId], references: [id])
+
+  @@index([tenantId, actorId])
+  @@map("audit_logs")
+}
+
+model ActivityLog {
+  id        String   @id @default(uuid())
+  userId    String?
+  action    String
+  meta      String?
+  createdAt DateTime @default(now())
+  user      User?    @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@map("activity_logs")
+}
+
+model SecurityLog {
+  id        String   @id @default(uuid())
+  userId    String?
+  event     String
+  severity  String?
+  meta      String?
+  createdAt DateTime @default(now())
+  user      User?    @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@map("security_logs")
+}
+
+enum RoleName {
+  SUPER_ADMIN
+  ADMIN
+  MANAGER
+  EMPLOYEE
+  CUSTOMER
+}
+
+enum PermissionAction {
+  CREATE
+  READ
+  UPDATE
+  DELETE
+  LIST
+  EXECUTE
+}
+
+enum OrderStatus {
+  DRAFT
+  PENDING
+  CONFIRMED
+  PACKED
+  SHIPPED
+  DELIVERED
+  CANCELED
+  RETURNED
+  REFUNDED
+}
+
+enum PaymentStatus {
+  PENDING
+  COMPLETED
+  FAILED
+  REFUNDED
+}
+
+enum DeliveryStatus {
+  PENDING
+  ASSIGNED
+  IN_TRANSIT
+  DELIVERED
+  FAILED
+  RETURNED
+}
+
+enum StockMovementType {
+  IN
+  OUT
+  TRANSFER
+  ADJUSTMENT
+  RESERVATION
+}
+
+enum TaxType {
+  PERCENTAGE
+  FIXED
+}
+
+enum UnitType {
+  PIECE
+  WEIGHT
+  VOLUME
+  LENGTH
+  AREA
+}
+
+enum PurchaseOrderStatus {
+  DRAFT
+  PENDING
+  RECEIVED
+  PARTIALLY_RECEIVED
+  CANCELLED
+  COMPLETED
+}
+
+enum StockTransferStatus {
+  PENDING
+  IN_TRANSIT
+  COMPLETED
+  CANCELLED
+}

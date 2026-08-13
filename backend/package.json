@@ -1,0 +1,23 @@
+{
+  "name": "qutoof-backend",
+  "version": "0.0.0",
+  "private": true,
+  "main": "dist/system/server.js",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "dev": "ts-node src/system/server.ts",
+    "start": "npm run build && node dist/system/server.js",
+    "lint": "echo \"Add lint scripts\"",
+    "test": "echo \"Add tests\""
+  },
+  "devDependencies": {
+    "@types/node": "^20.19.43",
+    "prisma": "^7.9.1",
+    "ts-node": "^10.9.2",
+    "typescript": "~5"
+  },
+  "dependencies": {
+    "@prisma/client": "^7.9.1",
+    "@prisma/adapter-pg": "^7.9.1"
+  }
+}

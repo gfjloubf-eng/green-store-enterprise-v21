@@ -1,0 +1,68 @@
+
+
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>متجر الخضروات والفواكه</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- رأس الصفحة -->
+  <header class="header">
+    <div class="logo">🌿 Green Market</div>
+    <nav class="navbar">
+      <a href="#home">الرئيسية</a>
+      <a href="#products">المنتجات</a>
+      <a href="#about">عن المتجر</a>
+      <a href="#contact">تواصل معنا</a>
+      <a href="cart.html">سلة المشتريات</a>
+    </nav>
+  </header>
+
+  <!-- قسم البانر -->
+  <section class="hero" id="home">
+    <div class="hero-text">
+      <h1>خضروات وفواكه طازجة إلى باب منزلك 🍅🥬</h1>
+      <p>نوفر لك أجود أنواع المنتجات المحلية يومياً.</p>
+      <button class="btn">تسوق الآن</button>
+    </div>
+  </section>
+
+  <!-- قسم المنتجات -->
+  <section class="products" id="products">
+    <h2>منتجاتنا الطازجة</h2>
+<div class="product-grid" id="product-grid">
+      <!-- Products loaded dynamically from DB -->
+    </div>
+  </section>
+
+  <!-- قسم عن المتجر -->
+  <section class="about" id="about">
+    <h2>من نحن</h2>
+    <p>نحن متجر متخصص في بيع الخضروات والفواكه الطازجة مباشرة من المزارع المحلية.
+    نحرص على الجودة والنظافة والتوصيل السريع.</p>
+  </section>
+
+  <!-- قسم التواصل -->
+  <section class="contact" id="contact">
+    <h2>تواصل معنا</h2>
+    <form>
+      <input type="text" placeholder="الاسم الكامل" required>
+      <input type="email" placeholder="البريد الإلكتروني" required>
+      <textarea placeholder="اكتب رسالتك..." rows="5"></textarea>
+      <button type="submit" class="btn">إرسال</button>
+    </form>
+  </section>
+
+  <!-- تذييل -->
+  <footer>
+    <p>© 2025 جميع الحقوق محفوظة لمتجر Green Market 🌿</p>
+  </footer>
+
+  <script src="script.js"></script>
+</body>
+</html>
+

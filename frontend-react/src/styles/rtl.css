@@ -1,0 +1,94 @@
+/* ============================================================
+   GSDS v1.1 — RTL & Logical Properties Utilities
+   Green Store Design System — Enterprise UI Foundation
+   ============================================================ */
+
+/* ────────────────────────────────────────────────
+   Base RTL Adjustments
+   ──────────────────────────────────────────────── */
+
+/* Arabic font smoothing */
+body[dir='rtl'] {
+  font-family: var(--gs-font-arabic);
+  letter-spacing: 0;
+}
+
+body[dir='ltr'] {
+  font-family: var(--gs-font-english);
+}
+
+/* ────────────────────────────────────────────────
+   Logical Property Utilities
+   Use these instead of physical margins/paddings
+   for automatic RTL adaptation.
+   ──────────────────────────────────────────────── */
+
+/* Margin start/end (left/right in LTR, right/left in RTL) */
+.gs-ml-0  { margin-inline-start: 0; }
+.gs-ml-1  { margin-inline-start: var(--gs-space-1); }
+.gs-ml-2  { margin-inline-start: var(--gs-space-2); }
+.gs-ml-3  { margin-inline-start: var(--gs-space-3); }
+.gs-ml-4  { margin-inline-start: var(--gs-space-4); }
+.gs-ml-6  { margin-inline-start: var(--gs-space-6); }
+.gs-ml-8  { margin-inline-start: var(--gs-space-8); }
+
+.gs-mr-0  { margin-inline-end: 0; }
+.gs-mr-1  { margin-inline-end: var(--gs-space-1); }
+.gs-mr-2  { margin-inline-end: var(--gs-space-2); }
+.gs-mr-3  { margin-inline-end: var(--gs-space-3); }
+.gs-mr-4  { margin-inline-end: var(--gs-space-4); }
+.gs-mr-6  { margin-inline-end: var(--gs-space-6); }
+.gs-mr-8  { margin-inline-end: var(--gs-space-8); }
+
+/* Padding start/end */
+.gs-pl-1  { padding-inline-start: var(--gs-space-1); }
+.gs-pl-2  { padding-inline-start: var(--gs-space-2); }
+.gs-pl-3  { padding-inline-start: var(--gs-space-3); }
+.gs-pl-4  { padding-inline-start: var(--gs-space-4); }
+
+.gs-pr-1  { padding-inline-end: var(--gs-space-1); }
+.gs-pr-2  { padding-inline-end: var(--gs-space-2); }
+.gs-pr-3  { padding-inline-end: var(--gs-space-3); }
+.gs-pr-4  { padding-inline-end: var(--gs-space-4); }
+
+/* Border radius — direction-aware */
+.gs-rounded-l-sm   { border-start-start-radius: var(--gs-radius-sm); border-end-start-radius: var(--gs-radius-sm); }
+.gs-rounded-l-lg   { border-start-start-radius: var(--gs-radius-lg); border-end-start-radius: var(--gs-radius-lg); }
+.gs-rounded-r-sm   { border-start-end-radius: var(--gs-radius-sm); border-end-end-radius: var(--gs-radius-sm); }
+.gs-rounded-r-lg   { border-start-end-radius: var(--gs-radius-lg); border-end-end-radius: var(--gs-radius-lg); }
+
+/* Text alignment — direction-aware */
+.gs-text-start  { text-align: start; }
+.gs-text-end    { text-align: end; }
+
+/* ────────────────────────────────────────────────
+   RTL-specific icon/chevron flips
+   ──────────────────────────────────────────────── */
+body[dir='rtl'] .gs-chevron-right {
+  transform: scaleX(-1);
+}
+
+body[dir='rtl'] .gs-chevron-left {
+  transform: scaleX(-1);
+}
+
+/* ────────────────────────────────────────────────
+   RTL-aware flex direction for lists
+   ──────────────────────────────────────────────── */
+body[dir='rtl'] .gs-flex-row {
+  flex-direction: row-reverse;
+}
+
+/* ────────────────────────────────────────────────
+   Search input — RTL icon placement
+   ──────────────────────────────────────────────── */
+body[dir='rtl'] .gs-search-icon {
+  right: auto;
+  left: var(--gs-space-3);
+}
+
+body[dir='rtl'] .gs-search-clear {
+  right: auto;
+  left: var(--gs-space-10);
+}
+

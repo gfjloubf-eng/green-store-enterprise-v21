@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>سلة المشتريات | Green Market</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <header class="header">
+    <div class="logo">🌿 Green Market</div>
+    <nav class="navbar">
+      <a href="index.html">الرئيسية</a>
+      <a href="cart.html" class="active">سلة المشتريات</a>
+    </nav>
+  </header>
+
+  <section class="cart-section">
+    <h2>🛒 سلة المشتريات</h2>
+    <table class="cart-table">
+      <thead>
+        <tr>
+          <th>المنتج</th>
+          <th>السعر</th>
+          <th>الكمية</th>
+          <th>الإجمالي</th>
+          <th>حذف</th>
+        </tr>
+      </thead>
+      <tbody id="cart-items">
+        <!-- هنا تُضاف المنتجات ديناميكياً -->
+      </tbody>
+    </table>
+
+    <div class="cart-summary">
+      <h3>الإجمالي الكلي: <span id="total">0</span> $</h3>
+    
+<div class="order-form">
+  <h3>معلومات العميل</h3>
+  <input type="text" id="name" placeholder="الاسم الكامل" required>
+  <input type="email" id="email" placeholder="البريد الإلكتروني" required>
+  <button class="btn" id="checkout">إتمام الطلب</button>
+</div>
+
+    </div>
+  </section>
+
+  <footer>
+    <p>© 2025 جميع الحقوق محفوظة لمتجر Green Market 🌿</p>
+  </footer>
+
+<script src="cart.js"></script>
+  <script>
+    // Add delivery input
+    document.querySelector('.order-form').innerHTML += `
+      <input type="tel" id="phone" placeholder="رقم الهاتف">
+      <input type="text" id="delivery_addr" placeholder="عنوان التوصيل">
+      <div id="map-preview" style="height:200px; background:#eee; margin:10px 0; border-radius:10px;">خريطة التوصيل قريباً</div>
+    `;
+  </script>
+</body>
+</html>
+
