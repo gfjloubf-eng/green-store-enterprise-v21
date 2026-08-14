@@ -47,52 +47,63 @@ export class AuthService {
       throw new ValidationException('email_already_exists');
     }
 
-    const passwordHash = await PasswordService.hash(password);
-
-    let customerRole = await client.role.findFirst({ where: { name: 'CUSTOMER' } });
-    if (!customerRole) {
-      customerRole = await client.role.create({
-        data: {
-          name: 'CUSTOMER',
-          description: 'Standard Customer Role',
-        },
-      });
+    const phone = data.phone?.trim() || null;
+    if (phone) {
+      const existingPhoneUser = await client.user.findFirst({ where: { phone } });
+      const existingPhoneCustomer = await client.customer.findFirst({ where: { phone } });
+      if (existingPhoneUser || existingPhoneCustomer) {
+        throw new ValidationException('phone_already_exists');
+      }
     }
 
-    const user = await client.user.create({
-      data: {
-        email,
-        displayName: name,
-        passwordHash,
-        phone: data.phone ?? null,
-        isActive: true,
-        isVerified: true,
-      },
-    });
+    const passwordHash = await PasswordService.hash(password);
 
-    await client.userRole.create({
-      data: {
-        userId: user.id,
-        roleId: customerRole.id,
-      },
-    });
+    await client.$transaction(async (tx) => {
+      let customerRole = await tx.role.findFirst({ where: { name: 'CUSTOMER' } });
+      if (!customerRole) {
+        customerRole = await tx.role.create({
+          data: {
+            name: 'CUSTOMER',
+            description: 'Standard Customer Role',
+          },
+        });
+      }
 
-    const parts = name.split(' ');
-    const firstName = parts[0] || name;
-    const lastName = parts.slice(1).join(' ') || 'Customer';
-    const customerCode = `CUST-${Date.now().toString().slice(-6)}-${Math.floor(Math.random() * 1000)}`;
+      const user = await tx.user.create({
+        data: {
+          email,
+          displayName: name,
+          passwordHash,
+          phone,
+          isActive: true,
+          isVerified: true,
+        },
+      });
 
-    await client.customer.create({
-      data: {
-        userId: user.id,
-        customerCode,
-        firstName,
-        lastName,
-        fullName: name,
-        email,
-        phone: data.phone ?? null,
-        status: 'ACTIVE',
-      },
+      await tx.userRole.create({
+        data: {
+          userId: user.id,
+          roleId: customerRole.id,
+        },
+      });
+
+      const parts = name.split(' ');
+      const firstName = parts[0] || name;
+      const lastName = parts.slice(1).join(' ') || 'Customer';
+      const customerCode = `CUST-${Date.now().toString().slice(-6)}-${Math.floor(Math.random() * 1000)}`;
+
+      await tx.customer.create({
+        data: {
+          userId: user.id,
+          customerCode,
+          firstName,
+          lastName,
+          fullName: name,
+          email,
+          phone,
+          status: 'ACTIVE',
+        },
+      });
     });
 
     return this.signIn(email, password);

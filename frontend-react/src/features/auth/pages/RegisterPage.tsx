@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { User, Mail, Lock, Phone, UserPlus, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { User, Mail, Lock, Phone, UserPlus, AlertCircle, CheckCircle2, Eye, EyeOff } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 
 export function RegisterPage() {
@@ -12,10 +12,52 @@ export function RegisterPage() {
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+
+  const mapErrorMessage = (err: any): string => {
+    const rawMsg = String(err?.message || err?.error?.message || '').toLowerCase();
+    const status = err?.status || err?.statusCode;
+
+    if (rawMsg.includes('email_already_exists') || status === 409) {
+      return 'البريد الإلكتروني مسجل بالفعل. يرجى استخدام بريد آخر أو تسجيل الدخول.';
+    }
+    if (rawMsg.includes('phone_already_exists')) {
+      return 'رقم الهاتف مسجل بالفعل بحساب آخر.';
+    }
+    if (rawMsg.includes('password_too_short')) {
+      return 'كلمة المرور يجب أن تتكون من 8 أحرف على الأقل.';
+    }
+    if (rawMsg.includes('password_confirmation_mismatch')) {
+      return 'كلمة المرور وتأكيد كلمة المرور غير متطابقين.';
+    }
+    if (rawMsg.includes('email_invalid')) {
+      return 'البريد الإلكتروني غير صحيح.';
+    }
+    if (rawMsg.includes('name_required')) {
+      return 'يرجى إدخال الاسم الكامل.';
+    }
+    if (rawMsg.includes('failed to fetch') || rawMsg.includes('networkerror') || rawMsg.includes('network error')) {
+      return 'تعذر الاتصال بالسيرفر. يرجى التأكد من اتصال الإنترنت أو تشغيل الخدمة.';
+    }
+    if (status === 400 || rawMsg.includes('bad_request')) {
+      return 'البيانات المدخلة غير صحيحة. يرجى التثبت والمحاولة مجدداً.';
+    }
+    if (status === 422) {
+      return 'البيانات المدخلة غير مقبولة. يرجى التأكد من صحة المدخلات.';
+    }
+    if (status === 500 || rawMsg.includes('internal_error')) {
+      return 'حدث خطأ أثناء إنشاء الحساب، حاول مرة أخرى.';
+    }
+
+    return err?.message && typeof err.message === 'string' && !err.message.includes('_')
+      ? err.message
+      : 'حدث خطأ أثناء إنشاء الحساب، حاول مرة أخرى.';
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -52,11 +94,7 @@ export function RegisterPage() {
         navigate('/dashboard');
       }, 1500);
     } catch (err: any) {
-      if (err?.message === 'email_already_exists') {
-        setError('البريد الإلكتروني مسجل بالفعل. يرجى استخدام بريد آخر أو تسجيل الدخول.');
-      } else {
-        setError(err?.message || 'فشل إنشاء الحساب. يرجى التأكد من البيانات والمحاولة مجدداً.');
-      }
+      setError(mapErrorMessage(err));
     } finally {
       setLoading(false);
     }
@@ -137,13 +175,21 @@ export function RegisterPage() {
             <div className="relative">
               <Lock className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[var(--gs-foreground-muted)]" />
               <input
-                type="password"
+                type={showPassword ? 'text' : 'password'}
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••"
-                className="gsd-input w-full pr-10 pl-3 py-2.5 rounded-xl border border-[var(--gs-border)] bg-[var(--gs-background)] text-sm"
+                className="gsd-input w-full pr-10 pl-10 py-2.5 rounded-xl border border-[var(--gs-border)] bg-[var(--gs-background)] text-sm"
               />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute left-3 top-1/2 -translate-y-1/2 p-1 text-[var(--gs-foreground-muted)] hover:text-[var(--gs-foreground)] transition-colors"
+                aria-label={showPassword ? 'إخفاء كلمة المرور' : 'إظهار كلمة المرور'}
+              >
+                {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              </button>
             </div>
           </div>
 
@@ -152,13 +198,21 @@ export function RegisterPage() {
             <div className="relative">
               <Lock className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[var(--gs-foreground-muted)]" />
               <input
-                type="password"
+                type={showConfirmPassword ? 'text' : 'password'}
                 required
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 placeholder="••••••••"
-                className="gsd-input w-full pr-10 pl-3 py-2.5 rounded-xl border border-[var(--gs-border)] bg-[var(--gs-background)] text-sm"
+                className="gsd-input w-full pr-10 pl-10 py-2.5 rounded-xl border border-[var(--gs-border)] bg-[var(--gs-background)] text-sm"
               />
+              <button
+                type="button"
+                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                className="absolute left-3 top-1/2 -translate-y-1/2 p-1 text-[var(--gs-foreground-muted)] hover:text-[var(--gs-foreground)] transition-colors"
+                aria-label={showConfirmPassword ? 'إخفاء كلمة المرور' : 'إظهار كلمة المرور'}
+              >
+                {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              </button>
             </div>
           </div>
 
