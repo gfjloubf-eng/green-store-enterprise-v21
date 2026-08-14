@@ -1,5 +1,5 @@
 import { createContext, useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
-import { getCurrentUser, getStoredAccessToken, getStoredRefreshToken, logout as clientLogout, setStoredTokens, signIn, clearStoredTokens } from '@/services/authClient';
+import { getCurrentUser, getStoredAccessToken, getStoredRefreshToken, logout as clientLogout, setStoredTokens, signIn, clearStoredTokens, AUTH_UNAUTHENTICATED_EVENT } from '@/services/authClient';
 import type { AuthContextValue, AuthStatus, AuthUser } from '@/types/auth';
 
 export const AuthContext = createContext<AuthContextValue | undefined>(undefined);
@@ -65,6 +65,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     bootstrapSession();
   }, [bootstrapSession]);
+
+  useEffect(() => {
+    const handleUnauthenticated = () => {
+      setUser(null);
+      setStatus('unauthenticated');
+    };
+
+    if (typeof window !== 'undefined') {
+      window.addEventListener(AUTH_UNAUTHENTICATED_EVENT, handleUnauthenticated);
+    }
+
+    return () => {
+      if (typeof window !== 'undefined') {
+        window.removeEventListener(AUTH_UNAUTHENTICATED_EVENT, handleUnauthenticated);
+      }
+    };
+  }, []);
 
   const login = useCallback(
     async (identifier: string, password: string, remember = true) => {

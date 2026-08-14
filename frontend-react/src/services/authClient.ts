@@ -232,6 +232,15 @@ export function clearStoredTokens() {
   } catch {}
 }
 
+export const AUTH_UNAUTHENTICATED_EVENT = 'gs_auth_unauthenticated';
+
+export function notifyUnauthenticated() {
+  clearStoredTokens();
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent(AUTH_UNAUTHENTICATED_EVENT));
+  }
+}
+
 // fetch wrapper with automatic refresh + retry
 let refreshPromise: Promise<void> | null = null;
 
@@ -249,16 +258,30 @@ export async function fetchWithAuth(input: RequestInfo, init?: RequestInit, retr
   if (!retry) return res;
 
   const refreshToken = getStoredRefreshToken();
-  if (!refreshToken) return res;
+  if (!refreshToken) {
+    notifyUnauthenticated();
+    return res;
+  }
 
-  // ensure only one refresh runs at a time
+  // ensure only one refresh runs at a time (Refresh Race Protection)
   if (!refreshPromise) {
     refreshPromise = (async () => {
       try {
         const newTokens = await refresh(refreshToken);
         setStoredTokens(newTokens, true);
-      } catch (err) {
-        clearStoredTokens();
+      } catch (err: any) {
+        // Do NOT invalidate session on temporary network errors or server downtime
+        const isNetworkError =
+          err?.name === 'TypeError' ||
+          (typeof err?.message === 'string' &&
+            (err.message.includes('Failed to fetch') ||
+             err.message.includes('NetworkError') ||
+             err.message.includes('Network Error') ||
+             err.message.includes('Load failed')));
+
+        if (!isNetworkError) {
+          notifyUnauthenticated();
+        }
         throw err;
       } finally {
         refreshPromise = null;
