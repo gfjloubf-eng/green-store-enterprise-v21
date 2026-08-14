@@ -29,10 +29,10 @@ export const SUPPORT_TEAM: SupportMember[] = [
     id: 'saqr',
     name: 'صقر أنور',
     role: 'الدعم والتواصل ومتابعة العملاء والطلبات',
-    phone: null,
-    countryCode: null,
-    whatsappNumber: null,
-    availableChannels: ['ticket'], // Phone/WhatsApp omitted until officially provided
+    phone: '777803161',
+    countryCode: PRIMARY_COUNTRY_CODE,
+    whatsappNumber: '967777803161',
+    availableChannels: ['call', 'whatsapp', 'ticket'],
   },
 ];
 
