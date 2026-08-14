@@ -3,6 +3,8 @@ import { HelpCircle, PhoneCall, Mail, MapPin, Plus, MessageSquare, Send } from '
 import { getSupportContacts, getTickets, createSupportTicket, replySupportTicket, updateTicketStatus } from '@/services/supportClient';
 import type { SupportContacts, SupportTicket } from '@/services/supportClient';
 import { useAuth } from '@/hooks/useAuth';
+import { SupportTeamCards } from '@/components/support/SupportTeamCards';
+import { FAQSection } from '@/components/support/FAQSection';
 
 export function SupportCenterPage() {
   const { user } = useAuth();
@@ -113,6 +115,9 @@ export function SupportCenterPage() {
         </button>
       </div>
 
+      {/* Support Team Cards */}
+      <SupportTeamCards onOpenTicket={() => setIsCreating(true)} />
+
       {/* Support Contacts Cards (Dynamic from Settings) */}
       <div className="grid gap-4 sm:grid-cols-3">
         <div className="gsd-card rounded-2xl p-4 border border-[var(--gs-border)] bg-[var(--gs-surface)] flex items-center gap-3">
@@ -121,7 +126,7 @@ export function SupportCenterPage() {
           </div>
           <div>
             <span className="text-[11px] text-[var(--gs-foreground-secondary)] block">هاتف الدعم الموحد</span>
-            <strong className="text-xs text-[var(--gs-foreground)] font-mono">{contacts?.supportPhone || '+966920000000'}</strong>
+            <strong className="text-xs text-[var(--gs-foreground)] font-mono">{contacts?.supportPhone || '712275038'}</strong>
           </div>
         </div>
 
@@ -349,6 +354,9 @@ export function SupportCenterPage() {
           </div>
         </div>
       )}
+
+      {/* FAQ Section */}
+      <FAQSection className="mt-4" />
     </div>
   );
 }

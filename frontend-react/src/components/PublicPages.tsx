@@ -1,5 +1,7 @@
 import { useNavigate } from 'react-router-dom';
 import { Info, Phone, Settings, LifeBuoy, Users, ShieldCheck, ArrowRight, Home, Mail, MapPin, Clock } from 'lucide-react';
+import { SupportTeamCards } from '@/components/support/SupportTeamCards';
+import { FAQSection } from '@/components/support/FAQSection';
 
 export function AboutPage() {
   const navigate = useNavigate();
@@ -30,16 +32,18 @@ export function AboutPage() {
 }
 
 export function ContactPage() {
+  const navigate = useNavigate();
   return (
-    <div className="flex flex-col gap-6 pb-8" dir="rtl">
-      <div className="gsd-card rounded-3xl p-8 border border-[var(--gs-border)] bg-[var(--gs-surface)] space-y-6">
+    <div className="flex flex-col gap-6 pb-12" dir="rtl">
+      {/* Contact Header */}
+      <div className="gsd-card rounded-3xl p-6 sm:p-8 border border-[var(--gs-border)] bg-[var(--gs-surface)] space-y-6">
         <div className="flex items-center gap-3">
           <div className="p-3 rounded-2xl bg-emerald-500/10 text-emerald-600">
             <Phone className="h-6 w-6" />
           </div>
           <div>
-            <h1 className="text-xl font-bold [color:var(--gs-foreground)]">تواصل معنا</h1>
-            <p className="text-xs [color:var(--gs-foreground-secondary)]">يسعدنا استقبال استفساراتكم وملاحظاتكم.</p>
+            <h1 className="text-xl font-bold [color:var(--gs-foreground)]">تواصل معنا والخدمات المساندة</h1>
+            <p className="text-xs [color:var(--gs-foreground-secondary)]">يسعدنا استقبال استفساراتكم وملاحظاتكم عبر القنوات المعتمدة.</p>
           </div>
         </div>
 
@@ -53,7 +57,7 @@ export function ContactPage() {
           <div className="p-4 rounded-2xl border border-[var(--gs-border)] bg-[var(--gs-background)] space-y-1">
             <MapPin className="h-5 w-5 text-emerald-600 mb-2" />
             <h3 className="text-xs font-semibold [color:var(--gs-foreground)]">الموقع الرئيسي</h3>
-            <p className="text-xs text-[var(--gs-foreground-secondary)]">جدة، المملكة العربية السعودية</p>
+            <p className="text-xs text-[var(--gs-foreground-secondary)]">جدة / الرياض، المملكة العربية السعودية</p>
           </div>
 
           <div className="p-4 rounded-2xl border border-[var(--gs-border)] bg-[var(--gs-background)] space-y-1">
@@ -63,6 +67,12 @@ export function ContactPage() {
           </div>
         </div>
       </div>
+
+      {/* Support Team Cards */}
+      <SupportTeamCards onOpenTicket={() => navigate('/support')} />
+
+      {/* FAQ Section */}
+      <FAQSection />
     </div>
   );
 }
@@ -77,7 +87,7 @@ export function SettingsPage() {
           </div>
           <div>
             <h1 className="text-xl font-bold [color:var(--gs-foreground)]">إعدادات النظام (Settings)</h1>
-            <p className="text-xs [color:var(--gs-foreground-secondary)]">واجهة الإعدادات العامة مقسمة ومجدولة رسمياً للمرحلة المخصصة 16.</p>
+            <p className="text-xs [color:var(--gs-foreground-secondary)]">واجهة الإعدادات العامة للمتجر والنظام.</p>
           </div>
         </div>
       </div>
@@ -86,19 +96,23 @@ export function SettingsPage() {
 }
 
 export function HelpPage() {
+  const navigate = useNavigate();
   return (
-    <div className="flex flex-col gap-6 pb-8" dir="rtl">
-      <div className="gsd-card rounded-3xl p-8 border border-[var(--gs-border)] bg-[var(--gs-surface)] space-y-4">
+    <div className="flex flex-col gap-6 pb-12" dir="rtl">
+      <div className="gsd-card rounded-3xl p-6 sm:p-8 border border-[var(--gs-border)] bg-[var(--gs-surface)] space-y-4">
         <div className="flex items-center gap-3">
           <div className="p-3 rounded-2xl bg-blue-500/10 text-blue-600">
             <LifeBuoy className="h-6 w-6" />
           </div>
           <div>
-            <h1 className="text-xl font-bold [color:var(--gs-foreground)]">المساعدة والدعم (Help & Support)</h1>
-            <p className="text-xs [color:var(--gs-foreground-secondary)]">مرجع الأسئلة الشائعة وقنوات الدعم الفني مجدولة في مرحلة Support المخصصة.</p>
+            <h1 className="text-xl font-bold [color:var(--gs-foreground)]">المساعدة والدعم المباشر</h1>
+            <p className="text-xs [color:var(--gs-foreground-secondary)]">إرشادات وأجوبة الأسئلة الشائعة وقنوات التواصل مع فريق الدعم.</p>
           </div>
         </div>
       </div>
+
+      <SupportTeamCards onOpenTicket={() => navigate('/support')} />
+      <FAQSection />
     </div>
   );
 }

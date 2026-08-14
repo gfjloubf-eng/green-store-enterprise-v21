@@ -14,6 +14,8 @@ import { Footer } from './Footer';
 
 /* ─── AppShell ─────────────────────────────────────────────── */
 
+import { FloatingSupport } from '@/components/support/FloatingSupport';
+
 export function AppShell() {
   const [expanded, setExpanded] = useState(true);
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -59,6 +61,9 @@ export function AppShell() {
         {/* Footer */}
         <Footer />
       </div>
+
+      {/* Global Floating Support Widget */}
+      <FloatingSupport />
     </div>
   );
 }

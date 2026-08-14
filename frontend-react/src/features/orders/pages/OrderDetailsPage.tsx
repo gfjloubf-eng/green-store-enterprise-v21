@@ -1,8 +1,9 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Package, ArrowRight, Calendar, User, AlertCircle, CheckCircle2, XCircle, RefreshCw } from 'lucide-react';
+import { Package, ArrowRight, Calendar, User, AlertCircle, CheckCircle2, XCircle, RefreshCw, HelpCircle } from 'lucide-react';
 import { getOrderById, updateOrderStatus, cancelOrder, type Order } from '@/services/orderClient';
 import { useAuth } from '@/hooks/useAuth';
+import { SupportTeamCards } from '@/components/support/SupportTeamCards';
 
 const STATUS_BADGES: Record<string, { label: string; bg: string; text: string }> = {
   PENDING: { label: 'قيد الانتظار', bg: 'bg-amber-500/10 border-amber-500/20', text: 'text-amber-600' },
@@ -319,6 +320,18 @@ export function OrderDetailsPage() {
               )}
             </div>
           )}
+
+          {/* Order Support Section */}
+          <div className="gsd-card rounded-3xl p-5 border border-[var(--gs-border)] bg-[var(--gs-surface)] space-y-3">
+            <h2 className="text-sm font-bold text-[var(--gs-foreground)] flex items-center gap-2 border-b border-[var(--gs-border)] pb-2.5">
+              <HelpCircle className="h-4 w-4 text-emerald-600" />
+              تحتاج مساعدة بخصوص هذا الطلب؟
+            </h2>
+            <p className="text-xs text-[var(--gs-foreground-secondary)]">
+              تواصل مباشرة مع فريق الدعم لمتابعة تجهيز أو شحن الطلب <strong className="font-mono text-emerald-600">#{order.code}</strong>.
+            </p>
+            <SupportTeamCards orderNumber={order.code} onOpenTicket={() => navigate('/support')} />
+          </div>
         </div>
       </div>
     </div>

@@ -54,6 +54,8 @@ import { CheckoutPage } from '@/features/checkout/pages';
 import OrdersListPage from '@/features/orders/pages/OrdersListPage';
 import OrderDetailsPage from '@/features/orders/pages/OrderDetailsPage';
 
+import SupportCenterPage from '@/features/support/pages/SupportCenterPage';
+
 export default function App() {
   return (
     <AppProviders>
@@ -82,6 +84,7 @@ export default function App() {
             <Route path="checkout" element={<CheckoutPage />} />
             <Route path="settings" element={<SettingsPage />} />
             <Route path="help" element={<HelpPage />} />
+            <Route path="support" element={<SupportCenterPage />} />
           </Route>
 
           {/* Admin Protected Routes */}

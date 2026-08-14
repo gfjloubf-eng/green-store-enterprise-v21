@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { MapPin, Clock, Tag, ShoppingBag, AlertCircle, CheckCircle2, ArrowRight } from 'lucide-react';
 import { createOrder } from '@/services/orderClient';
 import { getCart, type Cart } from '@/services/cartClient';
+import { SupportTeamCards } from '@/components/support/SupportTeamCards';
 
 export function CheckoutPage() {
   const navigate = useNavigate();
@@ -76,9 +77,21 @@ export function CheckoutPage() {
       )}
 
       {success && (
-        <div className="rounded-2xl bg-emerald-500/10 border border-emerald-500/20 p-4 text-xs text-emerald-700 flex items-center gap-2">
-          <CheckCircle2 className="h-4 w-4 shrink-0" />
-          <span>تم إنشاء الطلب بنجاح! جاري التوجيه إلى تفاصيل الطلب...</span>
+        <div className="space-y-4">
+          <div className="rounded-3xl bg-emerald-500/10 border border-emerald-500/20 p-6 text-xs text-emerald-800 space-y-3">
+            <div className="flex items-center gap-2 text-base font-bold text-emerald-700">
+              <CheckCircle2 className="h-6 w-6 shrink-0" />
+              <span>تم استلام طلبك بنجاح 🎉</span>
+            </div>
+            <p className="text-xs leading-relaxed">
+              سيتم التواصل معك لتأكيد الطلب ومتابعة التجهيز والشحن.
+            </p>
+          </div>
+
+          <div className="gsd-card rounded-3xl p-5 border border-[var(--gs-border)] bg-[var(--gs-surface)] space-y-3">
+            <h3 className="text-sm font-bold text-[var(--gs-foreground)]">تحتاج مساعدة بخصوص طلبك؟</h3>
+            <SupportTeamCards onOpenTicket={() => navigate('/support')} />
+          </div>
         </div>
       )}
 
