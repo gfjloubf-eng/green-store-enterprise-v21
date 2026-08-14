@@ -1,4 +1,4 @@
-﻿/* ============================================================
+/* ============================================================
    GSDS v1.0 — HomePage Component
    Arabic customer marketplace experience.
    ============================================================ */
@@ -73,51 +73,58 @@ export function HomePage() {
   );
 
   const filteredProducts = useMemo(() => {
-    let results = searchQuery.trim() ? searchResults : products;
-
-    if (selectedCategory) {
-      results = results.filter((product) => product.category.name === selectedCategory);
-    }
-
+    const base = searchQuery.trim() ? searchResults : products;
     const priceEntry = PRICE_FILTERS.find((entry) => entry.id === priceFilter);
-    if (priceEntry && priceEntry.id !== 'all') {
-      results = results.filter(
-        (product) => product.sellingPrice >= priceEntry.min && product.sellingPrice <= priceEntry.max,
-      );
-    }
+    const hasPriceLimit = priceEntry && priceEntry.id !== 'all';
 
-    if (freshToday) {
-      results = results.filter(isFreshToday);
-    }
-
-    if (organicOnly) {
-      results = results.filter(isOrganic);
-    }
-
-    if (seasonalOnly) {
-      results = results.filter(isSeasonal);
-    }
-
-    return results;
+    return base.filter((product) => {
+      if (selectedCategory && product.category.name !== selectedCategory) return false;
+      if (hasPriceLimit && (product.sellingPrice < priceEntry.min || product.sellingPrice > priceEntry.max)) return false;
+      if (freshToday && !isFreshToday(product)) return false;
+      if (organicOnly && !isOrganic(product)) return false;
+      if (seasonalOnly && !isSeasonal(product)) return false;
+      return true;
+    });
   }, [searchQuery, searchResults, products, selectedCategory, priceFilter, freshToday, organicOnly, seasonalOnly]);
 
-  const featuredProducts = useMemo(() => products.slice(0, 4), [products]);
-  const todayOffers = useMemo(() => products.filter((product) => product.sellingPrice <= 3).slice(0, 4), [products]);
-  const seasonalProducts = useMemo(() => products.filter(isSeasonal).slice(0, 4), [products]);
-  const healthyChoices = useMemo(
-    () => products.filter((product) => isOrganic(product) || ['Vegetables', 'Herbs'].includes(product.category.name)).slice(0, 4),
-    [products],
-  );
-  const bestSellers = useMemo(() => [...products].sort((a, b) => b.stock - a.stock).slice(0, 4), [products]);
-  const newArrivals = useMemo(
-    () => [...products].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()).slice(0, 4),
-    [products],
-  );
-  const yemeniProducts = useMemo(() => products.filter(isYemeni).slice(0, 4), [products]);
-  const topRatedProducts = useMemo(
-    () => [...products].sort((a, b) => getProductRating(b) - getProductRating(a)).slice(0, 4),
-    [products],
-  );
+  const {
+    featuredProducts,
+    todayOffers,
+    seasonalProducts,
+    healthyChoices,
+    bestSellers,
+    newArrivals,
+    yemeniProducts,
+    topRatedProducts,
+  } = useMemo(() => {
+    const featured: ProductDTO[] = products.slice(0, 4);
+    const offers: ProductDTO[] = [];
+    const seasonal: ProductDTO[] = [];
+    const healthy: ProductDTO[] = [];
+    const yemeni: ProductDTO[] = [];
+
+    for (const product of products) {
+      if (offers.length < 4 && product.sellingPrice <= 3) offers.push(product);
+      if (seasonal.length < 4 && isSeasonal(product)) seasonal.push(product);
+      if (healthy.length < 4 && (isOrganic(product) || ['Vegetables', 'Herbs'].includes(product.category.name))) healthy.push(product);
+      if (yemeni.length < 4 && isYemeni(product)) yemeni.push(product);
+    }
+
+    const sortedByStock = [...products].sort((a, b) => b.stock - a.stock).slice(0, 4);
+    const sortedByDate = [...products].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()).slice(0, 4);
+    const sortedByRating = [...products].sort((a, b) => getProductRating(b) - getProductRating(a)).slice(0, 4);
+
+    return {
+      featuredProducts: featured,
+      todayOffers: offers,
+      seasonalProducts: seasonal,
+      healthyChoices: healthy,
+      bestSellers: sortedByStock,
+      newArrivals: sortedByDate,
+      yemeniProducts: yemeni,
+      topRatedProducts: sortedByRating,
+    };
+  }, [products]);
 
   const favoriteProducts = useMemo(
     () => products.filter((product) => favorites.includes(product.id)),

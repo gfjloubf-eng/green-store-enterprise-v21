@@ -143,10 +143,10 @@ export function CheckoutPage() {
                 <button
                   type="button"
                   onClick={() => setPaymentMethod('CASH_ON_DELIVERY')}
-                  className={`p-3.5 rounded-2xl border text-xs font-bold text-right transition ${
+                  className={`p-3.5 rounded-2xl border text-xs font-bold text-right transition-colors ${
                     paymentMethod === 'CASH_ON_DELIVERY'
-                      ? 'border-emerald-600 bg-emerald-500/10 text-emerald-700'
-                      : 'border-[var(--gs-border)] bg-[var(--gs-background)] text-[var(--gs-foreground-secondary)] hover:bg-[var(--gs-muted)]'
+                      ? '[border-color:var(--gs-primary)] [background:var(--gs-primary-soft)] [color:var(--gs-primary)]'
+                      : '[border-color:var(--gs-border)] [background:var(--gs-background)] [color:var(--gs-foreground-secondary)] hover:[background:var(--gs-muted)]'
                   }`}
                 >
                   الدفع عند الاستلام (COD)
@@ -154,10 +154,10 @@ export function CheckoutPage() {
                 <button
                   type="button"
                   onClick={() => setPaymentMethod('CARD')}
-                  className={`p-3.5 rounded-2xl border text-xs font-bold text-right transition ${
+                  className={`p-3.5 rounded-2xl border text-xs font-bold text-right transition-colors ${
                     paymentMethod === 'CARD'
-                      ? 'border-emerald-600 bg-emerald-500/10 text-emerald-700'
-                      : 'border-[var(--gs-border)] bg-[var(--gs-background)] text-[var(--gs-foreground-secondary)] hover:bg-[var(--gs-muted)]'
+                      ? '[border-color:var(--gs-primary)] [background:var(--gs-primary-soft)] [color:var(--gs-primary)]'
+                      : '[border-color:var(--gs-border)] [background:var(--gs-background)] [color:var(--gs-foreground-secondary)] hover:[background:var(--gs-muted)]'
                   }`}
                 >
                   بطاقة مدى / ائتمان (Card)

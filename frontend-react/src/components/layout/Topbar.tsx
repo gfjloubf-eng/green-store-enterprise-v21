@@ -1,4 +1,3 @@
-import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Bell, Moon, Sun, Menu, X, Languages, Search, LogOut, ShoppingCart, LogIn } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -14,40 +13,20 @@ import { LogoPlaceholder } from '@/components/ui/LogoPlaceholder';
 interface TopbarProps {
   /** Called when the hamburger menu is clicked (mobile) */
   onMenuClick: () => void;
+  /** Whether mobile sidebar drawer is currently open */
+  mobileOpen?: boolean;
   /** Optional class name override */
   className?: string;
 }
 
 /* ─── Topbar ───────────────────────────────────────────────── */
 
-export function Topbar({ onMenuClick, className }: TopbarProps) {
+export function Topbar({ onMenuClick, mobileOpen = false, className }: TopbarProps) {
   const navigate = useNavigate();
   const { isDark, toggle: toggleTheme } = useTheme();
   const { isRTL, toggle: toggleDirection } = useRTL();
   const { t } = useI18n();
   const { user, logout } = useAuth();
-
-  // Local UI state for mobile open so the hamburger can switch to an X icon.
-  const [mobileOpen, setMobileOpen] = useState(false);
-
-  useEffect(() => {
-    const handler = (e: Event) => {
-      const custom = e as CustomEvent<{ open: boolean }>;
-      setMobileOpen(Boolean(custom.detail?.open));
-    };
-    window.addEventListener('sidebar:mobile-toggle', handler as EventListener);
-
-    try {
-      const aside = document.querySelector('aside.gsd-sidebar');
-      if (aside) {
-        setMobileOpen(aside.getAttribute('data-mobile-open') === 'true');
-      }
-    } catch (e) {
-      // ignore
-    }
-
-    return () => window.removeEventListener('sidebar:mobile-toggle', handler as EventListener);
-  }, []);
 
   const initials = user?.name
     ? user.name

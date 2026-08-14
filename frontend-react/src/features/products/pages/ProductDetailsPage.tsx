@@ -1,4 +1,4 @@
-﻿/* ============================================================
+/* ============================================================
    GSDS v1.1 — ProductDetailsPage
    Green Store Design System — Enterprise UI Foundation
    Milestone 4.3 — Uses ProductService via useProductDetail hook
@@ -181,16 +181,25 @@ export function ProductDetailsPage() {
                     className="mx-auto h-72 w-full max-w-xs rounded-2xl object-cover transition duration-300 ease-in-out hover:scale-105"
                   />
                   <div className="mt-4 grid gap-2 sm:grid-cols-3">
-                    {galleryImages.map((image, index) => (
-                      <button
-                        key={`${product.id}-thumb-${index}`}
-                        type="button"
-                        onClick={() => setSelectedImage(image)}
-                        className="overflow-hidden rounded-2xl border border-[var(--gs-border)]"
-                      >
-                        <img src={image} alt={`${product.name} thumbnail`} className="h-20 w-full object-cover" />
-                      </button>
-                    ))}
+                    {galleryImages.map((image, index) => {
+                      const isActive = selectedImage === image;
+                      return (
+                        <button
+                          key={`${product.id}-thumb-${index}`}
+                          type="button"
+                          onClick={() => setSelectedImage(image)}
+                          className={`overflow-hidden rounded-2xl border-2 transition-all ${
+                            isActive
+                              ? 'border-[var(--gs-primary)] ring-2 ring-[var(--gs-primary-soft)] opacity-100'
+                              : 'border-[var(--gs-border)] opacity-75 hover:opacity-100'
+                          }`}
+                          aria-label={`عرض الصورة ${index + 1}`}
+                          aria-current={isActive}
+                        >
+                          <img src={image} alt={`${product.name} thumbnail ${index + 1}`} className="h-20 w-full object-cover" />
+                        </button>
+                      );
+                    })}
                   </div>
                 </div>
 

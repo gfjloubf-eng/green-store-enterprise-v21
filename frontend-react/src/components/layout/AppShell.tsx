@@ -46,7 +46,7 @@ export function AppShell() {
       {/* Main area */}
       <div className="flex flex-1 flex-col min-w-0">
         {/* Topbar */}
-        <Topbar onMenuClick={handleMobileToggle} />
+        <Topbar onMenuClick={handleMobileToggle} mobileOpen={mobileOpen} />
 
         {/* Content */}
         <main

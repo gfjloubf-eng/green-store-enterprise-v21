@@ -82,9 +82,18 @@ export function CartPage() {
 
   if (loading) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[50vh] gap-3">
-        <div className="h-8 w-8 animate-spin rounded-full border-3 border-emerald-500 border-t-transparent" />
-        <span className="text-sm font-medium [color:var(--gs-foreground-secondary)]">جاري تحميل السلة...</span>
+      <div className="flex flex-col gap-6 pb-8" dir="rtl">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="h-8 w-56 bg-[var(--gs-muted)] animate-pulse rounded-xl" />
+        </div>
+        <div className="grid gap-6 lg:grid-cols-[1fr_340px]">
+          <div className="space-y-3">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="gsd-card rounded-2xl p-4 border border-[var(--gs-border)] bg-[var(--gs-surface)] h-24 animate-pulse" />
+            ))}
+          </div>
+          <div className="gsd-card rounded-3xl p-5 border border-[var(--gs-border)] bg-[var(--gs-surface)] h-56 animate-pulse" />
+        </div>
       </div>
     );
   }
@@ -176,23 +185,25 @@ export function CartPage() {
                   </div>
 
                   <div className="flex items-center justify-between sm:justify-end gap-6 border-t sm:border-t-0 border-[var(--gs-border-subtle)] pt-3 sm:pt-0">
-                    <div className="flex items-center gap-2 border border-[var(--gs-border)] rounded-xl p-1 bg-[var(--gs-background)]">
+                    <div className="flex items-center gap-1.5 border border-[var(--gs-border)] rounded-xl p-1 bg-[var(--gs-background)]">
                       <button
                         type="button"
                         disabled={isUpdating}
                         onClick={() => handleUpdateQuantity(item, item.quantity - 1)}
-                        className="p-1 rounded-lg hover:bg-[var(--gs-muted)] text-[var(--gs-foreground)] disabled:opacity-40"
+                        className="flex h-9 w-9 items-center justify-center rounded-lg hover:bg-[var(--gs-muted)] text-[var(--gs-foreground)] disabled:opacity-40 touch-manipulation focus:outline-none focus:ring-2 focus:ring-[var(--gs-primary)]"
+                        aria-label="إنقاص الكمية"
                       >
-                        <Minus className="h-3.5 w-3.5" />
+                        <Minus className="h-4 w-4" />
                       </button>
-                      <span className="text-xs font-bold w-6 text-center">{item.quantity}</span>
+                      <span className="text-xs font-bold w-7 text-center">{item.quantity}</span>
                       <button
                         type="button"
                         disabled={isUpdating}
                         onClick={() => handleUpdateQuantity(item, item.quantity + 1)}
-                        className="p-1 rounded-lg hover:bg-[var(--gs-muted)] text-[var(--gs-foreground)] disabled:opacity-40"
+                        className="flex h-9 w-9 items-center justify-center rounded-lg hover:bg-[var(--gs-muted)] text-[var(--gs-foreground)] disabled:opacity-40 touch-manipulation focus:outline-none focus:ring-2 focus:ring-[var(--gs-primary)]"
+                        aria-label="زيادة الكمية"
                       >
-                        <Plus className="h-3.5 w-3.5" />
+                        <Plus className="h-4 w-4" />
                       </button>
                     </div>
 

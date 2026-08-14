@@ -121,9 +121,13 @@ export function OrdersListPage() {
 
       {/* Content */}
       {loading ? (
-        <div className="flex flex-col items-center justify-center min-h-[40vh] gap-3">
-          <div className="h-8 w-8 animate-spin rounded-full border-3 border-emerald-500 border-t-transparent" />
-          <span className="text-sm font-medium text-[var(--gs-foreground-secondary)]">جاري تحميل الطلبات...</span>
+        <div className="space-y-4">
+          {[1, 2, 3, 4].map((i) => (
+            <div
+              key={i}
+              className="gsd-card rounded-3xl p-5 border border-[var(--gs-border)] bg-[var(--gs-surface)] h-28 animate-pulse"
+            />
+          ))}
         </div>
       ) : orders.length === 0 ? (
         <div className="gsd-card rounded-3xl p-12 text-center flex flex-col items-center justify-center border border-[var(--gs-border)] bg-[var(--gs-surface)] space-y-3">
