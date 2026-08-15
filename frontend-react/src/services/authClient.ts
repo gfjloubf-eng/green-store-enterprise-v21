@@ -10,12 +10,23 @@ export interface AuthResult {
   expiresIn: number;
 }
 
-const getApiBase = (): string => {
+export const getApiBase = (): string => {
   const envUrl = (import.meta as any).env?.VITE_API_URL;
-  if (envUrl) return envUrl.replace(/\/+$/, '');
-  if (typeof window !== 'undefined' && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
+  const isBrowser = typeof window !== 'undefined';
+  const isRemoteHost = isBrowser && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1';
+
+  if (envUrl) {
+    const cleanUrl = String(envUrl).replace(/\/+$/, '');
+    const isLocalEnvUrl = cleanUrl.includes('127.0.0.1') || cleanUrl.includes('localhost');
+    if (!isRemoteHost || !isLocalEnvUrl) {
+      return cleanUrl;
+    }
+  }
+
+  if (isRemoteHost) {
     return window.location.origin;
   }
+
   return 'http://127.0.0.1:3000';
 };
 

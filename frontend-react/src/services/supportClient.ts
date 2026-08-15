@@ -1,4 +1,4 @@
-import { fetchWithAuth, parseJsonSafe } from './authClient';
+import { fetchWithAuth, parseJsonSafe, getApiBase } from './authClient';
 
 export interface SupportContacts {
   supportPhone: string;
@@ -34,8 +34,7 @@ export interface SupportReply {
 }
 
 export async function getSupportContacts(): Promise<SupportContacts> {
-  const envUrl = (import.meta as any).env?.VITE_API_URL || 'http://127.0.0.1:3000';
-  const res = await fetch(`${envUrl.replace(/\/+$/, '')}/support/contacts`);
+  const res = await fetch(`${getApiBase()}/support/contacts`);
   const payload = await parseJsonSafe(res);
   if (!res.ok) {
     const message = payload?.error?.message ?? res.statusText;

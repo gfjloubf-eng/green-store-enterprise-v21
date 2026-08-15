@@ -1,4 +1,4 @@
-import { fetchWithAuth, parseJsonSafe } from './authClient';
+import { fetchWithAuth, parseJsonSafe, getApiBase } from './authClient';
 
 export interface PublicSettings {
   storeName: string;
@@ -13,8 +13,7 @@ export interface PublicSettings {
 }
 
 export async function getPublicSettings(): Promise<PublicSettings> {
-  const envUrl = (import.meta as any).env?.VITE_API_URL || 'http://127.0.0.1:3000';
-  const res = await fetch(`${envUrl.replace(/\/+$/, '')}/settings/public`);
+  const res = await fetch(`${getApiBase()}/settings/public`);
   const payload = await parseJsonSafe(res);
   if (!res.ok) {
     const message = payload?.error?.message ?? res.statusText;
