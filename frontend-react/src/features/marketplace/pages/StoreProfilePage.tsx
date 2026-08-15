@@ -1,6 +1,6 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, MapPin, MessageCircle, Star, Truck } from 'lucide-react';
+import { ArrowLeft, MapPin, MessageCircle, Star, Truck, Plus, Check } from 'lucide-react';
 import { BreadcrumbEngine } from '@/components/layout/BreadcrumbEngine';
 import { buildWhatsAppUrl } from '@/config/whatsapp';
 import { ProductService } from '@/features/products/services/productService';
@@ -10,6 +10,8 @@ import type { ProductDTO } from '@/features/products/domain/productDTO';
 import { StoreService } from '../services/storeService';
 import { formatPrice } from '@/lib/formatters';
 import { useI18n } from '@/i18n/useI18n';
+import { useCart } from '../useCart';
+import { addItemToCart } from '@/services/cartClient';
 
 const reviews = [
   {
@@ -35,7 +37,6 @@ const reviews = [
 export function StoreProfilePage() {
   const navigate = useNavigate();
   const { storeId } = useParams<{ storeId: string }>();
-  const { locale } = useI18n();
   const store = StoreService.getById(storeId ?? '');
 
   const availableProducts = useMemo(() => {
@@ -201,28 +202,7 @@ export function StoreProfilePage() {
         </div>
         <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
           {availableProducts.map((product) => (
-            <button
-              key={product.id}
-              type="button"
-              onClick={() => navigate(`/products/${product.id}`)}
-              className="gsd-surface flex flex-col rounded-3xl p-3 text-right text-left transition hover:-translate-y-0.5"
-            >
-              <img
-                src={product.image || placeholderImage}
-                alt={product.name}
-                className="h-36 w-full rounded-3xl object-cover"
-              />
-              <div className="mt-3">
-                <div className="text-sm font-semibold [color:var(--gs-foreground)]">{product.name}</div>
-                <div className="mt-1 text-xs [color:var(--gs-foreground-secondary)]">{product.category.name}</div>
-                <div className="mt-2 flex items-center justify-between gap-2 text-sm font-semibold [color:var(--gs-primary)]">
-                  <span>{formatPrice(product.sellingPrice, locale)}</span>
-                  <span className="rounded-full bg-emerald-50 px-2 py-1 text-[10px] font-semibold text-emerald-700">
-                    {product.stock > 0 ? 'متوفر' : 'غير متوفر'}
-                  </span>
-                </div>
-              </div>
-            </button>
+            <ProductTile key={product.id} product={product} onClick={() => navigate(`/products/${product.id}`)} />
           ))}
         </div>
       </section>
@@ -344,21 +324,88 @@ function SectionPanel({ title, description, children }: { title: string; descrip
 
 function ProductTile({ product, onClick }: { product: ProductDTO; onClick: () => void }) {
   const { locale } = useI18n();
+  const { add } = useCart();
+  const [added, setAdded] = useState(false);
+  const [adding, setAdding] = useState(false);
+
+  const handleAddToCart = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (adding || product.stock <= 0) return;
+    setAdding(true);
+    try {
+      await addItemToCart(product.id, 1).catch(() => null);
+      add(product, 1);
+      setAdded(true);
+      setTimeout(() => setAdded(false), 2000);
+    } catch {
+      add(product, 1);
+      setAdded(true);
+      setTimeout(() => setAdded(false), 2000);
+    } finally {
+      setAdding(false);
+    }
+  };
+
   return (
-    <button
-      type="button"
+    <div
+      role="button"
+      tabIndex={0}
       onClick={onClick}
-      className="gsd-surface flex flex-col rounded-3xl p-3 text-right transition hover:-translate-y-0.5"
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          onClick();
+        }
+      }}
+      className="gsd-surface flex flex-col justify-between rounded-3xl p-3 text-right transition hover:-translate-y-0.5 focus:outline-none focus:ring-2 focus:ring-[var(--gs-primary)]"
     >
-      <img src={product.image || placeholderImage} alt={product.name} className="h-32 w-full rounded-3xl object-cover" />
-      <div className="mt-3">
-        <div className="text-sm font-semibold [color:var(--gs-foreground)]">{product.name}</div>
-        <div className="mt-1 text-xs [color:var(--gs-foreground-secondary)]">{product.category.name}</div>
-        <div className="mt-2 flex items-center justify-between gap-2 text-sm font-semibold [color:var(--gs-primary)]">
-          <span>{formatPrice(product.sellingPrice, locale)}</span>
-          <span className="rounded-full bg-emerald-50 px-2 py-1 text-[10px] font-semibold text-emerald-700">{getProductRating(product).toFixed(1)}</span>
+      <div>
+        <img
+          src={product.image || placeholderImage}
+          alt={product.name}
+          className="h-32 w-full rounded-2xl object-cover"
+          loading="lazy"
+        />
+        <div className="mt-3 space-y-1">
+          <div className="text-sm font-semibold [color:var(--gs-foreground)]">{product.name}</div>
+          <div className="text-xs [color:var(--gs-foreground-secondary)]">{product.category.name}</div>
+          <div className="mt-2 flex items-center justify-between gap-2 text-sm font-semibold [color:var(--gs-primary)]">
+            <span>{formatPrice(product.sellingPrice, locale)}</span>
+            <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold text-emerald-700">
+              {product.stock > 0 ? `${getProductRating(product).toFixed(1)} ★` : 'غير متوفر'}
+            </span>
+          </div>
         </div>
       </div>
-    </button>
+
+      <div className="mt-3 pt-2 border-t border-[var(--gs-border-subtle)]">
+        <button
+          type="button"
+          onClick={handleAddToCart}
+          disabled={adding || product.stock <= 0}
+          className={`w-full rounded-xl py-1.5 px-3 text-xs font-bold transition flex items-center justify-center gap-1.5 ${
+            added
+              ? 'bg-emerald-600 text-white shadow-sm'
+              : product.stock <= 0
+              ? 'bg-gray-100 text-gray-400 cursor-not-allowed border border-gray-200'
+              : 'bg-emerald-600/10 text-emerald-700 hover:bg-emerald-600 hover:text-white border border-emerald-600/20'
+          }`}
+        >
+          {added ? (
+            <>
+              <Check className="h-3.5 w-3.5" />
+              تمت الإضافة ✓
+            </>
+          ) : product.stock <= 0 ? (
+            'نفدت الكمية'
+          ) : (
+            <>
+              <Plus className="h-3.5 w-3.5" />
+              إضافة للسلة
+            </>
+          )}
+        </button>
+      </div>
+    </div>
   );
 }

@@ -19,6 +19,7 @@ import {
   Star,
   ShoppingBag,
   Check,
+  Store,
 } from 'lucide-react';
 import { formatPrice } from '@/lib/formatters';
 import { useI18n } from '@/i18n/useI18n';
@@ -98,8 +99,13 @@ export function ProductDetailsPage() {
       current.includes(product.id) ? current.filter((id) => id !== product.id) : [product.id, ...current],
     );
   };
+  const supplyingStore = useMemo(() => {
+    if (!product) return undefined;
+    return StoreService.getAll().find((store) => store.productIds.includes(product.id));
+  }, [product]);
+
   const defaultStoreName =
-    StoreService.getOpen().find((store) => store.status === 'open')?.name ?? 'قطوف الطبيعة';
+    supplyingStore?.name ?? StoreService.getOpen().find((store) => store.status === 'open')?.name ?? 'قطوف الطبيعة';
   const whatsappMessage = `مرحبًا، أحتاج إلى ${product?.name ?? 'المنتج'} (${product?.sku ?? ''}) من ${defaultStoreName}، الكمية: ${quantity}، الطلب: ${customerRequest}`;
 
   const relatedProducts = useMemo(() => {
@@ -249,6 +255,21 @@ export function ProductDetailsPage() {
                     <p className="text-sm [color:var(--gs-foreground-secondary)]">
                       {product.brand.name} • {product.category.name}
                     </p>
+                    {supplyingStore && (
+                      <div className="mt-2">
+                        <button
+                          type="button"
+                          onClick={() => navigate(`/stores/${supplyingStore.id}`)}
+                          className="inline-flex items-center gap-2 rounded-2xl border border-[var(--gs-border)] bg-[var(--gs-surface)] px-3 py-1.5 text-xs font-semibold text-[var(--gs-foreground)] transition hover:border-[var(--gs-primary)] hover:text-[var(--gs-primary)] shadow-sm"
+                        >
+                          <Store className="h-4 w-4 text-emerald-600" />
+                          <span>المتجر المورّد: <strong className="font-bold text-[var(--gs-foreground)]">{supplyingStore.name}</strong></span>
+                          <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${supplyingStore.status === 'open' ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700'}`}>
+                            {supplyingStore.status === 'open' ? 'مفتوح الآن' : 'مغلق مؤقتًا'}
+                          </span>
+                        </button>
+                      </div>
+                    )}
                   </div>
                   <div className="inline-flex items-center gap-2 rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700">
                     <Star className="h-4 w-4" />

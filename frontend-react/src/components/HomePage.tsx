@@ -29,6 +29,7 @@ import { useProductSearch } from '@/features/products/hooks/useProductService';
 import { useLocalStorageState } from '@/hooks/useLocalStorageState';
 import { addItemToCart } from '@/services/cartClient';
 import { useCart } from '@/features/marketplace/useCart';
+import { StoreService } from '@/features/marketplace/services/storeService';
 import {
   getProductRating,
   getProductBadges,
@@ -567,6 +568,9 @@ function ProductCard({
   const [added, setAdded] = useState(false);
   const [adding, setAdding] = useState(false);
   const badges = getProductBadges(product);
+  const supplyingStore = useMemo(() => {
+    return StoreService.getAll().find((s) => s.productIds.includes(product.id));
+  }, [product.id]);
 
   const handleAddToCart = async (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -626,9 +630,17 @@ function ProductCard({
               {product.stock > 0 ? 'متوفر' : 'مخزون منخفض'}
             </span>
           </div>
-          <div className="flex flex-wrap items-center gap-2 text-xs [color:var(--gs-foreground-secondary)]">
-            <span>{product.category.name}</span>
-            {product.unit?.abbreviation && <span>• {product.unit.abbreviation}</span>}
+          <div className="flex flex-wrap items-center justify-between gap-1.5 text-xs [color:var(--gs-foreground-secondary)]">
+            <div className="flex items-center gap-1.5 overflow-hidden">
+              <span>{product.category.name}</span>
+              {product.unit?.abbreviation && <span>• {product.unit.abbreviation}</span>}
+            </div>
+            {supplyingStore && (
+              <span className="inline-flex items-center gap-1 rounded-full bg-[var(--gs-muted)] px-2 py-0.5 text-[10px] font-semibold text-[var(--gs-foreground-secondary)]">
+                <Store className="h-3 w-3 text-emerald-600" />
+                {supplyingStore.name}
+              </span>
+            )}
           </div>
           <div className="flex items-center justify-between">
             <div className="text-sm font-bold [color:var(--gs-primary)]">{formatPrice(product.sellingPrice, locale)}</div>
