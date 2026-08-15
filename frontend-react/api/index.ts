@@ -1,5 +1,5 @@
 import type { IncomingMessage, ServerResponse } from 'node:http';
-import { createSystemRequestHandler } from './backend/system/server';
+import { createSystemRequestHandler } from './_backend/system/server';
 
 const handler = createSystemRequestHandler();
 
