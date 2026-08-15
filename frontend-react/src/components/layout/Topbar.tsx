@@ -154,11 +154,21 @@ export function Topbar({ onMenuClick, mobileOpen = false, className }: TopbarPro
       </div>
 
 
-      {/* Search on mobile only */}
-      <div className="ml-auto flex items-center gap-2 lg:hidden">
+      {/* Mobile action controls (Theme toggle & Search) */}
+      <div className="ml-auto flex items-center gap-1 lg:hidden">
         <button
           type="button"
-          className="rounded-xl p-3 [color:var(--gs-foreground-secondary)] hover:[background:var(--gs-muted)] hover:[color:var(--gs-foreground)] transition-colors duration-200"
+          onClick={toggleTheme}
+          className="rounded-xl p-2.5 [color:var(--gs-foreground-secondary)] hover:[background:var(--gs-muted)] hover:[color:var(--gs-foreground)] transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center"
+          aria-label={t('theme.toggle')}
+          title={isDark ? t('theme.light') : t('theme.dark')}
+        >
+          {isDark ? <Sun className="h-5 w-5 text-amber-400" /> : <Moon className="h-5 w-5 text-indigo-500" />}
+        </button>
+
+        <button
+          type="button"
+          className="rounded-xl p-2.5 [color:var(--gs-foreground-secondary)] hover:[background:var(--gs-muted)] hover:[color:var(--gs-foreground)] transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center"
           aria-label={t('common.search')}
           title={t('common.search')}
         >
