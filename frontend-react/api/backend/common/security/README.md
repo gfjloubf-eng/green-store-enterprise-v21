@@ -1,0 +1,1 @@
+Security folder: JWT, RBAC, encryption, hashing, rate-limiting, and other security-related utilities and middleware will live here. Do not store secrets in source code.
