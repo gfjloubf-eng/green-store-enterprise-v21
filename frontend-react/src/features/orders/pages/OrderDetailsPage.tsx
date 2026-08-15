@@ -209,6 +209,51 @@ export function OrderDetailsPage() {
         )}
       </div>
 
+      {/* Order Progress Timeline */}
+      {order.status !== 'CANCELED' && order.status !== 'RETURNED' && order.status !== 'REFUNDED' && (
+        <div className="gsd-card rounded-3xl p-5 border border-[var(--gs-border)] bg-[var(--gs-surface)] space-y-3">
+          <h3 className="text-xs font-bold [color:var(--gs-foreground-secondary)]">تتبع مسار الطلب</h3>
+          <div className="grid grid-cols-5 gap-2 text-center text-[11px]">
+            {[
+              { key: 'PENDING', label: 'تم الاستلام' },
+              { key: 'CONFIRMED', label: 'تم التأكيد' },
+              { key: 'PACKED', label: 'تم التجهيز' },
+              { key: 'SHIPPED', label: 'قيد الشحن' },
+              { key: 'DELIVERED', label: 'تم التسليم' },
+            ].map((step, idx) => {
+              const orderIndex = ['PENDING', 'CONFIRMED', 'PACKED', 'SHIPPED', 'DELIVERED'].indexOf(order.status);
+              const isDone = orderIndex >= idx;
+              const isCurrent = orderIndex === idx;
+
+              return (
+                <div key={step.key} className="flex flex-col items-center gap-1.5">
+                  <div
+                    className={`h-7 w-7 rounded-full flex items-center justify-center font-bold transition text-xs ${
+                      isDone
+                        ? 'bg-emerald-600 text-white shadow-sm'
+                        : 'bg-[var(--gs-muted)] text-[var(--gs-foreground-muted)] border border-[var(--gs-border)]'
+                    }`}
+                  >
+                    {isDone ? '✓' : idx + 1}
+                  </div>
+                  <span
+                    className={`text-[10px] ${
+                      isCurrent
+                        ? 'font-bold text-emerald-600'
+                        : isDone
+                        ? 'font-semibold text-[var(--gs-foreground)]'
+                        : 'text-[var(--gs-foreground-secondary)]'
+                    }`}
+                  >
+                    {step.label}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
       {successMsg && (
         <div className="rounded-2xl bg-emerald-500/10 border border-emerald-500/20 p-3.5 text-xs text-emerald-700 flex items-center gap-2">
           <CheckCircle2 className="h-4 w-4 shrink-0" />

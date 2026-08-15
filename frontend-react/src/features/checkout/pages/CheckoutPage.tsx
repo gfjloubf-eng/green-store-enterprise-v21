@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { MapPin, Clock, Tag, ShoppingBag, AlertCircle, CheckCircle2, ArrowRight } from 'lucide-react';
-import { createOrder } from '@/services/orderClient';
+import { MapPin, Clock, Tag, ShoppingBag, AlertCircle, CheckCircle2, ArrowRight, Store, Eye, Package } from 'lucide-react';
+import { createOrder, type Order } from '@/services/orderClient';
 import { getCart, type Cart } from '@/services/cartClient';
 import { SupportTeamCards } from '@/components/support/SupportTeamCards';
 import { formatPrice } from '@/lib/formatters';
 import { useI18n } from '@/i18n/useI18n';
+import { StoreService } from '@/features/marketplace/services/storeService';
 
 export function CheckoutPage() {
   const navigate = useNavigate();
@@ -17,6 +18,7 @@ export function CheckoutPage() {
   const [notes, setNotes] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+  const [createdOrder, setCreatedOrder] = useState<Order | null>(null);
 
   useEffect(() => {
     getCart()
@@ -44,10 +46,8 @@ export function CheckoutPage() {
         idempotencyKey: `IDEM-${order.id}-${Date.now()}`,
       });
 
+      setCreatedOrder(order);
       setSuccess(true);
-      setTimeout(() => {
-        navigate(`/orders/${order.id}`);
-      }, 1200);
     } catch (err: any) {
       setError(err?.message || 'فشل إنشاء الطلب والدفع. يرجى المحاولة لاحقاً.');
       setSubmitting(false);
@@ -81,14 +81,48 @@ export function CheckoutPage() {
 
       {success && (
         <div className="space-y-4">
-          <div className="rounded-3xl bg-emerald-500/10 border border-emerald-500/20 p-6 text-xs text-emerald-800 space-y-3">
-            <div className="flex items-center gap-2 text-base font-bold text-emerald-700">
-              <CheckCircle2 className="h-6 w-6 shrink-0" />
-              <span>تم استلام طلبك بنجاح 🎉</span>
+          <div className="rounded-3xl bg-emerald-500/10 border border-emerald-500/20 p-6 text-xs text-emerald-800 space-y-4">
+            <div className="flex items-center gap-3 text-lg font-bold text-emerald-700">
+              <CheckCircle2 className="h-7 w-7 shrink-0 text-emerald-600" />
+              <span>تم إنشاء طلبك بنجاح ✓</span>
             </div>
-            <p className="text-xs leading-relaxed">
-              سيتم التواصل معك لتأكيد الطلب ومتابعة التجهيز والشحن.
+            <p className="text-xs text-emerald-800 leading-relaxed">
+              تم استلام طلبك وبدء تجهيزه. يسعدنا تقديم أفضل خدمة لك عبر منصة قطوف.
             </p>
+
+            {createdOrder && (
+              <div className="grid gap-3 sm:grid-cols-2 pt-2 border-t border-emerald-500/20 text-xs">
+                <div>
+                  <span className="text-emerald-700 block">رقم الطلب:</span>
+                  <strong className="font-mono text-sm text-emerald-950">{createdOrder.code || createdOrder.id}</strong>
+                </div>
+                <div>
+                  <span className="text-emerald-700 block">المبلغ الإجمالي:</span>
+                  <strong className="text-sm text-emerald-950">{formatPrice(createdOrder.total || cart?.grandTotal, locale)}</strong>
+                </div>
+              </div>
+            )}
+
+            <div className="flex flex-wrap items-center gap-3 pt-3">
+              {createdOrder && (
+                <button
+                  type="button"
+                  onClick={() => navigate(`/orders/${createdOrder.id}`)}
+                  className="gsd-btn gsd-btn--primary gsd-btn--md rounded-2xl inline-flex items-center gap-2 px-5 py-2.5 text-xs font-bold"
+                >
+                  <Eye className="h-4 w-4" />
+                  عرض الطلب
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={() => navigate('/products')}
+                className="gsd-btn gsd-btn--ghost gsd-btn--md rounded-2xl inline-flex items-center gap-2 px-5 py-2.5 text-xs font-bold border border-emerald-600/30 text-emerald-700 hover:bg-emerald-600 hover:text-white"
+              >
+                <Package className="h-4 w-4" />
+                متابعة التسوق
+              </button>
+            </div>
           </div>
 
           <div className="gsd-card rounded-3xl p-5 border border-[var(--gs-border)] bg-[var(--gs-surface)] space-y-3">
@@ -191,15 +225,26 @@ export function CheckoutPage() {
             </h2>
 
             <div className="space-y-2 text-xs divide-y divide-[var(--gs-border-subtle)]">
-              {items.map((item) => (
-                <div key={item.id} className="pt-2 flex justify-between">
-                  <div>
-                    <span className="font-semibold text-[var(--gs-foreground)]">{item.product?.name || item.productId}</span>
-                    <span className="text-[var(--gs-foreground-muted)] block">الكمية: {item.quantity} × {formatPrice(item.unitPrice, locale)}</span>
+              {items.map((item) => {
+                const supplyingStore = StoreService.getAll().find((s) => s.productIds.includes(item.productId || item.product?.id || ''));
+                return (
+                  <div key={item.id} className="pt-2 flex justify-between">
+                    <div>
+                      <span className="font-semibold text-[var(--gs-foreground)]">{item.product?.name || item.productId}</span>
+                      <span className="text-[var(--gs-foreground-muted)] block">
+                        الكمية: {item.quantity} × {formatPrice(item.unitPrice, locale)}
+                      </span>
+                      {supplyingStore && (
+                        <span className="inline-flex items-center gap-1 mt-0.5 text-[10px] text-[var(--gs-foreground-secondary)] font-semibold">
+                          <Store className="h-3 w-3 text-emerald-600" />
+                          {supplyingStore.name}
+                        </span>
+                      )}
+                    </div>
+                    <strong className="text-emerald-600">{formatPrice(item.totalPrice, locale)}</strong>
                   </div>
-                  <strong className="text-emerald-600">{formatPrice(item.totalPrice, locale)}</strong>
-                </div>
-              ))}
+                );
+              })}
             </div>
 
             <div className="border-t border-[var(--gs-border)] pt-3 space-y-1 text-xs">
@@ -221,13 +266,16 @@ export function CheckoutPage() {
               type="button"
               disabled={submitting}
               onClick={handlePlaceOrder}
-              className="gsd-btn gsd-btn--primary gsd-btn--lg w-full rounded-2xl py-3 text-sm font-semibold flex items-center justify-center gap-2 mt-4"
+              className="gsd-btn gsd-btn--primary gsd-btn--lg w-full rounded-2xl py-3 text-xs font-bold flex items-center justify-center gap-2 mt-4 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {submitting ? (
-                <div className="h-5 w-5 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                <>
+                  <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                  <span>جاري تأكيد الطلب...</span>
+                </>
               ) : (
                 <>
-                  تأكيد وإنشاء الطلب الآن
+                  تأكيد الطلب
                   <ArrowRight className="h-4 w-4" />
                 </>
               )}

@@ -1,9 +1,10 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ShoppingCart, Trash2, Plus, Minus, ArrowRight, ShoppingBag, CheckCircle2 } from 'lucide-react';
+import { ShoppingCart, Trash2, Plus, Minus, ArrowRight, ShoppingBag, CheckCircle2, Store } from 'lucide-react';
 import { getCart, updateCartItem, removeCartItem, clearCart as clearCartApi, type Cart, type CartItem } from '@/services/cartClient';
 import { formatPrice } from '@/lib/formatters';
 import { useI18n } from '@/i18n/useI18n';
+import { StoreService } from '@/features/marketplace/services/storeService';
 
 export function CartPage() {
   const navigate = useNavigate();
@@ -145,20 +146,20 @@ export function CartPage() {
 
       {/* Cart Content */}
       {items.length === 0 ? (
-        <div className="gsd-card rounded-3xl p-12 text-center flex flex-col items-center justify-center border border-[var(--gs-border)] bg-[var(--gs-surface)]">
-          <div className="h-20 w-20 rounded-full bg-emerald-500/10 text-emerald-600 flex items-center justify-center mb-4">
+        <div className="gsd-card rounded-3xl p-12 text-center flex flex-col items-center justify-center border border-[var(--gs-border)] bg-[var(--gs-surface)] space-y-4">
+          <div className="h-20 w-20 rounded-full bg-emerald-500/10 text-emerald-600 flex items-center justify-center">
             <ShoppingBag className="h-10 w-10" />
           </div>
-          <h2 className="text-lg font-bold [color:var(--gs-foreground)]">سلة الشراء فارغة</h2>
-          <p className="text-xs [color:var(--gs-foreground-secondary)] mt-1 max-w-sm">
-            لم تقم بإضافة أي منتجات إلى سلة الشراء بعد. تصفح الكتالوج واكتشف أحدث الخضروات والمنتجات الطازجة.
+          <h2 className="text-lg font-bold [color:var(--gs-foreground)]">لا توجد منتجات في سلتك</h2>
+          <p className="text-xs [color:var(--gs-foreground-secondary)] max-w-sm">
+            سلتك فارغة حالياً. ابدأ بتصفح المنتجات الطازجة واختيار ما يناسبك.
           </p>
           <button
             type="button"
             onClick={() => navigate('/products')}
-            className="mt-6 gsd-btn gsd-btn--primary gsd-btn--md inline-flex items-center gap-2 rounded-xl"
+            className="gsd-btn gsd-btn--primary gsd-btn--md inline-flex items-center gap-2 rounded-2xl px-6 py-2.5 text-xs font-bold"
           >
-            تصفح الكتالوج الآن
+            تصفح المنتجات
             <ArrowRight className="h-4 w-4" />
           </button>
         </div>
@@ -168,22 +169,34 @@ export function CartPage() {
           <div className="space-y-3">
             {items.map((item) => {
               const isUpdating = updatingItemId === item.id;
+              const supplyingStore = StoreService.getAll().find((s) => s.productIds.includes(item.productId || item.product?.id || ''));
+
               return (
                 <div
                   key={item.id}
                   className="gsd-card rounded-2xl p-4 border border-[var(--gs-border)] bg-[var(--gs-surface)] flex flex-col sm:flex-row sm:items-center justify-between gap-4"
                 >
                   <div className="flex items-center gap-3">
-                    <div className="h-14 w-14 rounded-xl bg-emerald-100 flex items-center justify-center text-emerald-700 font-bold text-sm shrink-0">
-                      {item.product?.name ? item.product.name.slice(0, 2) : 'منتج'}
-                    </div>
-                    <div>
+                    {item.product?.image ? (
+                      <img src={item.product.image} alt={item.product.name} className="h-14 w-14 rounded-xl object-cover shrink-0 border border-[var(--gs-border)]" />
+                    ) : (
+                      <div className="h-14 w-14 rounded-xl bg-emerald-100 dark:bg-emerald-950/40 flex items-center justify-center text-emerald-700 font-bold text-sm shrink-0">
+                        {item.product?.name ? item.product.name.slice(0, 2) : 'منتج'}
+                      </div>
+                    )}
+                    <div className="space-y-1">
                       <h3 className="text-sm font-semibold [color:var(--gs-foreground)]">
                         {item.product?.name || `منتج رقم ${item.productId}`}
                       </h3>
-                      <span className="text-xs text-[var(--gs-foreground-secondary)]">
-                        سعر الوحدة: {formatPrice(item.unitPrice, locale)}
-                      </span>
+                      <div className="flex flex-wrap items-center gap-2 text-xs text-[var(--gs-foreground-secondary)]">
+                        <span>سعر الوحدة: {formatPrice(item.unitPrice, locale)}</span>
+                        {supplyingStore && (
+                          <span className="inline-flex items-center gap-1 rounded-full bg-[var(--gs-muted)] px-2 py-0.5 text-[10px] font-semibold">
+                            <Store className="h-3 w-3 text-emerald-600" />
+                            {supplyingStore.name}
+                          </span>
+                        )}
+                      </div>
                     </div>
                   </div>
 
@@ -252,10 +265,11 @@ export function CartPage() {
 
             <button
               type="button"
+              disabled={items.length === 0}
               onClick={() => navigate('/checkout')}
-              className="gsd-btn gsd-btn--primary gsd-btn--lg w-full rounded-2xl inline-flex items-center justify-center gap-2 mt-4"
+              className="gsd-btn gsd-btn--primary gsd-btn--lg w-full rounded-2xl inline-flex items-center justify-center gap-2 mt-4 text-xs font-bold py-3 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              متابعة الشراء والتسليم
+              متابعة الطلب
               <ArrowRight className="h-4 w-4" />
             </button>
           </div>

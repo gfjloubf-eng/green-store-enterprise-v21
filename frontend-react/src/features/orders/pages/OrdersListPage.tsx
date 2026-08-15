@@ -1,10 +1,11 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Package, Search, Calendar, ChevronLeft, ChevronRight, Eye, AlertCircle, ShoppingBag } from 'lucide-react';
+import { Package, Search, Calendar, ChevronLeft, ChevronRight, Eye, AlertCircle, ShoppingBag, Store } from 'lucide-react';
 import { getOrders, type Order } from '@/services/orderClient';
 import { useAuth } from '@/hooks/useAuth';
 import { formatPrice } from '@/lib/formatters';
 import { useI18n } from '@/i18n/useI18n';
+import { StoreService } from '@/features/marketplace/services/storeService';
 
 const STATUS_BADGES: Record<string, { label: string; bg: string; text: string }> = {
   PENDING: { label: 'قيد الانتظار', bg: 'bg-amber-500/10 border-amber-500/20', text: 'text-amber-600' },
@@ -152,6 +153,12 @@ export function OrdersListPage() {
               minute: '2-digit',
             });
 
+            const ordStore = ord.storeId
+              ? StoreService.getById(ord.storeId)
+              : ord.items && ord.items.length > 0 && ord.items[0].productId
+              ? StoreService.getAll().find((s) => s.productIds.includes(ord.items[0].productId))
+              : undefined;
+
             return (
               <div
                 key={ord.id}
@@ -163,6 +170,12 @@ export function OrdersListPage() {
                     <span className={`px-3 py-1 rounded-full border text-xs font-bold ${badge.bg} ${badge.text}`}>
                       {badge.label}
                     </span>
+                    {ordStore && (
+                      <span className="inline-flex items-center gap-1 text-xs bg-[var(--gs-muted)] px-2.5 py-1 rounded-full text-[var(--gs-foreground-secondary)] font-semibold">
+                        <Store className="h-3 w-3 text-emerald-600" />
+                        {ordStore.name}
+                      </span>
+                    )}
                     {ord.customer && isStaff && (
                       <span className="text-xs bg-[var(--gs-background)] px-2.5 py-1 rounded-lg text-[var(--gs-foreground-secondary)]">
                         العميل: <strong>{ord.customer.fullName}</strong>
@@ -193,10 +206,10 @@ export function OrdersListPage() {
                   <button
                     type="button"
                     onClick={() => navigate(`/orders/${ord.id}`)}
-                    className="gsd-btn gsd-btn--secondary gsd-btn--sm rounded-xl inline-flex items-center gap-2 px-4 py-2 text-xs"
+                    className="gsd-btn gsd-btn--primary gsd-btn--sm rounded-xl inline-flex items-center gap-2 px-4 py-2 text-xs font-bold"
                   >
                     <Eye className="h-4 w-4" />
-                    عرض التفاصيل
+                    عرض الطلب
                   </button>
                 </div>
               </div>
