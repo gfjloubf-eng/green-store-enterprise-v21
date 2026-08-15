@@ -13,6 +13,9 @@ export interface AuthResult {
 const getApiBase = (): string => {
   const envUrl = (import.meta as any).env?.VITE_API_URL;
   if (envUrl) return envUrl.replace(/\/+$/, '');
+  if (typeof window !== 'undefined' && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
+    return window.location.origin;
+  }
   return 'http://127.0.0.1:3000';
 };
 
@@ -273,6 +276,7 @@ export async function fetchWithAuth(input: RequestInfo, init?: RequestInit, retr
         // Do NOT invalidate session on temporary network errors or server downtime
         const isNetworkError =
           err?.name === 'TypeError' ||
+          (typeof err?.status === 'number' && err.status >= 500) ||
           (typeof err?.message === 'string' &&
             (err.message.includes('Failed to fetch') ||
              err.message.includes('NetworkError') ||

@@ -55,8 +55,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUser(null);
         setStatus('unauthenticated');
       }
-    } catch {
-      clearStoredTokens();
+    } catch (err: any) {
+      const isNetworkError =
+        err?.name === 'TypeError' ||
+        (typeof err?.status === 'number' && err.status >= 500) ||
+        (typeof err?.message === 'string' &&
+          (err.message.includes('Failed to fetch') ||
+           err.message.includes('NetworkError') ||
+           err.message.includes('Network Error') ||
+           err.message.includes('Load failed')));
+
+      if (!isNetworkError) {
+        clearStoredTokens();
+      }
       setUser(null);
       setStatus('unauthenticated');
     }
