@@ -1,12 +1,14 @@
 import { useState, useEffect } from 'react';
-import { Settings as SettingsIcon, Store, PhoneCall, DollarSign, ShieldAlert, Globe, Save, CheckCircle2, AlertCircle, Check } from 'lucide-react';
+import { Settings as SettingsIcon, Store, PhoneCall, DollarSign, ShieldAlert, Globe, Save, CheckCircle2, AlertCircle, Check, Sun, Moon, Palette } from 'lucide-react';
 import { getAdminSettings, updateAdminSettings } from '@/services/settingsClient';
 import { useAuth } from '@/hooks/useAuth';
 import { useRTL } from '@/hooks/useRTL';
+import { useTheme } from '@/hooks/useTheme';
 
 export function SettingsPage() {
   const { user } = useAuth();
   const { isRTL, isLTR, setDirection } = useRTL();
+  const { setMode, isDark, isLight } = useTheme();
   const [activeTab, setActiveTab] = useState<'STORE' | 'CONTACT' | 'BUSINESS' | 'SYSTEM' | 'PREFERENCES'>('STORE');
   const [settings, setSettings] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
@@ -234,16 +236,17 @@ export function SettingsPage() {
           <div className="space-y-6 max-w-xl text-xs">
             {/* Language & Layout Direction */}
             <div className="space-y-3">
-              <label className="font-bold text-[var(--gs-foreground)] block">لغة الواجهة واغتراب الاتجاه (Language & Layout Direction)</label>
-              <div className="grid grid-cols-2 gap-3">
+              <label className="font-bold text-[var(--gs-foreground)] block">🌐 لغة الواجهة والاتجاه (Language & Layout Direction)</label>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <button
                   type="button"
                   onClick={() => setDirection('rtl')}
-                  className={`p-4 rounded-2xl border flex flex-col items-center justify-center gap-2 transition ${
+                  className={`p-4 rounded-2xl border flex flex-col items-center justify-center gap-2 transition min-h-[52px] ${
                     isRTL
                       ? 'border-emerald-600 bg-emerald-500/10 text-emerald-600 font-bold shadow-sm'
                       : 'border-[var(--gs-border)] bg-[var(--gs-background)] text-[var(--gs-foreground-secondary)] hover:bg-[var(--gs-muted)]'
                   }`}
+                  aria-label="اللغة العربية - RTL"
                 >
                   <div className="flex items-center gap-2">
                     <span className="text-base font-bold">العربية</span>
@@ -255,17 +258,63 @@ export function SettingsPage() {
                 <button
                   type="button"
                   onClick={() => setDirection('ltr')}
-                  className={`p-4 rounded-2xl border flex flex-col items-center justify-center gap-2 transition ${
+                  className={`p-4 rounded-2xl border flex flex-col items-center justify-center gap-2 transition min-h-[52px] ${
                     isLTR
                       ? 'border-emerald-600 bg-emerald-500/10 text-emerald-600 font-bold shadow-sm'
                       : 'border-[var(--gs-border)] bg-[var(--gs-background)] text-[var(--gs-foreground-secondary)] hover:bg-[var(--gs-muted)]'
                   }`}
+                  aria-label="English Language - LTR"
                 >
                   <div className="flex items-center gap-2">
                     <span className="text-base font-bold">English</span>
                     {isLTR && <Check className="h-4 w-4 text-emerald-600" />}
                   </div>
                   <span className="text-[10px] text-[var(--gs-foreground-muted)]">Left-to-Right (LTR)</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Dedicated Appearance / Theme Section */}
+            <div className="space-y-3 pt-2 border-t border-[var(--gs-border)]">
+              <label className="font-bold text-[var(--gs-foreground)] block flex items-center gap-2">
+                <Palette className="h-4 w-4 text-emerald-600" />
+                🎨 المظهر والنمط (Appearance & Theme)
+              </label>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <button
+                  type="button"
+                  onClick={() => setMode('light')}
+                  className={`p-4 rounded-2xl border flex flex-col items-center justify-center gap-2 transition min-h-[52px] ${
+                    isLight
+                      ? 'border-emerald-600 bg-emerald-500/10 text-emerald-600 font-bold shadow-sm'
+                      : 'border-[var(--gs-border)] bg-[var(--gs-background)] text-[var(--gs-foreground-secondary)] hover:bg-[var(--gs-muted)]'
+                  }`}
+                  aria-label="الوضع النهاري - Light Mode"
+                >
+                  <div className="flex items-center gap-2">
+                    <Sun className="h-5 w-5 text-amber-500" />
+                    <span className="text-base font-bold">نهاري (Light)</span>
+                    {isLight && <Check className="h-4 w-4 text-emerald-600" />}
+                  </div>
+                  <span className="text-[10px] text-[var(--gs-foreground-muted)]">خلفية فاتحة عالية الوضوح</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setMode('dark')}
+                  className={`p-4 rounded-2xl border flex flex-col items-center justify-center gap-2 transition min-h-[52px] ${
+                    isDark
+                      ? 'border-emerald-600 bg-emerald-500/10 text-emerald-600 font-bold shadow-sm'
+                      : 'border-[var(--gs-border)] bg-[var(--gs-background)] text-[var(--gs-foreground-secondary)] hover:bg-[var(--gs-muted)]'
+                  }`}
+                  aria-label="الوضع الليلي - Dark Mode"
+                >
+                  <div className="flex items-center gap-2">
+                    <Moon className="h-5 w-5 text-indigo-400" />
+                    <span className="text-base font-bold">ليلي (Dark)</span>
+                    {isDark && <Check className="h-4 w-4 text-emerald-600" />}
+                  </div>
+                  <span className="text-[10px] text-[var(--gs-foreground-muted)]">خلفية داكنة مريحة للعين</span>
                 </button>
               </div>
             </div>

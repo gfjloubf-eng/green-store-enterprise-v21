@@ -1,8 +1,6 @@
 import { useNavigate } from 'react-router-dom';
-import { Bell, Moon, Sun, Menu, X, Languages, LogOut, ShoppingCart, LogIn } from 'lucide-react';
+import { Bell, Menu, X, LogOut, ShoppingCart, LogIn, Settings } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { useTheme } from '@/hooks/useTheme';
-import { useRTL } from '@/hooks/useRTL';
 import { useI18n } from '@/i18n/useI18n';
 import { useAuth } from '@/hooks/useAuth';
 import { BreadcrumbEngine } from './BreadcrumbEngine';
@@ -23,8 +21,6 @@ interface TopbarProps {
 
 export function Topbar({ onMenuClick, mobileOpen = false, className }: TopbarProps) {
   const navigate = useNavigate();
-  const { isDark, toggle: toggleTheme } = useTheme();
-  const { isRTL, toggle: toggleDirection } = useRTL();
   const { t } = useI18n();
   const { user, logout } = useAuth();
 
@@ -40,166 +36,135 @@ export function Topbar({ onMenuClick, mobileOpen = false, className }: TopbarPro
   return (
     <header
       className={cn(
-        'gsd-topbar sticky top-0 z-50 md:relative md:z-auto shadow-sm md:shadow-none md:static flex h-16 items-center gap-3 border-b px-4 sm:px-5',
-        '[background:var(--gs-surface)] [border-color:var(--gs-border)]',
+        'gsd-topbar sticky top-0 z-50 md:relative md:z-auto shadow-sm md:shadow-none md:static flex h-16 items-center justify-between gap-2 px-3 sm:px-5',
+        '[background:var(--gs-surface)] [border-color:var(--gs-border)] border-b',
         className,
       )}
     >
-      {/* Hamburger — mobile only */}
-      <button
-        type="button"
-        onClick={onMenuClick}
-        data-sidebar-toggle="true"
-        aria-expanded={mobileOpen}
-        className="flex lg:hidden items-center justify-center rounded-lg p-3 touch-manipulation min-h-[44px] [color:var(--gs-foreground-secondary)] hover:[background:var(--gs-muted)] hover:[color:var(--gs-foreground)] transition-colors"
-        aria-label={mobileOpen ? 'إغلاق القائمة' : 'فتح القائمة'}
-        title={mobileOpen ? 'إغلاق القائمة' : 'فتح القائمة'}
-      >
-        {mobileOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
-      </button>
+      {/* Mobile Left Section: Hamburger & Logo + Store Name visually connected */}
+      <div className="flex items-center gap-2 lg:hidden min-w-0">
+        <button
+          type="button"
+          onClick={onMenuClick}
+          data-sidebar-toggle="true"
+          aria-expanded={mobileOpen}
+          className="flex items-center justify-center rounded-xl p-2.5 touch-manipulation min-h-[44px] min-w-[44px] [color:var(--gs-foreground-secondary)] hover:[background:var(--gs-muted)] hover:[color:var(--gs-foreground)] transition-colors shrink-0"
+          aria-label={mobileOpen ? 'إغلاق القائمة' : 'فتح القائمة'}
+          title={mobileOpen ? 'إغلاق القائمة' : 'فتح القائمة'}
+        >
+          {mobileOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+        </button>
 
-      {/* Mobile logo centered */}
-      <div className="absolute inset-x-0 flex items-center justify-center lg:hidden pointer-events-none" style={{ height: '100%' }}>
-        <div className="mx-auto pointer-events-auto cursor-pointer" onClick={() => navigate('/')}>
-          <LogoPlaceholder size="lg" showText />
+        <div
+          className="flex items-center cursor-pointer min-w-0"
+          onClick={() => navigate('/')}
+        >
+          <LogoPlaceholder size="sm" showText />
         </div>
       </div>
 
-      {/* Breadcrumb on desktop/tablet only */}
+      {/* Desktop/Tablet Breadcrumb */}
       <BreadcrumbEngine className="hidden lg:flex flex-1 min-w-0" />
 
-      {/* Desktop action icons */}
-      <div className="hidden lg:flex items-center gap-2">
-        {/* Cart button */}
+      {/* Header Actions (Desktop & Mobile) */}
+      <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+        {/* Cart button (Desktop) */}
         {user && (
           <button
             type="button"
             onClick={() => navigate('/cart')}
-            className="rounded-lg p-2 [color:var(--gs-foreground-secondary)] hover:[background:var(--gs-muted)] hover:[color:var(--gs-foreground)] transition-colors"
+            className="hidden lg:flex rounded-lg p-2 [color:var(--gs-foreground-secondary)] hover:[background:var(--gs-muted)] hover:[color:var(--gs-foreground)] transition-colors min-h-[40px] min-w-[40px] items-center justify-center"
             aria-label="السلة / Cart"
             title="السلة / Cart"
           >
-            <ShoppingCart className="h-4 w-4" />
+            <ShoppingCart className="h-4.5 w-4.5" />
           </button>
         )}
 
-        {/* Theme toggle */}
-        <button
-          type="button"
-          onClick={toggleTheme}
-          className="rounded-lg p-2 [color:var(--gs-foreground-secondary)] hover:[background:var(--gs-muted)] hover:[color:var(--gs-foreground)] transition-colors"
-          aria-label={t('theme.toggle')}
-          title={isDark ? t('theme.light') : t('theme.dark')}
-        >
-          {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
-        </button>
-
-        {/* Language & Direction toggle with clear badge */}
-        <button
-          type="button"
-          onClick={toggleDirection}
-          className="rounded-lg px-2.5 py-1.5 [color:var(--gs-foreground-secondary)] hover:[background:var(--gs-muted)] hover:[color:var(--gs-foreground)] transition-colors flex items-center gap-1.5 text-xs"
-          aria-label={t('direction.toggle')}
-          title={isRTL ? t('direction.ltr') : t('direction.rtl')}
-        >
-          <Languages className="h-4 w-4 text-emerald-600" />
-          <span className="text-[11px] font-bold text-emerald-600 uppercase">{isRTL ? 'EN' : 'عربي'}</span>
-        </button>
-
-        {/* Notification placeholder */}
+        {/* Notification placeholder (Desktop) */}
         {user && (
           <button
             type="button"
-            className="relative rounded-lg p-2 [color:var(--gs-foreground-secondary)] hover:[background:var(--gs-muted)] hover:[color:var(--gs-foreground)] transition-colors"
+            className="hidden lg:flex relative rounded-lg p-2 [color:var(--gs-foreground-secondary)] hover:[background:var(--gs-muted)] hover:[color:var(--gs-foreground)] transition-colors min-h-[40px] min-w-[40px] items-center justify-center"
             aria-label={t('profile.notifications')}
             title={t('profile.notifications')}
           >
-            <Bell className="h-4 w-4" />
+            <Bell className="h-4.5 w-4.5" />
             <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full [background:var(--gs-primary)]" />
           </button>
         )}
 
-        {/* User profile & Logout OR Guest Login button */}
-        {user ? (
-          <div className="ml-2 flex items-center gap-2 border-l pl-3 [border-color:var(--gs-border)]">
-            <div className="flex items-center gap-2 cursor-pointer" onClick={() => navigate('/profile')}>
-              <div className="flex h-7 w-7 items-center justify-center rounded-full text-[10px] font-semibold [background:var(--gs-primary-soft)] [color:var(--gs-primary)]">
-                {initials}
-              </div>
-              <div className="flex flex-col text-left">
-                <span className="text-xs font-medium truncate max-w-[120px] [color:var(--gs-foreground)]">{user.name}</span>
-                <span className="text-[10px] text-emerald-600 font-semibold uppercase">{user.role ?? 'User'}</span>
-              </div>
-            </div>
+        {/* Centralized Settings Access Button (Desktop & Mobile) */}
+        <button
+          type="button"
+          onClick={() => navigate('/settings')}
+          className="rounded-xl p-2.5 [color:var(--gs-foreground-secondary)] hover:[background:var(--gs-muted)] hover:[color:var(--gs-foreground)] transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center"
+          aria-label={t('nav.settings') || 'الإعدادات'}
+          title={t('nav.settings') || 'الإعدادات'}
+        >
+          <Settings className="h-5 w-5" />
+        </button>
 
+        {/* Desktop User Profile & Logout OR Guest Login button */}
+        <div className="hidden lg:flex items-center">
+          {user ? (
+            <div className="ml-2 flex items-center gap-2 border-l pl-3 [border-color:var(--gs-border)]">
+              <div className="flex items-center gap-2 cursor-pointer" onClick={() => navigate('/profile')}>
+                <div className="flex h-7 w-7 items-center justify-center rounded-full text-[10px] font-semibold [background:var(--gs-primary-soft)] [color:var(--gs-primary)]">
+                  {initials}
+                </div>
+                <div className="flex flex-col text-left">
+                  <span className="text-xs font-medium truncate max-w-[120px] [color:var(--gs-foreground)]">{user.name}</span>
+                  <span className="text-[10px] text-emerald-600 font-semibold uppercase">{user.role ?? 'User'}</span>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={logout}
+                className="ml-1 rounded-lg p-2 text-red-500 hover:bg-red-50 hover:text-red-600 transition-colors"
+                aria-label="Logout"
+                title="Logout"
+              >
+                <LogOut className="h-4 w-4" />
+              </button>
+            </div>
+          ) : (
             <button
               type="button"
-              onClick={logout}
-              className="ml-1 rounded-lg p-2 text-red-500 hover:bg-red-50 hover:text-red-600 transition-colors"
-              aria-label="Logout"
-              title="Logout"
+              onClick={() => navigate('/login')}
+              className="gsd-btn gsd-btn--primary gsd-btn--sm inline-flex items-center gap-2 px-3 py-1.5 text-xs rounded-xl"
             >
-              <LogOut className="h-4 w-4" />
+              <LogIn className="h-3.5 w-3.5" />
+              تسجيل الدخول
             </button>
-          </div>
-        ) : (
-          <button
-            type="button"
-            onClick={() => navigate('/login')}
-            className="gsd-btn gsd-btn--primary gsd-btn--sm inline-flex items-center gap-2 px-3 py-1.5 text-xs rounded-xl"
-          >
-            <LogIn className="h-3.5 w-3.5" />
-            تسجيل الدخول
-          </button>
-        )}
-      </div>
+          )}
+        </div>
 
-
-      {/* Mobile action controls (Language toggle, Theme toggle & User Avatar / Login) */}
-      <div className="ml-auto flex items-center gap-1.5 lg:hidden z-10">
-        <button
-          type="button"
-          onClick={toggleDirection}
-          className="rounded-xl px-2 py-2 [color:var(--gs-foreground-secondary)] hover:[background:var(--gs-muted)] hover:[color:var(--gs-foreground)] transition-colors min-h-[44px] flex items-center gap-1 text-xs"
-          aria-label={t('direction.toggle')}
-          title={isRTL ? t('direction.ltr') : t('direction.rtl')}
-        >
-          <Languages className="h-4.5 w-4.5 text-emerald-600" />
-          <span className="text-[11px] font-bold text-emerald-600 uppercase">{isRTL ? 'EN' : 'عربي'}</span>
-        </button>
-
-        <button
-          type="button"
-          onClick={toggleTheme}
-          className="rounded-xl p-2.5 [color:var(--gs-foreground-secondary)] hover:[background:var(--gs-muted)] hover:[color:var(--gs-foreground)] transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center"
-          aria-label={t('theme.toggle')}
-          title={isDark ? t('theme.light') : t('theme.dark')}
-        >
-          {isDark ? <Sun className="h-5 w-5 text-amber-400" /> : <Moon className="h-5 w-5 text-indigo-500" />}
-        </button>
-
-        {user ? (
-          <button
-            type="button"
-            onClick={() => navigate('/profile')}
-            className="flex h-9 w-9 items-center justify-center rounded-full text-xs font-bold [background:var(--gs-primary-soft)] [color:var(--gs-primary)] border border-emerald-500/30 shrink-0"
-            aria-label={user.name}
-            title={user.name}
-          >
-            {initials}
-          </button>
-        ) : (
-          <button
-            type="button"
-            onClick={() => navigate('/login')}
-            className="gsd-btn gsd-btn--primary gsd-btn--xs rounded-xl px-2.5 py-1.5 text-xs font-semibold flex items-center gap-1 min-h-[38px]"
-          >
-            <LogIn className="h-3.5 w-3.5" />
-            <span>دخول</span>
-          </button>
-        )}
+        {/* Mobile User Profile Avatar OR Login button */}
+        <div className="flex lg:hidden items-center">
+          {user ? (
+            <button
+              type="button"
+              onClick={() => navigate('/profile')}
+              className="flex h-9 w-9 items-center justify-center rounded-full text-xs font-bold [background:var(--gs-primary-soft)] [color:var(--gs-primary)] border border-emerald-500/30 shrink-0"
+              aria-label={user.name}
+              title={user.name}
+            >
+              {initials}
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={() => navigate('/login')}
+              className="gsd-btn gsd-btn--primary gsd-btn--xs rounded-xl px-2.5 py-1.5 text-xs font-semibold flex items-center gap-1 min-h-[38px]"
+            >
+              <LogIn className="h-3.5 w-3.5" />
+              <span>دخول</span>
+            </button>
+          )}
+        </div>
       </div>
     </header>
   );
 }
-
