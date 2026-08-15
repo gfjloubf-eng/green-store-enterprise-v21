@@ -1,11 +1,12 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Package, ArrowRight, Calendar, User, AlertCircle, CheckCircle2, XCircle, RefreshCw, HelpCircle } from 'lucide-react';
+import { Package, ArrowRight, Calendar, User, AlertCircle, CheckCircle2, XCircle, RefreshCw, HelpCircle, Store } from 'lucide-react';
 import { getOrderById, updateOrderStatus, cancelOrder, type Order } from '@/services/orderClient';
 import { useAuth } from '@/hooks/useAuth';
 import { SupportTeamCards } from '@/components/support/SupportTeamCards';
 import { formatPrice } from '@/lib/formatters';
 import { useI18n } from '@/i18n/useI18n';
+import { StoreService } from '@/features/marketplace/services/storeService';
 
 const STATUS_BADGES: Record<string, { label: string; bg: string; text: string }> = {
   PENDING: { label: 'قيد الانتظار', bg: 'bg-amber-500/10 border-amber-500/20', text: 'text-amber-600' },
@@ -138,6 +139,23 @@ export function OrderDetailsPage() {
     minute: '2-digit',
   });
 
+  const orderStore = useMemo(() => {
+    if (!order) return undefined;
+    if (order.storeId) {
+      const found = StoreService.getById(order.storeId);
+      if (found) return found;
+    }
+    if (order.items && order.items.length > 0) {
+      for (const item of order.items) {
+        if (item.productId) {
+          const found = StoreService.getAll().find((s) => s.productIds.includes(item.productId));
+          if (found) return found;
+        }
+      }
+    }
+    return undefined;
+  }, [order]);
+
   const possibleTransitions = NEXT_TRANSITIONS[order.status] || [];
   const canCancelAsCustomer = !isStaff && (order.status === 'PENDING' || order.status === 'CONFIRMED');
 
@@ -160,9 +178,19 @@ export function OrderDetailsPage() {
                 {badge.label}
               </span>
             </div>
-            <p className="text-xs text-[var(--gs-foreground-secondary)] mt-0.5 flex items-center gap-1.5">
+            <p className="text-xs text-[var(--gs-foreground-secondary)] mt-0.5 flex items-center gap-1.5 flex-wrap">
               <Calendar className="h-3.5 w-3.5" />
-              تاريخ الطلب: {dateStr}
+              <span>تاريخ الطلب: {dateStr}</span>
+              {orderStore && (
+                <button
+                  type="button"
+                  onClick={() => navigate(`/stores/${orderStore.id}`)}
+                  className="inline-flex items-center gap-1.5 rounded-full border border-[var(--gs-border)] bg-[var(--gs-surface)] px-2.5 py-0.5 text-[11px] font-semibold [color:var(--gs-foreground)] hover:border-emerald-600 transition"
+                >
+                  <Store className="h-3 w-3 text-emerald-600" />
+                  <span>المتجر المورّد: <strong className="font-bold">{orderStore.name}</strong></span>
+                </button>
+              )}
             </p>
           </div>
         </div>
@@ -216,15 +244,29 @@ export function OrderDetailsPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-[var(--gs-border-subtle)]">
-                  {order.items?.map((item) => (
-                    <tr key={item.id} className="hover:bg-[var(--gs-background)]">
-                      <td className="py-3 px-3 font-semibold text-[var(--gs-foreground)]">{item.name}</td>
-                      <td className="py-3 px-3 font-mono text-[var(--gs-foreground-muted)]">{item.sku || '—'}</td>
-                      <td className="py-3 px-3 text-center font-bold">{item.quantity}</td>
-                      <td className="py-3 px-3">{formatPrice(item.unitPrice, locale, order.currency)}</td>
-                      <td className="py-3 px-3 text-left font-bold text-emerald-600">{formatPrice(item.total, locale, order.currency)}</td>
-                    </tr>
-                  ))}
+                  {order.items?.map((item) => {
+                    const itemStore = item.productId
+                      ? StoreService.getAll().find((s) => s.productIds.includes(item.productId))
+                      : orderStore;
+
+                    return (
+                      <tr key={item.id} className="hover:bg-[var(--gs-background)]">
+                        <td className="py-3 px-3">
+                          <div className="font-semibold text-[var(--gs-foreground)]">{item.name}</div>
+                          {itemStore && (
+                            <div className="mt-0.5 inline-flex items-center gap-1 text-[10px] text-[var(--gs-foreground-secondary)]">
+                              <Store className="h-3 w-3 text-emerald-600" />
+                              {itemStore.name}
+                            </div>
+                          )}
+                        </td>
+                        <td className="py-3 px-3 font-mono text-[var(--gs-foreground-muted)]">{item.sku || '—'}</td>
+                        <td className="py-3 px-3 text-center font-bold">{item.quantity}</td>
+                        <td className="py-3 px-3">{formatPrice(item.unitPrice, locale, order.currency)}</td>
+                        <td className="py-3 px-3 text-left font-bold text-emerald-600">{formatPrice(item.total, locale, order.currency)}</td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>

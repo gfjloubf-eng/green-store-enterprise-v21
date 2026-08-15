@@ -55,12 +55,25 @@ export function HomePage() {
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('');
+  const [selectedStore, setSelectedStore] = useState('');
   const [priceFilter, setPriceFilter] = useState<PriceFilter>('all');
   const [freshToday, setFreshToday] = useState(false);
   const [organicOnly, setOrganicOnly] = useState(false);
   const [seasonalOnly, setSeasonalOnly] = useState(false);
   const [favorites, setFavorites] = useLocalStorageState<string[]>(FAVORITES_KEY, []);
   const [recentlyViewed] = useLocalStorageState<string[]>(RECENTLY_VIEWED_KEY, []);
+
+  const allStores = useMemo(() => StoreService.getAll(), []);
+
+  const storeByProductIdMap = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const store of allStores) {
+      for (const pid of store.productIds) {
+        map.set(pid, store.id);
+      }
+    }
+    return map;
+  }, [allStores]);
 
   const products = useMemo(
     () => ProductService.getAll().filter((product) => product.status === 'active' && product.stock > 0),
@@ -88,13 +101,14 @@ export function HomePage() {
 
     return base.filter((product) => {
       if (selectedCategory && product.category.name !== selectedCategory) return false;
+      if (selectedStore && storeByProductIdMap.get(product.id) !== selectedStore) return false;
       if (hasPriceLimit && (product.sellingPrice < priceEntry.min || product.sellingPrice > priceEntry.max)) return false;
       if (freshToday && !isFreshToday(product)) return false;
       if (organicOnly && !isOrganic(product)) return false;
       if (seasonalOnly && !isSeasonal(product)) return false;
       return true;
     });
-  }, [searchQuery, searchResults, products, selectedCategory, priceFilter, freshToday, organicOnly, seasonalOnly]);
+  }, [searchQuery, searchResults, products, selectedCategory, selectedStore, priceFilter, freshToday, organicOnly, seasonalOnly, storeByProductIdMap]);
 
   const {
     featuredProducts,
@@ -264,6 +278,19 @@ export function HomePage() {
           </select>
 
           <select
+            value={selectedStore}
+            onChange={(event) => setSelectedStore(event.target.value)}
+            className="gsd-input h-10 rounded-xl text-sm"
+          >
+            <option value="">كل المحلات</option>
+            {allStores.map((store) => (
+              <option key={store.id} value={store.id}>
+                {store.name}
+              </option>
+            ))}
+          </select>
+
+          <select
             value={priceFilter}
             onChange={(event) => setPriceFilter(event.target.value as PriceFilter)}
             className="gsd-input h-10 rounded-xl text-sm"
@@ -299,12 +326,13 @@ export function HomePage() {
             موسمي
           </button>
 
-          {(selectedCategory || priceFilter !== 'all' || freshToday || organicOnly || seasonalOnly || searchQuery) && (
+          {(selectedCategory || selectedStore || priceFilter !== 'all' || freshToday || organicOnly || seasonalOnly || searchQuery) && (
             <button
               type="button"
               onClick={() => {
                 setSearchQuery('');
                 setSelectedCategory('');
+                setSelectedStore('');
                 setPriceFilter('all');
                 setFreshToday(false);
                 setOrganicOnly(false);
@@ -318,7 +346,7 @@ export function HomePage() {
           )}
         </div>
 
-        {searchQuery.trim() || selectedCategory || priceFilter !== 'all' || freshToday || organicOnly || seasonalOnly ? (
+        {searchQuery.trim() || selectedCategory || selectedStore || priceFilter !== 'all' || freshToday || organicOnly || seasonalOnly ? (
           <div className="mt-4">
             {productSearch.isSearching ? (
               <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
@@ -345,13 +373,14 @@ export function HomePage() {
                 </div>
                 <div>
                   <h3 className="text-base font-bold text-[var(--gs-foreground)]">لم نجد منتجات تطابق بحثك حالياً</h3>
-                  <p className="text-xs text-[var(--gs-foreground-secondary)] mt-1">تأكد من كتابة اسم المنتج بشكل صحيح أو اختر فئة أخرى.</p>
+                  <p className="text-xs text-[var(--gs-foreground-secondary)] mt-1">تأكد من كتابة اسم المنتج بشكل صحيح أو اختر فئة/محلاً آخر.</p>
                 </div>
                 <button
                   type="button"
                   onClick={() => {
                     setSearchQuery('');
                     setSelectedCategory('');
+                    setSelectedStore('');
                     setPriceFilter('all');
                     setFreshToday(false);
                     setOrganicOnly(false);
