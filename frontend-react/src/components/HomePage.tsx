@@ -14,6 +14,10 @@ import {
   Sparkles,
   Store,
   Star,
+  X,
+  Plus,
+  Check,
+  RotateCcw,
 } from 'lucide-react';
 import { ProductService } from '@/features/products/services/productService';
 import type { ProductDTO } from '@/features/products/domain/productDTO';
@@ -23,6 +27,8 @@ import { formatPrice } from '@/lib/formatters';
 import { useI18n } from '@/i18n/useI18n';
 import { useProductSearch } from '@/features/products/hooks/useProductService';
 import { useLocalStorageState } from '@/hooks/useLocalStorageState';
+import { addItemToCart } from '@/services/cartClient';
+import { useCart } from '@/features/marketplace/useCart';
 import {
   getProductRating,
   getProductBadges,
@@ -227,12 +233,22 @@ export function HomePage() {
               value={searchQuery}
               onChange={(event) => setSearchQuery(event.target.value)}
               placeholder="ابحث عن منتج"
-              className="w-full rounded-xl border border-[var(--gs-border-subtle)] bg-transparent py-2 pl-9 pr-3 text-sm outline-none [color:var(--gs-foreground)]"
+              className="w-full rounded-xl border border-[var(--gs-border-subtle)] bg-transparent py-2 pl-9 pr-8 text-sm outline-none [color:var(--gs-foreground)]"
             />
+            {searchQuery && (
+              <button
+                type="button"
+                onClick={() => setSearchQuery('')}
+                className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-[var(--gs-foreground-muted)] hover:text-[var(--gs-foreground)]"
+                aria-label="مسح البحث"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            )}
           </label>
         </div>
 
-        <div className="mt-4 flex flex-wrap gap-3">
+        <div className="mt-4 flex flex-wrap items-center gap-3">
           <select
             value={selectedCategory}
             onChange={(event) => setSelectedCategory(event.target.value)}
@@ -261,7 +277,7 @@ export function HomePage() {
           <button
             type="button"
             onClick={() => setFreshToday((value) => !value)}
-            className={`gsd-btn gsd-btn--ghost gsd-btn--sm ${freshToday ? 'border-[var(--gs-primary)] text-[var(--gs-primary)]' : ''}`}
+            className={`gsd-btn gsd-btn--ghost gsd-btn--sm ${freshToday ? 'border-[var(--gs-primary)] text-[var(--gs-primary)] bg-[var(--gs-primary-soft)] font-bold' : ''}`}
           >
             طازج اليوم
           </button>
@@ -269,7 +285,7 @@ export function HomePage() {
           <button
             type="button"
             onClick={() => setOrganicOnly((value) => !value)}
-            className={`gsd-btn gsd-btn--ghost gsd-btn--sm ${organicOnly ? 'border-[var(--gs-primary)] text-[var(--gs-primary)]' : ''}`}
+            className={`gsd-btn gsd-btn--ghost gsd-btn--sm ${organicOnly ? 'border-[var(--gs-primary)] text-[var(--gs-primary)] bg-[var(--gs-primary-soft)] font-bold' : ''}`}
           >
             عضوي
           </button>
@@ -277,18 +293,36 @@ export function HomePage() {
           <button
             type="button"
             onClick={() => setSeasonalOnly((value) => !value)}
-            className={`gsd-btn gsd-btn--ghost gsd-btn--sm ${seasonalOnly ? 'border-[var(--gs-primary)] text-[var(--gs-primary)]' : ''}`}
+            className={`gsd-btn gsd-btn--ghost gsd-btn--sm ${seasonalOnly ? 'border-[var(--gs-primary)] text-[var(--gs-primary)] bg-[var(--gs-primary-soft)] font-bold' : ''}`}
           >
             موسمي
           </button>
+
+          {(selectedCategory || priceFilter !== 'all' || freshToday || organicOnly || seasonalOnly || searchQuery) && (
+            <button
+              type="button"
+              onClick={() => {
+                setSearchQuery('');
+                setSelectedCategory('');
+                setPriceFilter('all');
+                setFreshToday(false);
+                setOrganicOnly(false);
+                setSeasonalOnly(false);
+              }}
+              className="gsd-btn gsd-btn--ghost gsd-btn--sm text-rose-500 hover:text-rose-600 flex items-center gap-1.5"
+            >
+              <RotateCcw className="h-3.5 w-3.5" />
+              إعادة ضبط الفلاتر
+            </button>
+          )}
         </div>
 
-        {searchQuery.trim() ? (
+        {searchQuery.trim() || selectedCategory || priceFilter !== 'all' || freshToday || organicOnly || seasonalOnly ? (
           <div className="mt-4">
             {productSearch.isSearching ? (
-              <div className="space-y-3">
-                {[...Array(3)].map((_, index) => (
-                  <div key={index} className="gsd-surface animate-pulse rounded-3xl p-4 h-28" />
+              <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                {[...Array(4)].map((_, index) => (
+                  <div key={index} className="gsd-surface animate-pulse rounded-2xl p-4 h-64 border border-[var(--gs-border-subtle)]" />
                 ))}
               </div>
             ) : filteredProducts.length > 0 ? (
@@ -304,8 +338,29 @@ export function HomePage() {
                 ))}
               </div>
             ) : (
-              <div className="rounded-xl border border-dashed border-[var(--gs-border-subtle)] p-4 text-sm [color:var(--gs-foreground-secondary)]">
-                لم يتم العثور على منتجات تتوافق مع البحث الحالي.
+              <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-[var(--gs-border)] p-8 text-center bg-[var(--gs-background)] my-4 space-y-3">
+                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-amber-500/10 text-amber-600">
+                  <Search className="h-6 w-6" />
+                </div>
+                <div>
+                  <h3 className="text-base font-bold text-[var(--gs-foreground)]">لم نجد منتجات تطابق بحثك حالياً</h3>
+                  <p className="text-xs text-[var(--gs-foreground-secondary)] mt-1">تأكد من كتابة اسم المنتج بشكل صحيح أو اختر فئة أخرى.</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSearchQuery('');
+                    setSelectedCategory('');
+                    setPriceFilter('all');
+                    setFreshToday(false);
+                    setOrganicOnly(false);
+                    setSeasonalOnly(false);
+                  }}
+                  className="gsd-btn gsd-btn--primary gsd-btn--sm rounded-xl px-4 py-2 text-xs flex items-center gap-2 mt-2"
+                >
+                  <RotateCcw className="h-3.5 w-3.5" />
+                  عرض جميع المنتجات
+                </button>
               </div>
             )}
           </div>
@@ -508,7 +563,28 @@ function ProductCard({
   isFavorited: boolean;
 }) {
   const { locale } = useI18n();
+  const { add } = useCart();
+  const [added, setAdded] = useState(false);
+  const [adding, setAdding] = useState(false);
   const badges = getProductBadges(product);
+
+  const handleAddToCart = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (adding) return;
+    setAdding(true);
+    try {
+      await addItemToCart(product.id, 1).catch(() => null);
+      add(product, 1);
+      setAdded(true);
+      setTimeout(() => setAdded(false), 2000);
+    } catch {
+      add(product, 1);
+      setAdded(true);
+      setTimeout(() => setAdded(false), 2000);
+    } finally {
+      setAdding(false);
+    }
+  };
 
   return (
     <div
@@ -521,56 +597,84 @@ function ProductCard({
           onClick();
         }
       }}
-      className="gsd-surface w-full rounded-2xl p-3 text-right transition hover:-translate-y-0.5 focus:outline-none focus:ring-2 focus:ring-[var(--gs-primary)]"
+      className="gsd-surface w-full rounded-2xl p-3 text-right transition hover:-translate-y-0.5 focus:outline-none focus:ring-2 focus:ring-[var(--gs-primary)] flex flex-col justify-between"
     >
-      <div className="relative overflow-hidden rounded-xl">
-        <img
-          src={product.image || placeholderImage}
-          alt={product.name}
-          className="h-40 w-full rounded-xl object-cover"
-        />
-        <button
-          type="button"
-          onClick={(event) => {
-            event.stopPropagation();
-            onFavoriteToggle();
-          }}
-          className="absolute right-3 top-3 inline-flex h-9 w-9 items-center justify-center rounded-full bg-white/90 text-[var(--gs-foreground)] shadow-sm transition hover:scale-105"
-          aria-label={isFavorited ? 'إزالة من المفضلة' : 'إضافة إلى المفضلة'}
-        >
-          <Heart className={`h-4 w-4 ${isFavorited ? 'text-rose-500' : 'text-slate-400'}`} />
-        </button>
-      </div>
-      <div className="mt-3 space-y-2">
-        <div className="flex items-center justify-between gap-2">
-          <div className="text-sm font-semibold [color:var(--gs-foreground)]">{product.name}</div>
-          <span className="rounded-full bg-emerald-50 px-2 py-1 text-[10px] font-medium text-emerald-700">
-            {product.stock > 0 ? 'متوفر' : 'مخزون منخفض'}
-          </span>
+      <div>
+        <div className="relative overflow-hidden rounded-xl">
+          <img
+            src={product.image || placeholderImage}
+            alt={product.name}
+            className="h-40 w-full rounded-xl object-cover"
+            loading="lazy"
+          />
+          <button
+            type="button"
+            onClick={(event) => {
+              event.stopPropagation();
+              onFavoriteToggle();
+            }}
+            className="absolute right-3 top-3 inline-flex h-9 w-9 items-center justify-center rounded-full bg-white/90 text-[var(--gs-foreground)] shadow-sm transition hover:scale-105"
+            aria-label={isFavorited ? 'إزالة من المفضلة' : 'إضافة إلى المفضلة'}
+          >
+            <Heart className={`h-4 w-4 ${isFavorited ? 'text-rose-500' : 'text-slate-400'}`} />
+          </button>
         </div>
-        <div className="flex flex-wrap items-center gap-2 text-xs [color:var(--gs-foreground-secondary)]">
-          <span>{product.category.name}</span>
-          <span>{product.unit.abbreviation}</span>
-        </div>
-        <div className="flex items-center justify-between">
-          <div className="text-sm font-semibold [color:var(--gs-primary)]">{formatPrice(product.sellingPrice, locale)}</div>
-          <div className="inline-flex items-center gap-1 text-xs [color:var(--gs-foreground-secondary)]">
-            <Star className="h-3.5 w-3.5 [color:var(--gs-primary)]" />
-            {getProductRating(product).toFixed(1)}
+        <div className="mt-3 space-y-2">
+          <div className="flex items-center justify-between gap-2">
+            <div className="text-sm font-semibold [color:var(--gs-foreground)]">{product.name}</div>
+            <span className="rounded-full bg-emerald-50 px-2 py-1 text-[10px] font-medium text-emerald-700">
+              {product.stock > 0 ? 'متوفر' : 'مخزون منخفض'}
+            </span>
+          </div>
+          <div className="flex flex-wrap items-center gap-2 text-xs [color:var(--gs-foreground-secondary)]">
+            <span>{product.category.name}</span>
+            {product.unit?.abbreviation && <span>• {product.unit.abbreviation}</span>}
+          </div>
+          <div className="flex items-center justify-between">
+            <div className="text-sm font-bold [color:var(--gs-primary)]">{formatPrice(product.sellingPrice, locale)}</div>
+            <div className="inline-flex items-center gap-1 text-xs [color:var(--gs-foreground-secondary)]">
+              <Star className="h-3.5 w-3.5 [color:var(--gs-primary)]" />
+              {getProductRating(product).toFixed(1)}
+            </div>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {badges.slice(0, 2).map((badge) => (
+              <span
+                key={badge.label}
+                className={`rounded-full px-2 py-1 text-[10px] font-semibold ${
+                  badge.active ? 'bg-emerald-50 text-emerald-700' : 'bg-[var(--gs-muted)] text-[var(--gs-foreground-secondary)]'
+                }`}
+              >
+                {badge.label}
+              </span>
+            ))}
           </div>
         </div>
-        <div className="flex flex-wrap gap-2">
-          {badges.slice(0, 2).map((badge) => (
-            <span
-              key={badge.label}
-              className={`rounded-full px-2 py-1 text-[10px] font-semibold ${
-                badge.active ? 'bg-emerald-50 text-emerald-700' : 'bg-[var(--gs-muted)] text-[var(--gs-foreground-secondary)]'
-              }`}
-            >
-              {badge.label}
-            </span>
-          ))}
-        </div>
+      </div>
+
+      <div className="mt-3 pt-2 border-t border-[var(--gs-border-subtle)]">
+        <button
+          type="button"
+          onClick={handleAddToCart}
+          disabled={adding || product.stock <= 0}
+          className={`w-full rounded-xl py-2 px-3 text-xs font-bold transition flex items-center justify-center gap-1.5 ${
+            added
+              ? 'bg-emerald-600 text-white shadow-sm'
+              : 'bg-emerald-600/10 text-emerald-700 hover:bg-emerald-600 hover:text-white border border-emerald-600/20'
+          }`}
+        >
+          {added ? (
+            <>
+              <Check className="h-3.5 w-3.5" />
+              تمت الإضافة ✓
+            </>
+          ) : (
+            <>
+              <Plus className="h-3.5 w-3.5" />
+              إضافة للسلة
+            </>
+          )}
+        </button>
       </div>
     </div>
   );

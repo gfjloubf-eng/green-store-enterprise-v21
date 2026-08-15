@@ -17,12 +17,16 @@ import {
   ShieldCheck,
   Sparkles,
   Star,
+  ShoppingBag,
+  Check,
 } from 'lucide-react';
 import { formatPrice } from '@/lib/formatters';
 import { useI18n } from '@/i18n/useI18n';
 import { BreadcrumbEngine } from '@/components/layout/BreadcrumbEngine';
 import { placeholderImage } from '@/assets/images/products/productImages';
 import { buildWhatsAppUrl, WHATSAPP_NUMBER } from '@/config/whatsapp';
+import { addItemToCart } from '@/services/cartClient';
+import { useCart } from '@/features/marketplace/useCart';
 import { StoreService } from '@/features/marketplace/services/storeService';
 import { ProductService } from '../services/productService';
 import { useProductDetail } from '../hooks/useProductService';
@@ -53,8 +57,28 @@ export function ProductDetailsPage() {
   const [quantity, setQuantity] = useState(1);
   const [customerRequest, setCustomerRequest] = useState('أرغب في طلب هذا المنتج اليوم.');
   const [selectedImage, setSelectedImage] = useState(product?.image || placeholderImage);
+  const { add } = useCart();
+  const [added, setAdded] = useState(false);
+  const [adding, setAdding] = useState(false);
   const [favorites, setFavorites] = useLocalStorageState<string[]>(FAVORITES_KEY, []);
   const [, setRecentlyViewed] = useLocalStorageState<string[]>(RECENTLY_VIEWED_KEY, []);
+
+  const handleAddToCart = async () => {
+    if (!product || adding) return;
+    setAdding(true);
+    try {
+      await addItemToCart(product.id, quantity).catch(() => null);
+      add(product, quantity);
+      setAdded(true);
+      setTimeout(() => setAdded(false), 2500);
+    } catch {
+      add(product, quantity);
+      setAdded(true);
+      setTimeout(() => setAdded(false), 2500);
+    } finally {
+      setAdding(false);
+    }
+  };
 
   useEffect(() => {
     if (product) {
@@ -294,22 +318,35 @@ export function ProductDetailsPage() {
                 </div>
 
                 <div className="flex flex-col gap-3 sm:flex-row">
+                  <button
+                    type="button"
+                    onClick={handleAddToCart}
+                    disabled={adding || !product || product.stock <= 0}
+                    className={`gsd-btn gsd-btn--primary gsd-btn--md inline-flex items-center justify-center gap-2 flex-1 ${
+                      added ? 'bg-emerald-600 text-white' : ''
+                    }`}
+                  >
+                    {added ? (
+                      <>
+                        <Check className="h-4 w-4" />
+                        تمت إضافة المنتج للسلة ✓
+                      </>
+                    ) : (
+                      <>
+                        <ShoppingBag className="h-4 w-4" />
+                        إضافة إلى السلة
+                      </>
+                    )}
+                  </button>
                   <a
                     href={buildWhatsAppUrl(whatsappMessage)}
                     target="_blank"
                     rel="noreferrer"
-                    className="gsd-btn gsd-btn--primary gsd-btn--md inline-flex items-center justify-center gap-2"
+                    className="gsd-btn gsd-btn--ghost gsd-btn--md inline-flex items-center justify-center gap-2"
                   >
                     <MessageCircle className="h-4 w-4" />
                     طلب عبر واتساب
                   </a>
-                  <button
-                    type="button"
-                    onClick={() => navigate('/products')}
-                    className="gsd-btn gsd-btn--ghost gsd-btn--md"
-                  >
-                    العودة للكتالوج
-                  </button>
                 </div>
               </div>
             </div>
