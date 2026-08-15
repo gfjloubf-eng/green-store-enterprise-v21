@@ -8,6 +8,9 @@ import { AuthController } from '../modules/auth/controller';
 import { RouteProtectionFactory } from '../route-protection';
 import { validateAccessToken } from '../common/security/jwt-middleware';
 import { createSystemRoutes } from './routes';
+import { createUserRoutes } from '../modules/users/routes';
+import { createRoleRoutes } from '../modules/roles/routes';
+import { createPermissionRoutes } from '../modules/permissions/routes';
 import { createProductRoutes } from '../modules/products/routes';
 import { createCustomerRoutes } from '../modules/customers/routes';
 import { createCartRoutes } from '../modules/cart/routes';
@@ -19,6 +22,7 @@ import { createNotificationRoutes } from '../modules/notifications/routes';
 import { createSupportRoutes } from '../modules/support/routes';
 import { createReportsRoutes } from '../modules/reports/routes';
 import { createAuditRoutes } from '../modules/audit/routes';
+import { UnauthorizedError, InvalidTokenError } from '../common/security/errors';
 
 async function readBody(request: IncomingMessage): Promise<unknown> {
   const chunks: Buffer[] = [];
@@ -46,7 +50,7 @@ export function createSystemRequestHandler() {
   const resolver = new RouteResolver();
   const protection = new RouteProtectionFactory();
   const authService = AuthController.createAuthService();
-  const routes = [...createSystemRoutes(), ...createAuthRoutes(), ...require('../modules/users/routes').createUserRoutes(), ...require('../modules/roles/routes').createRoleRoutes(), ...require('../modules/permissions/routes').createPermissionRoutes(), ...createProductRoutes(), ...createCustomerRoutes(), ...createCartRoutes(), ...createOrderRoutes(), ...createInventoryRoutes(), ...createPaymentRoutes(), ...createSettingsRoutes(), ...createNotificationRoutes(), ...createSupportRoutes(), ...createReportsRoutes(), ...createAuditRoutes()];
+  const routes = [...createSystemRoutes(), ...createAuthRoutes(), ...createUserRoutes(), ...createRoleRoutes(), ...createPermissionRoutes(), ...createProductRoutes(), ...createCustomerRoutes(), ...createCartRoutes(), ...createOrderRoutes(), ...createInventoryRoutes(), ...createPaymentRoutes(), ...createSettingsRoutes(), ...createNotificationRoutes(), ...createSupportRoutes(), ...createReportsRoutes(), ...createAuditRoutes()];
 
   for (const route of routes) {
     registry.register(route);
@@ -164,11 +168,6 @@ export function createSystemRequestHandler() {
     } catch (error) {
       // Map authentication token errors to 401 for clearer client responses
       try {
-        // Import inside handler to avoid top-level import ordering issues
-        // eslint-disable-next-line @typescript-eslint/no-var-requires
-        const errors = require('../common/security/errors');
-        const UnauthorizedError = errors.UnauthorizedError;
-        const InvalidTokenError = errors.InvalidTokenError;
         if (error instanceof UnauthorizedError || error instanceof InvalidTokenError || ((error as any)?.code === 'invalid_token') || ((error as any)?.message && /invalid|token|signature|expired/i.test((error as any).message))) {
           response.writeHead(401, { 'Content-Type': 'application/json' });
           response.end(JSON.stringify({ success: false, error: { code: 'unauthorized', message: error instanceof Error ? error.message : 'unauthorized' } }));

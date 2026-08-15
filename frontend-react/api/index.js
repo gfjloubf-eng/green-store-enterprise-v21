@@ -34,387 +34,7 @@ var __toESM = (mod, isNodeMode, target) => (target = mod != null ? __create(__ge
 ));
 var __toCommonJS = (mod) => __copyProps(__defProp({}, "__esModule", { value: true }), mod);
 
-// ../backend/src/api/contracts.ts
-var init_contracts = __esm({
-  "../backend/src/api/contracts.ts"() {
-    "use strict";
-  }
-});
-
-// ../backend/src/api/content-negotiation.ts
-var init_content_negotiation = __esm({
-  "../backend/src/api/content-negotiation.ts"() {
-    "use strict";
-  }
-});
-
-// ../backend/src/api/status.ts
-var HTTP_STATUS;
-var init_status = __esm({
-  "../backend/src/api/status.ts"() {
-    "use strict";
-    HTTP_STATUS = {
-      OK: 200,
-      CREATED: 201,
-      ACCEPTED: 202,
-      NO_CONTENT: 204,
-      BAD_REQUEST: 400,
-      UNAUTHORIZED: 401,
-      FORBIDDEN: 403,
-      NOT_FOUND: 404,
-      CONFLICT: 409,
-      UNPROCESSABLE_ENTITY: 422,
-      INTERNAL_SERVER_ERROR: 500
-    };
-  }
-});
-
-// ../backend/src/api/response-builder.ts
-function createMeta(context) {
-  return {
-    timestamp: context.timestamp,
-    requestId: context.requestId,
-    version: context.version,
-    locale: context.locale
-  };
-}
-function success(data, context) {
-  return {
-    statusCode: HTTP_STATUS.OK,
-    body: {
-      success: true,
-      data,
-      meta: createMeta(context)
-    }
-  };
-}
-function created(data, context) {
-  return {
-    statusCode: HTTP_STATUS.CREATED,
-    body: {
-      success: true,
-      data,
-      meta: createMeta(context)
-    }
-  };
-}
-function noContent(context) {
-  return {
-    statusCode: HTTP_STATUS.NO_CONTENT,
-    body: {
-      success: true,
-      data: null,
-      meta: createMeta(context)
-    }
-  };
-}
-function unauthorized(message, context) {
-  return errorResponse("unauthorized", message, HTTP_STATUS.UNAUTHORIZED, context);
-}
-function forbidden(message, context) {
-  return errorResponse("forbidden", message, HTTP_STATUS.FORBIDDEN, context);
-}
-function notFound(message, context) {
-  return errorResponse("not_found", message, HTTP_STATUS.NOT_FOUND, context);
-}
-function conflict(message, context) {
-  return errorResponse("conflict", message, HTTP_STATUS.CONFLICT, context);
-}
-function validationError(message, context) {
-  return errorResponse("validation_error", message, HTTP_STATUS.UNPROCESSABLE_ENTITY, context);
-}
-function errorResponse(code, message, statusCode, context) {
-  return {
-    statusCode,
-    body: {
-      success: false,
-      error: {
-        code,
-        message
-      },
-      meta: createMeta(context)
-    }
-  };
-}
-function paginated(data, page, limit, total, context) {
-  return {
-    statusCode: HTTP_STATUS.OK,
-    body: {
-      data,
-      pagination: {
-        page,
-        limit,
-        total,
-        totalPages: Math.max(1, Math.ceil(total / Math.max(limit, 1)))
-      },
-      meta: createMeta(context)
-    }
-  };
-}
-var init_response_builder = __esm({
-  "../backend/src/api/response-builder.ts"() {
-    "use strict";
-    init_status();
-  }
-});
-
-// ../backend/src/api/versioning.ts
-var init_versioning = __esm({
-  "../backend/src/api/versioning.ts"() {
-    "use strict";
-  }
-});
-
-// ../backend/src/api/index.ts
-var init_api = __esm({
-  "../backend/src/api/index.ts"() {
-    "use strict";
-    init_contracts();
-    init_content_negotiation();
-    init_response_builder();
-    init_status();
-    init_versioning();
-  }
-});
-
-// ../backend/src/routes/metadata.ts
-function createRouteMetadata(name, path3, version, options = {}) {
-  const middleware = options.middleware ? [...options.middleware] : [];
-  const tags = options.tags ? [...options.tags] : [];
-  const requiredPermissions = options.requiredPermissions ? [...options.requiredPermissions] : [];
-  const requiredRoles = options.requiredRoles ? [...options.requiredRoles] : [];
-  const metadata = {
-    name,
-    path: path3,
-    version,
-    mode: options.mode ?? "private",
-    tags,
-    authenticationRequired: options.authenticationRequired ?? true,
-    authorizationRequired: options.authorizationRequired ?? false,
-    publicRoute: options.publicRoute ?? false,
-    privateRoute: options.privateRoute ?? true,
-    requiredPermissions,
-    requiredRoles,
-    requiredScope: options.requiredScope,
-    requireAllPermissions: options.requireAllPermissions ?? false,
-    tenantScope: options.tenantScope,
-    middleware
-  };
-  return Object.freeze(metadata);
-}
-var init_metadata = __esm({
-  "../backend/src/routes/metadata.ts"() {
-    "use strict";
-  }
-});
-
-// ../backend/src/routes/registry.ts
-var RouteRegistry;
-var init_registry = __esm({
-  "../backend/src/routes/registry.ts"() {
-    "use strict";
-    init_metadata();
-    RouteRegistry = class {
-      routes = /* @__PURE__ */ new Map();
-      versions = /* @__PURE__ */ new Map();
-      tags = /* @__PURE__ */ new Map();
-      middlewarePipeline = [];
-      register(route) {
-        const key = this.createKey(route.method, route.path, route.version);
-        this.routes.set(key, route);
-        this.addToIndex(this.versions, route.version, route);
-        for (const tag of route.metadata.tags) {
-          this.addToIndex(this.tags, tag, route);
-        }
-        return route;
-      }
-      registerGroup(group) {
-        const definitions = [];
-        const resolvedVersion = group.version ?? "v1";
-        const prefix = group.prefix.startsWith("/") ? group.prefix : `/${group.prefix}`;
-        for (const route of group.routes) {
-          const normalizedPath = this.normalizePath(prefix, route.path);
-          const metadata = createRouteMetadata(route.name, normalizedPath, resolvedVersion, {
-            ...route.metadata,
-            ...group.metadata,
-            name: route.name,
-            path: normalizedPath,
-            version: resolvedVersion
-          });
-          const definition = {
-            ...route,
-            path: normalizedPath,
-            version: resolvedVersion,
-            metadata
-          };
-          this.register(definition);
-          definitions.push(definition);
-        }
-        return definitions;
-      }
-      registerMiddleware(middlewareName) {
-        this.middlewarePipeline.push(middlewareName);
-      }
-      getMiddlewarePipeline() {
-        return [...this.middlewarePipeline];
-      }
-      all() {
-        return Array.from(this.routes.values());
-      }
-      findByName(name) {
-        return Array.from(this.routes.values()).find((route) => route.name === name);
-      }
-      findByPath(method, path3, version) {
-        const candidates = Array.from(this.routes.values()).filter((route) => route.method === method && route.path === path3);
-        if (candidates.length > 0) {
-          if (!version) return candidates[0];
-          return candidates.find((route) => route.version === version) ?? candidates[0];
-        }
-        const methodCandidates = Array.from(this.routes.values()).filter((route) => route.method === method);
-        for (const route of methodCandidates) {
-          const routeParts = route.path.split("/").filter(Boolean);
-          const pathParts = path3.split("/").filter(Boolean);
-          if (routeParts.length !== pathParts.length) continue;
-          const params = {};
-          let matched = true;
-          for (let i = 0; i < routeParts.length; i++) {
-            const rp = routeParts[i];
-            const pp = pathParts[i];
-            if (rp.startsWith(":")) {
-              const name = rp.substring(1);
-              params[name] = decodeURIComponent(pp);
-            } else if (rp !== pp) {
-              matched = false;
-              break;
-            }
-          }
-          if (matched) {
-            const copy = { ...route, runtimeParams: params };
-            if (!version) return copy;
-            if (copy.version === version) return copy;
-          }
-        }
-        return void 0;
-      }
-      findByVersion(version) {
-        return [...this.versions.get(version) ?? []];
-      }
-      findByTag(tag) {
-        return [...this.tags.get(tag) ?? []];
-      }
-      createKey(method, path3, version) {
-        return `${method}:${version}:${path3}`;
-      }
-      normalizePath(prefix, path3) {
-        const normalizedPath = path3.startsWith("/") ? path3 : `/${path3}`;
-        return `${prefix}${normalizedPath}`;
-      }
-      addToIndex(map, key, route) {
-        const existing = map.get(key) ?? [];
-        existing.push(route);
-        map.set(key, existing);
-      }
-    };
-  }
-});
-
-// ../backend/src/routes/builder.ts
-var RouterBuilder;
-var init_builder = __esm({
-  "../backend/src/routes/builder.ts"() {
-    "use strict";
-    init_metadata();
-    init_registry();
-    RouterBuilder = class {
-      registry = new RouteRegistry();
-      middlewarePipeline = [];
-      register(definition) {
-        const version = definition.version ?? "v1";
-        const metadata = createRouteMetadata(definition.name, definition.path, version, {
-          ...definition.options,
-          middleware: [...definition.options?.middleware ?? [], ...this.middlewarePipeline]
-        });
-        const route = {
-          name: definition.name,
-          method: definition.method,
-          path: definition.path,
-          version,
-          handler: definition.handler,
-          metadata
-        };
-        return this.registry.register(route);
-      }
-      registerGroup(group) {
-        return this.registry.registerGroup(group);
-      }
-      registerVersion(version) {
-        this.middlewarePipeline.push(`version:${version}`);
-        return this;
-      }
-      registerMiddleware(middlewareName) {
-        this.middlewarePipeline.push(middlewareName);
-        return this;
-      }
-      getRegistry() {
-        return this.registry;
-      }
-      build() {
-        return this.registry.all();
-      }
-    };
-  }
-});
-
-// ../backend/src/routes/contracts.ts
-var init_contracts2 = __esm({
-  "../backend/src/routes/contracts.ts"() {
-    "use strict";
-  }
-});
-
-// ../backend/src/routes/resolver.ts
-var RouteResolver;
-var init_resolver = __esm({
-  "../backend/src/routes/resolver.ts"() {
-    "use strict";
-    RouteResolver = class {
-      resolve(registry, request2) {
-        return registry.findByPath(request2.method, request2.path, request2.version);
-      }
-      resolveByName(registry, name) {
-        return registry.findByName(name);
-      }
-      resolveByVersion(registry, version) {
-        return registry.findByVersion(version);
-      }
-      resolveByTag(registry, tag) {
-        return registry.findByTag(tag);
-      }
-    };
-  }
-});
-
-// ../backend/src/routes/index.ts
-var init_routes = __esm({
-  "../backend/src/routes/index.ts"() {
-    "use strict";
-    init_builder();
-    init_contracts2();
-    init_metadata();
-    init_registry();
-    init_resolver();
-  }
-});
-
 // ../backend/src/common/security/errors.ts
-var errors_exports = {};
-__export(errors_exports, {
-  AccountLockedError: () => AccountLockedError,
-  AuthError: () => AuthError,
-  InvalidTokenError: () => InvalidTokenError,
-  RateLimitError: () => RateLimitError,
-  UnauthorizedError: () => UnauthorizedError
-});
 var AuthError, UnauthorizedError, InvalidTokenError, RateLimitError, AccountLockedError;
 var init_errors = __esm({
   "../backend/src/common/security/errors.ts"() {
@@ -451,125 +71,6 @@ var init_errors = __esm({
         Object.setPrototypeOf(this, _AccountLockedError.prototype);
       }
     };
-  }
-});
-
-// ../backend/src/validation/common.ts
-var init_common = __esm({
-  "../backend/src/validation/common.ts"() {
-    "use strict";
-  }
-});
-
-// ../backend/src/validation/composite.ts
-var init_composite = __esm({
-  "../backend/src/validation/composite.ts"() {
-    "use strict";
-  }
-});
-
-// ../backend/src/validation/errors.ts
-var ValidationException, InvalidRequestError;
-var init_errors2 = __esm({
-  "../backend/src/validation/errors.ts"() {
-    "use strict";
-    ValidationException = class _ValidationException extends Error {
-      code;
-      constructor(code, message) {
-        super(message ?? code);
-        this.code = code;
-        Object.setPrototypeOf(this, _ValidationException.prototype);
-      }
-    };
-    InvalidRequestError = class _InvalidRequestError extends ValidationException {
-      constructor(message) {
-        super("invalid_request", message ?? "invalid_request");
-        Object.setPrototypeOf(this, _InvalidRequestError.prototype);
-      }
-    };
-  }
-});
-
-// ../backend/src/validation/engine.ts
-var ValidationEngine, engine_default;
-var init_engine = __esm({
-  "../backend/src/validation/engine.ts"() {
-    "use strict";
-    init_errors2();
-    ValidationEngine = class {
-      validate(value, validator, context) {
-        return validator.validate(value, context);
-      }
-      async validateAsync(value, validator, context) {
-        if (validator.validateAsync) {
-          return validator.validateAsync(value, context);
-        }
-        return this.validate(value, validator, context);
-      }
-      validateOrThrow(value, validator, context) {
-        const result = this.validate(value, validator, context);
-        if (!result.valid) {
-          throw new InvalidRequestError(result.errors.map((error) => error.message).join(", "));
-        }
-        return value;
-      }
-      composeValidators(...validators) {
-        return {
-          validate: (value, context) => {
-            const errors = [];
-            for (const validator of validators) {
-              const result = this.evaluateCompositeValidator(validator, value, context);
-              if (!result.valid) {
-                errors.push(...result.errors);
-              }
-            }
-            return { valid: errors.length === 0, errors };
-          }
-        };
-      }
-      composeRules(...rules) {
-        return {
-          name: "composed",
-          validate: (context) => {
-            const errors = [];
-            for (const rule of rules) {
-              const result = rule.validate(context);
-              if (!result.valid) {
-                errors.push(...result.errors);
-              }
-            }
-            return { valid: errors.length === 0, errors };
-          }
-        };
-      }
-      evaluateCompositeValidator(validator, value, context) {
-        const isValidator = "validate" in validator && typeof validator.validate === "function" && validator.validate.length > 1;
-        if (isValidator) {
-          return validator.validate(value, context);
-        }
-        return validator.validate({ value, ...context });
-      }
-    };
-    engine_default = new ValidationEngine();
-  }
-});
-
-// ../backend/src/validation/types.ts
-var init_types = __esm({
-  "../backend/src/validation/types.ts"() {
-    "use strict";
-  }
-});
-
-// ../backend/src/validation/index.ts
-var init_validation = __esm({
-  "../backend/src/validation/index.ts"() {
-    "use strict";
-    init_common();
-    init_composite();
-    init_engine();
-    init_errors2();
-    init_types();
   }
 });
 
@@ -1072,3892 +573,6 @@ var init_auth_email_verification_service = __esm({
   }
 });
 
-// ../backend/src/authorization/errors.ts
-var AuthorizationError, UnauthorizedError2, ForbiddenError, PermissionDeniedError, RoleDeniedError;
-var init_errors3 = __esm({
-  "../backend/src/authorization/errors.ts"() {
-    "use strict";
-    AuthorizationError = class _AuthorizationError extends Error {
-      code;
-      constructor(code, message) {
-        super(message ?? code);
-        this.code = code;
-        Object.setPrototypeOf(this, _AuthorizationError.prototype);
-      }
-    };
-    UnauthorizedError2 = class _UnauthorizedError extends AuthorizationError {
-      constructor(message) {
-        super("unauthorized", message ?? "unauthorized");
-        Object.setPrototypeOf(this, _UnauthorizedError.prototype);
-      }
-    };
-    ForbiddenError = class _ForbiddenError extends AuthorizationError {
-      constructor(message) {
-        super("forbidden", message ?? "forbidden");
-        Object.setPrototypeOf(this, _ForbiddenError.prototype);
-      }
-    };
-    PermissionDeniedError = class _PermissionDeniedError extends ForbiddenError {
-      constructor(message) {
-        super(message ?? "permission_denied");
-        Object.setPrototypeOf(this, _PermissionDeniedError.prototype);
-      }
-    };
-    RoleDeniedError = class _RoleDeniedError extends ForbiddenError {
-      constructor(message) {
-        super(message ?? "role_denied");
-        Object.setPrototypeOf(this, _RoleDeniedError.prototype);
-      }
-    };
-  }
-});
-
-// ../backend/src/repositories/exceptions.ts
-var DatabaseException, NotFoundException, ConflictException, ValidationException2;
-var init_exceptions = __esm({
-  "../backend/src/repositories/exceptions.ts"() {
-    "use strict";
-    DatabaseException = class extends Error {
-      constructor(message) {
-        super(message ?? "Database error");
-        this.name = "DatabaseException";
-      }
-    };
-    NotFoundException = class extends Error {
-      constructor(message) {
-        super(message ?? "Resource not found");
-        this.name = "NotFoundException";
-      }
-    };
-    ConflictException = class extends Error {
-      constructor(message) {
-        super(message ?? "Conflict");
-        this.name = "ConflictException";
-      }
-    };
-    ValidationException2 = class extends Error {
-      constructor(message) {
-        super(message ?? "Validation failed");
-        this.name = "ValidationException";
-      }
-    };
-  }
-});
-
-// ../backend/src/repositories/base-repository.ts
-var BaseRepository, base_repository_default;
-var init_base_repository = __esm({
-  "../backend/src/repositories/base-repository.ts"() {
-    "use strict";
-    init_prisma_service();
-    BaseRepository = class {
-      client = prisma_service_default.getClient();
-      modelName;
-      constructor(modelName) {
-        this.modelName = modelName;
-      }
-      get model() {
-        return this.client[this.modelName];
-      }
-      async findById(id) {
-        const result = await this.model.findUnique({ where: { id } });
-        return result ?? null;
-      }
-      async findMany(filter) {
-        const where = filter ?? {};
-        const results = await this.model.findMany({ where });
-        return results ?? [];
-      }
-      async create(data) {
-        return this.model.create({ data });
-      }
-      async update(id, data) {
-        return this.model.update({ where: { id }, data });
-      }
-      async delete(id) {
-        try {
-          await this.model.update({ where: { id }, data: { deletedAt: /* @__PURE__ */ new Date() } });
-        } catch (err) {
-          await this.model.delete({ where: { id } });
-        }
-      }
-      async restore(id) {
-        return this.model.update({ where: { id }, data: { deletedAt: null } });
-      }
-      async exists(id) {
-        const count = await this.model.count({ where: { id } });
-        return count > 0;
-      }
-      async count(filter) {
-        const where = filter ?? {};
-        return this.model.count({ where });
-      }
-      async paginate(options) {
-        const page = Math.max(1, options.page ?? 1);
-        const limit = Math.max(1, Math.min(100, options.limit ?? 25));
-        const skip = (page - 1) * limit;
-        const rawWhere = options.filters ?? {};
-        const cleanWhere = (obj) => {
-          if (obj == null) return {};
-          if (Array.isArray(obj)) {
-            const arr = obj.map(cleanWhere).filter((x) => {
-              return !(x && typeof x === "object" && Object.keys(x).length === 0);
-            });
-            return arr.length > 0 ? arr : void 0;
-          }
-          if (typeof obj !== "object") return obj;
-          const out = {};
-          for (const [k, v] of Object.entries(obj)) {
-            if (v === void 0) continue;
-            if ((k === "AND" || k === "OR" || k === "NOT") && Array.isArray(v)) {
-              const cleaned = cleanWhere(v);
-              if (cleaned !== void 0 && cleaned.length > 0) out[k] = cleaned;
-            } else if (v && typeof v === "object") {
-              const cleaned = cleanWhere(v);
-              if (cleaned !== void 0 && (typeof cleaned !== "object" || Object.keys(cleaned).length > 0)) {
-                out[k] = cleaned;
-              }
-            } else if (v !== void 0) {
-              out[k] = v;
-            }
-          }
-          return Object.keys(out).length > 0 ? out : void 0;
-        };
-        const where = cleanWhere(rawWhere) ?? {};
-        const orderBy = options.sort && (options.order === "asc" || options.order === "desc") ? { [options.sort]: options.order } : void 0;
-        let data = [];
-        let total = 0;
-        try {
-          const res = await Promise.all([
-            this.model.findMany({ where, skip, take: limit, orderBy }),
-            this.model.count({ where })
-          ]);
-          data = res[0] ?? [];
-          total = res[1] ?? 0;
-        } catch (err) {
-          const debug = { where, orderBy, skip, take: limit };
-          const msg = `paginate_error: ${err?.message ?? "unknown"} -- query: ${JSON.stringify(debug)}`;
-          throw new Error(msg);
-        }
-        return {
-          data,
-          total,
-          page,
-          limit
-        };
-      }
-    };
-    base_repository_default = BaseRepository;
-  }
-});
-
-// ../backend/src/repositories/tenant-repository.ts
-var TenantRepository, tenant_repository_default;
-var init_tenant_repository = __esm({
-  "../backend/src/repositories/tenant-repository.ts"() {
-    "use strict";
-    init_base_repository();
-    TenantRepository = class extends base_repository_default {
-      constructor() {
-        super("tenant");
-      }
-    };
-    tenant_repository_default = TenantRepository;
-  }
-});
-
-// ../backend/src/repositories/user-repository.ts
-var UserRepository, user_repository_default;
-var init_user_repository = __esm({
-  "../backend/src/repositories/user-repository.ts"() {
-    "use strict";
-    init_base_repository();
-    UserRepository = class extends base_repository_default {
-      constructor() {
-        super("user");
-      }
-      async findUserRoles(userId) {
-        return this.client.userRole.findMany({
-          where: { userId },
-          include: { role: true }
-        });
-      }
-      async assignRole(userId, roleId) {
-        return this.client.userRole.create({
-          data: { userId, roleId },
-          include: { role: true }
-        });
-      }
-      async removeRole(userId, roleId) {
-        const existing = await this.client.userRole.findFirst({
-          where: { userId, roleId }
-        });
-        if (!existing) return null;
-        return this.client.userRole.delete({ where: { id: existing.id } });
-      }
-      async hasRole(userId, roleId) {
-        const count = await this.client.userRole.count({ where: { userId, roleId } });
-        return count > 0;
-      }
-    };
-    user_repository_default = UserRepository;
-  }
-});
-
-// ../backend/src/repositories/role-repository.ts
-var RoleRepository, role_repository_default;
-var init_role_repository = __esm({
-  "../backend/src/repositories/role-repository.ts"() {
-    "use strict";
-    init_base_repository();
-    RoleRepository = class extends base_repository_default {
-      constructor() {
-        super("role");
-      }
-      /**
-       * Persistence-only operations for the implicit Role ↔ Permission join
-       * (RolePermission / role_permissions). Business rules live in the service.
-       */
-      async findRolePermissions(roleId) {
-        const role = await this.model.findUnique({
-          where: { id: roleId },
-          include: { permissions: { include: { permission: true } } }
-        });
-        if (!role) return [];
-        return role.permissions ?? [];
-      }
-      async assignPermission(roleId, permissionId) {
-        return this.client.rolePermission.create({
-          data: { roleId, permissionId },
-          include: { permission: true }
-        });
-      }
-      async removePermission(roleId, permissionId) {
-        const existing = await this.client.rolePermission.findUnique({
-          where: { roleId_permissionId: { roleId, permissionId } }
-        });
-        if (!existing) return null;
-        return this.client.rolePermission.delete({
-          where: { id: existing.id }
-        });
-      }
-      async hasPermission(roleId, permissionId) {
-        const count = await this.client.rolePermission.count({
-          where: { roleId, permissionId }
-        });
-        return count > 0;
-      }
-    };
-    role_repository_default = RoleRepository;
-  }
-});
-
-// ../backend/src/repositories/permission-repository.ts
-var PermissionRepository, permission_repository_default;
-var init_permission_repository = __esm({
-  "../backend/src/repositories/permission-repository.ts"() {
-    "use strict";
-    init_base_repository();
-    PermissionRepository = class extends base_repository_default {
-      constructor() {
-        super("permission");
-      }
-      /**
-       * The `Permission` model has no `deletedAt` column, so soft-delete is not
-       * supported for this entity. DELETE falls back to a hard delete in
-       * BaseRepository. Restore is therefore a no-op that returns the existing
-       * record (if present) to keep the endpoint contract consistent.
-       */
-      async restore(id) {
-        return this.findById(id);
-      }
-    };
-    permission_repository_default = PermissionRepository;
-  }
-});
-
-// ../backend/src/repositories/store-repository.ts
-var StoreRepository, store_repository_default;
-var init_store_repository = __esm({
-  "../backend/src/repositories/store-repository.ts"() {
-    "use strict";
-    init_base_repository();
-    StoreRepository = class extends base_repository_default {
-      constructor() {
-        super("store");
-      }
-    };
-    store_repository_default = StoreRepository;
-  }
-});
-
-// ../backend/src/repositories/branch-repository.ts
-var BranchRepository, branch_repository_default;
-var init_branch_repository = __esm({
-  "../backend/src/repositories/branch-repository.ts"() {
-    "use strict";
-    init_base_repository();
-    BranchRepository = class extends base_repository_default {
-      constructor() {
-        super("branch");
-      }
-    };
-    branch_repository_default = BranchRepository;
-  }
-});
-
-// ../backend/src/repositories/category-repository.ts
-var CategoryRepository, category_repository_default;
-var init_category_repository = __esm({
-  "../backend/src/repositories/category-repository.ts"() {
-    "use strict";
-    init_base_repository();
-    CategoryRepository = class extends base_repository_default {
-      constructor() {
-        super("category");
-      }
-    };
-    category_repository_default = CategoryRepository;
-  }
-});
-
-// ../backend/src/repositories/product-repository.ts
-var ProductRepository, product_repository_default;
-var init_product_repository = __esm({
-  "../backend/src/repositories/product-repository.ts"() {
-    "use strict";
-    init_base_repository();
-    ProductRepository = class extends base_repository_default {
-      constructor() {
-        super("product");
-      }
-      async findById(id) {
-        return await this.model.findFirst({ where: { id, deletedAt: null } }) ?? null;
-      }
-      async findBySlug(slug, excludeId) {
-        const where = excludeId ? { slug, id: { not: excludeId }, deletedAt: null } : { slug, deletedAt: null };
-        return await this.model.findFirst({ where }) ?? null;
-      }
-      async create(data) {
-        return this.model.create({ data });
-      }
-      async update(id, data) {
-        return this.model.update({ where: { id }, data });
-      }
-      async findMany(filter) {
-        return this.model.findMany({
-          where: { AND: [{ deletedAt: null }, filter ?? {}] }
-        });
-      }
-      async delete(id) {
-        await this.model.update({ where: { id }, data: { deletedAt: /* @__PURE__ */ new Date() } });
-      }
-      async restore(id) {
-        return this.model.update({ where: { id }, data: { deletedAt: null } });
-      }
-      async paginate(options) {
-        const filters = options.filters && Object.keys(options.filters).length > 0 ? { AND: [{ deletedAt: null }, options.filters] } : { deletedAt: null };
-        return super.paginate({ ...options, filters });
-      }
-    };
-    product_repository_default = ProductRepository;
-  }
-});
-
-// ../backend/src/repositories/inventory-repository.ts
-var InventoryRepository, inventory_repository_default;
-var init_inventory_repository = __esm({
-  "../backend/src/repositories/inventory-repository.ts"() {
-    "use strict";
-    init_base_repository();
-    init_validation();
-    InventoryRepository = class extends base_repository_default {
-      constructor() {
-        super("inventory");
-      }
-      async findOrCreateDefaultWarehouse() {
-        let warehouse = await this.client.warehouse.findFirst({
-          where: { code: "DEFAULT" }
-        });
-        if (!warehouse) {
-          warehouse = await this.client.warehouse.create({
-            data: {
-              name: "\u0627\u0644\u0645\u0633\u062A\u0648\u062F\u0639 \u0627\u0644\u0631\u0626\u064A\u0633\u064A (Default Warehouse)",
-              code: "DEFAULT"
-            }
-          });
-        }
-        return warehouse;
-      }
-      async findOrCreateInventory(productId, warehouseId) {
-        let targetWarehouseId = warehouseId;
-        if (!targetWarehouseId) {
-          const defaultW = await this.findOrCreateDefaultWarehouse();
-          targetWarehouseId = defaultW.id;
-        }
-        let inv = await this.client.inventory.findFirst({
-          where: { productId, warehouseId: targetWarehouseId },
-          include: {
-            product: { select: { id: true, name: true, sku: true } },
-            warehouse: { select: { id: true, name: true } }
-          }
-        });
-        if (!inv) {
-          inv = await this.client.inventory.create({
-            data: {
-              productId,
-              warehouseId: targetWarehouseId,
-              quantity: 0,
-              reserved: 0,
-              available: 0,
-              safetyStock: 10
-            },
-            include: {
-              product: { select: { id: true, name: true, sku: true } },
-              warehouse: { select: { id: true, name: true } }
-            }
-          });
-        }
-        return inv;
-      }
-      async reserveStockForOrder(tx, productId, qty, orderId) {
-        const inv = await tx.inventory.findFirst({
-          where: { productId }
-        });
-        if (!inv) {
-          throw new ValidationException(`inventory_not_found_for_product_${productId}`);
-        }
-        if (inv.available < qty) {
-          throw new ValidationException(`insufficient_stock_for_product_${productId}`);
-        }
-        const newReserved = inv.reserved + qty;
-        const newAvailable = Math.max(0, inv.quantity - newReserved);
-        await tx.inventory.update({
-          where: { id: inv.id },
-          data: {
-            reserved: newReserved,
-            available: newAvailable
-          }
-        });
-        await tx.stockMovement.create({
-          data: {
-            inventoryId: inv.id,
-            type: "RESERVATION",
-            quantity: qty,
-            referenceId: orderId
-          }
-        });
-      }
-      async releaseStockForOrder(tx, productId, qty, orderId) {
-        const inv = await tx.inventory.findFirst({
-          where: { productId }
-        });
-        if (!inv) return;
-        const newReserved = Math.max(0, inv.reserved - qty);
-        const newAvailable = Math.max(0, inv.quantity - newReserved);
-        await tx.inventory.update({
-          where: { id: inv.id },
-          data: {
-            reserved: newReserved,
-            available: newAvailable
-          }
-        });
-        await tx.stockMovement.create({
-          data: {
-            inventoryId: inv.id,
-            type: "RELEASE",
-            quantity: qty,
-            referenceId: orderId
-          }
-        });
-      }
-      async deductStockForShipment(tx, productId, qty, orderId) {
-        const inv = await tx.inventory.findFirst({
-          where: { productId }
-        });
-        if (!inv) return;
-        const newReserved = Math.max(0, inv.reserved - qty);
-        const newQuantity = Math.max(0, inv.quantity - qty);
-        const newAvailable = Math.max(0, newQuantity - newReserved);
-        await tx.inventory.update({
-          where: { id: inv.id },
-          data: {
-            quantity: newQuantity,
-            reserved: newReserved,
-            available: newAvailable
-          }
-        });
-        await tx.stockMovement.create({
-          data: {
-            inventoryId: inv.id,
-            type: "OUT",
-            quantity: qty,
-            referenceId: orderId
-          }
-        });
-      }
-      async deductStockForOrder(tx, productId, qty, orderId) {
-        return this.deductStockForShipment(tx, productId, qty, orderId);
-      }
-      async adjustStock(productId, type, qty, reason, performedById) {
-        if (qty < 0) {
-          throw new ValidationException("quantity_cannot_be_negative");
-        }
-        const defaultW = await this.findOrCreateDefaultWarehouse();
-        const { updated } = await this.client.$transaction(
-          async (tx) => {
-            let inv = await tx.inventory.findFirst({
-              where: { productId, warehouseId: defaultW.id }
-            });
-            if (!inv) {
-              inv = await tx.inventory.create({
-                data: {
-                  productId,
-                  warehouseId: defaultW.id,
-                  quantity: 0,
-                  reserved: 0,
-                  available: 0,
-                  safetyStock: 10
-                }
-              });
-            }
-            let up;
-            if (type === "IN") {
-              up = await tx.inventory.update({
-                where: { id: inv.id },
-                data: {
-                  quantity: { increment: qty },
-                  available: { increment: qty }
-                },
-                include: {
-                  product: { select: { id: true, name: true, sku: true } },
-                  warehouse: { select: { id: true, name: true } }
-                }
-              });
-            } else if (type === "OUT") {
-              up = await tx.inventory.update({
-                where: { id: inv.id },
-                data: {
-                  quantity: { decrement: qty },
-                  available: { decrement: qty }
-                },
-                include: {
-                  product: { select: { id: true, name: true, sku: true } },
-                  warehouse: { select: { id: true, name: true } }
-                }
-              });
-            } else {
-              const newQty = Math.max(0, qty);
-              const newAvail = Math.max(0, newQty - inv.reserved);
-              up = await tx.inventory.update({
-                where: { id: inv.id },
-                data: {
-                  quantity: newQty,
-                  available: newAvail
-                },
-                include: {
-                  product: { select: { id: true, name: true, sku: true } },
-                  warehouse: { select: { id: true, name: true } }
-                }
-              });
-            }
-            await tx.stockMovement.create({
-              data: {
-                inventoryId: inv.id,
-                type,
-                quantity: qty,
-                referenceId: reason ?? null,
-                performedById: performedById ?? null
-              }
-            });
-            return { updated: up };
-          },
-          { maxWait: 1e4, timeout: 2e4 }
-        );
-        const avail = updated.available ?? updated.quantity - updated.reserved;
-        return {
-          ...updated,
-          reservedQuantity: updated.reserved,
-          availableQuantity: avail,
-          lowStockThreshold: updated.safetyStock,
-          isLowStock: avail <= updated.safetyStock,
-          isOutOfStock: avail <= 0
-        };
-      }
-      async findInventoryList(options) {
-        const page = Math.max(1, Number(options.page ?? 1));
-        const limit = Math.min(100, Math.max(1, Number(options.limit ?? 10)));
-        const skip = (page - 1) * limit;
-        const where = {};
-        if (options.search) {
-          where.product = {
-            OR: [
-              { name: { contains: options.search, mode: "insensitive" } },
-              { sku: { contains: options.search, mode: "insensitive" } }
-            ]
-          };
-        }
-        const [items, total] = await Promise.all([
-          this.client.inventory.findMany({
-            where,
-            include: {
-              product: { select: { id: true, name: true, sku: true } },
-              warehouse: { select: { id: true, name: true } }
-            },
-            skip,
-            take: limit,
-            orderBy: { createdAt: "desc" }
-          }),
-          this.client.inventory.count({ where })
-        ]);
-        let filteredItems = items;
-        if (options.status === "LOW_STOCK") {
-          filteredItems = items.filter((i) => i.available > 0 && i.available <= i.safetyStock);
-        } else if (options.status === "OUT_OF_STOCK") {
-          filteredItems = items.filter((i) => i.available <= 0);
-        } else if (options.status === "IN_STOCK") {
-          filteredItems = items.filter((i) => i.available > i.safetyStock);
-        }
-        return {
-          items: filteredItems.map((inv) => {
-            const avail = inv.available ?? inv.quantity - inv.reserved;
-            return {
-              ...inv,
-              reservedQuantity: inv.reserved,
-              availableQuantity: avail,
-              lowStockThreshold: inv.safetyStock,
-              isLowStock: avail <= inv.safetyStock,
-              isOutOfStock: avail <= 0
-            };
-          }),
-          pagination: {
-            page,
-            limit,
-            total,
-            totalPages: Math.ceil(total / limit) || 1
-          }
-        };
-      }
-      async findStockMovements(options) {
-        const page = Math.max(1, Number(options.page ?? 1));
-        const limit = Math.min(100, Math.max(1, Number(options.limit ?? 20)));
-        const skip = (page - 1) * limit;
-        const where = {};
-        if (options.inventoryId) where.inventoryId = options.inventoryId;
-        if (options.type) where.type = options.type;
-        const [items, total] = await Promise.all([
-          this.client.stockMovement.findMany({
-            where,
-            orderBy: { createdAt: "desc" },
-            skip,
-            take: limit
-          }),
-          this.client.stockMovement.count({ where })
-        ]);
-        return {
-          items,
-          pagination: {
-            page,
-            limit,
-            total,
-            totalPages: Math.ceil(total / limit) || 1
-          }
-        };
-      }
-      async findMovements(options) {
-        return this.findStockMovements(options);
-      }
-    };
-    inventory_repository_default = InventoryRepository;
-  }
-});
-
-// ../backend/src/repositories/supplier-repository.ts
-var SupplierRepository, supplier_repository_default;
-var init_supplier_repository = __esm({
-  "../backend/src/repositories/supplier-repository.ts"() {
-    "use strict";
-    init_base_repository();
-    SupplierRepository = class extends base_repository_default {
-      constructor() {
-        super("supplier");
-      }
-    };
-    supplier_repository_default = SupplierRepository;
-  }
-});
-
-// ../backend/src/repositories/customer-repository.ts
-var CustomerRepository, customer_repository_default;
-var init_customer_repository = __esm({
-  "../backend/src/repositories/customer-repository.ts"() {
-    "use strict";
-    init_base_repository();
-    init_prisma_service();
-    CustomerRepository = class extends base_repository_default {
-      constructor() {
-        super("customer");
-      }
-      async create(data) {
-        return this.client.customer.create({
-          data: {
-            customerCode: data.customerCode,
-            firstName: data.firstName,
-            lastName: data.lastName,
-            fullName: `${data.firstName} ${data.lastName}`.trim(),
-            phone: data.phone ?? null,
-            email: data.email ?? null,
-            status: data.status ?? "ACTIVE",
-            notes: data.notes ?? null
-          }
-        });
-      }
-      async findById(id) {
-        return this.client.customer.findFirst({ where: { id, deletedAt: null } });
-      }
-      async findByUnique(field, value, excludeId) {
-        return this.client.customer.findFirst({
-          where: {
-            [field]: value,
-            deletedAt: null,
-            ...excludeId ? { NOT: { id: excludeId } } : {}
-          }
-        });
-      }
-      async update(id, data) {
-        const firstName = data.firstName;
-        const lastName = data.lastName;
-        const current = await this.client.customer.findUnique({ where: { id } });
-        if (!current || current.deletedAt) throw new Error("customer_not_found");
-        return this.client.customer.update({
-          where: { id },
-          data: {
-            ...data.customerCode === void 0 ? {} : { customerCode: data.customerCode },
-            ...firstName === void 0 ? {} : { firstName },
-            ...lastName === void 0 ? {} : { lastName },
-            ...firstName === void 0 && lastName === void 0 ? {} : {
-              fullName: `${firstName ?? current.firstName} ${lastName ?? current.lastName}`.trim()
-            },
-            ...data.phone === void 0 ? {} : { phone: data.phone },
-            ...data.email === void 0 ? {} : { email: data.email },
-            ...data.status === void 0 ? {} : { status: data.status },
-            ...data.notes === void 0 ? {} : { notes: data.notes }
-          }
-        });
-      }
-      async delete(id) {
-        await this.client.customer.update({ where: { id }, data: { deletedAt: /* @__PURE__ */ new Date() } });
-      }
-      async paginate(options) {
-        const page = Math.max(1, options.page ?? 1);
-        const limit = Math.max(1, Math.min(100, options.limit ?? 25));
-        const where = { AND: [{ deletedAt: null }, options.filters ?? {}] };
-        const orderBy = options.sort ? { [options.sort]: options.order ?? "asc" } : { createdAt: "desc" };
-        const [data, total] = await Promise.all([
-          this.client.customer.findMany({ where, skip: (page - 1) * limit, take: limit, orderBy }),
-          this.client.customer.count({ where })
-        ]);
-        return { data, total, page, limit };
-      }
-      async createAddress(customerId, data) {
-        return prisma_service_default.transaction(async (tx) => {
-          if (data.isDefault) {
-            await tx.customerAddress.updateMany({ where: { customerId }, data: { isDefault: false } });
-          }
-          const address = await tx.address.create({
-            data: {
-              label: data.label ?? null,
-              line1: data.street,
-              city: data.city,
-              state: data.district,
-              country: data.country,
-              latitude: data.latitude ?? null,
-              longitude: data.longitude ?? null
-            }
-          });
-          return tx.customerAddress.create({
-            data: {
-              customerId,
-              addressId: address.id,
-              label: data.label ?? null,
-              recipientName: data.recipientName,
-              phone: data.phone,
-              country: data.country,
-              city: data.city,
-              district: data.district,
-              street: data.street,
-              building: data.building ?? null,
-              floor: data.floor ?? null,
-              landmark: data.landmark ?? null,
-              latitude: data.latitude ?? null,
-              longitude: data.longitude ?? null,
-              isDefault: data.isDefault ?? false
-            }
-          });
-        });
-      }
-      async listAddresses(customerId) {
-        return this.client.customerAddress.findMany({ where: { customerId }, orderBy: [{ isDefault: "desc" }, { createdAt: "asc" }] });
-      }
-      async findAddress(customerId, addressId) {
-        return this.client.customerAddress.findFirst({ where: { id: addressId, customerId } });
-      }
-      async updateAddress(customerId, addressId, data) {
-        return prisma_service_default.transaction(async (tx) => {
-          if (data.isDefault) {
-            await tx.customerAddress.updateMany({ where: { customerId, NOT: { id: addressId } }, data: { isDefault: false } });
-          }
-          const current = await tx.customerAddress.findFirst({ where: { id: addressId, customerId } });
-          if (!current) throw new Error("address_not_found");
-          const updated = await tx.customerAddress.update({
-            where: { id: addressId },
-            data: {
-              ...data.label === void 0 ? {} : { label: data.label },
-              ...data.recipientName === void 0 ? {} : { recipientName: data.recipientName },
-              ...data.phone === void 0 ? {} : { phone: data.phone },
-              ...data.country === void 0 ? {} : { country: data.country },
-              ...data.city === void 0 ? {} : { city: data.city },
-              ...data.district === void 0 ? {} : { district: data.district },
-              ...data.street === void 0 ? {} : { street: data.street },
-              ...data.building === void 0 ? {} : { building: data.building },
-              ...data.floor === void 0 ? {} : { floor: data.floor },
-              ...data.landmark === void 0 ? {} : { landmark: data.landmark },
-              ...data.latitude === void 0 ? {} : { latitude: data.latitude },
-              ...data.longitude === void 0 ? {} : { longitude: data.longitude },
-              ...data.isDefault === void 0 ? {} : { isDefault: data.isDefault }
-            }
-          });
-          await tx.address.update({
-            where: { id: current.addressId },
-            data: {
-              ...data.label === void 0 ? {} : { label: data.label },
-              ...data.street === void 0 ? {} : { line1: data.street },
-              ...data.city === void 0 ? {} : { city: data.city },
-              ...data.district === void 0 ? {} : { state: data.district },
-              ...data.country === void 0 ? {} : { country: data.country },
-              ...data.latitude === void 0 ? {} : { latitude: data.latitude },
-              ...data.longitude === void 0 ? {} : { longitude: data.longitude }
-            }
-          });
-          return updated;
-        });
-      }
-      async deleteAddress(customerId, addressId) {
-        const address = await this.client.customerAddress.findFirst({ where: { id: addressId, customerId } });
-        if (!address) throw new Error("address_not_found");
-        await this.client.customerAddress.delete({ where: { id: addressId } });
-      }
-    };
-    customer_repository_default = CustomerRepository;
-  }
-});
-
-// ../backend/src/repositories/cart-repository.ts
-var CartRepository, cart_repository_default;
-var init_cart_repository = __esm({
-  "../backend/src/repositories/cart-repository.ts"() {
-    "use strict";
-    init_base_repository();
-    CartRepository = class extends base_repository_default {
-      constructor() {
-        super("cart");
-      }
-      async findOrCreateCartByCustomerId(customerId) {
-        let cart = await this.client.cart.findFirst({
-          where: { customerId },
-          include: {
-            items: {
-              include: {
-                product: true
-              },
-              orderBy: { createdAt: "asc" }
-            }
-          }
-        });
-        if (!cart) {
-          cart = await this.client.cart.create({
-            data: { customerId },
-            include: {
-              items: {
-                include: {
-                  product: true
-                },
-                orderBy: { createdAt: "asc" }
-              }
-            }
-          });
-        }
-        return cart;
-      }
-      async findCartByCustomerId(customerId) {
-        return this.client.cart.findFirst({
-          where: { customerId },
-          include: {
-            items: {
-              include: {
-                product: true
-              },
-              orderBy: { createdAt: "asc" }
-            }
-          }
-        });
-      }
-      async findCartItemById(cartItemId) {
-        return this.client.cartItem.findUnique({
-          where: { id: cartItemId },
-          include: {
-            cart: true,
-            product: true
-          }
-        });
-      }
-      async findCartItemByCartAndProduct(cartId, productId, variantId) {
-        return this.client.cartItem.findFirst({
-          where: {
-            cartId,
-            productId,
-            ...variantId ? { variantId } : {}
-          }
-        });
-      }
-      async addItem(cartId, productId, variantId, quantity, unitPrice) {
-        const existing = await this.findCartItemByCartAndProduct(cartId, productId, variantId);
-        if (existing) {
-          return this.client.cartItem.update({
-            where: { id: existing.id },
-            data: {
-              quantity: existing.quantity + quantity,
-              unitPrice
-            }
-          });
-        }
-        return this.client.cartItem.create({
-          data: {
-            cartId,
-            productId,
-            variantId: variantId ?? null,
-            quantity,
-            unitPrice
-          }
-        });
-      }
-      async updateItemQuantity(cartItemId, quantity) {
-        return this.client.cartItem.update({
-          where: { id: cartItemId },
-          data: { quantity }
-        });
-      }
-      async removeItem(cartItemId) {
-        await this.client.cartItem.delete({
-          where: { id: cartItemId }
-        });
-      }
-      async clearCart(cartId) {
-        await this.client.cartItem.deleteMany({
-          where: { cartId }
-        });
-      }
-      async findCustomerByUserIdOrEmail(userId, email) {
-        if (userId) {
-          const byUser = await this.client.customer.findFirst({
-            where: { userId, deletedAt: null }
-          });
-          if (byUser) return byUser;
-        }
-        if (email) {
-          const byEmail = await this.client.customer.findFirst({
-            where: { email, deletedAt: null }
-          });
-          if (byEmail) return byEmail;
-        }
-        return null;
-      }
-      async createCustomerForUser(userId, email) {
-        const code = `CUST-${Date.now()}-${Math.floor(Math.random() * 1e3)}`;
-        const user = await this.client.user.findUnique({ where: { id: userId } });
-        const nameParts = user?.displayName?.split(" ") ?? ["User", "Customer"];
-        const firstName = nameParts[0] || "User";
-        const lastName = nameParts.slice(1).join(" ") || "Customer";
-        return this.client.customer.create({
-          data: {
-            userId,
-            customerCode: code,
-            firstName,
-            lastName,
-            fullName: `${firstName} ${lastName}`.trim(),
-            email: email || user?.email || null,
-            phone: user?.phone || null,
-            status: "ACTIVE"
-          }
-        });
-      }
-      async findProductById(productId) {
-        return this.client.product.findUnique({
-          where: { id: productId }
-        });
-      }
-    };
-    cart_repository_default = CartRepository;
-  }
-});
-
-// ../backend/src/repositories/order-repository.ts
-var ALLOWED_TRANSITIONS, OrderRepository, order_repository_default;
-var init_order_repository = __esm({
-  "../backend/src/repositories/order-repository.ts"() {
-    "use strict";
-    init_base_repository();
-    init_exceptions();
-    init_validation();
-    init_inventory_repository();
-    ALLOWED_TRANSITIONS = {
-      DRAFT: ["PENDING", "CONFIRMED", "CANCELED"],
-      PENDING: ["CONFIRMED", "CANCELED"],
-      CONFIRMED: ["PACKED", "SHIPPED", "CANCELED"],
-      PACKED: ["SHIPPED", "CANCELED"],
-      SHIPPED: ["DELIVERED", "RETURNED"],
-      DELIVERED: ["RETURNED", "REFUNDED"],
-      CANCELED: [],
-      RETURNED: ["REFUNDED"],
-      REFUNDED: []
-    };
-    OrderRepository = class extends base_repository_default {
-      constructor() {
-        super("order");
-      }
-      async createOrderFromCart(customerId, options) {
-        const cart = await this.client.cart.findFirst({
-          where: { customerId },
-          include: {
-            items: {
-              include: {
-                product: true
-              }
-            }
-          }
-        });
-        if (!cart || !cart.items || cart.items.length === 0) {
-          throw new ValidationException("cart_is_empty");
-        }
-        for (const item of cart.items) {
-          if (!item.product || item.product.deletedAt !== null || item.product.isActive === false) {
-            throw new ValidationException(`product_unavailable_${item.productId}`);
-          }
-          if (!item.quantity || item.quantity <= 0) {
-            throw new ValidationException("invalid_item_quantity");
-          }
-        }
-        let subtotal = 0;
-        const preparedItems = cart.items.map((item) => {
-          const unitPrice = typeof item.product.price === "number" ? item.product.price : item.unitPrice || 0;
-          const itemTotal = unitPrice * item.quantity;
-          subtotal += itemTotal;
-          return {
-            productId: item.productId,
-            variantId: item.variantId ?? null,
-            sku: item.product.sku ?? null,
-            name: item.product.name,
-            quantity: item.quantity,
-            unitPrice,
-            taxAmount: 0,
-            total: itemTotal
-          };
-        });
-        const tax = 0;
-        const shipping = 0;
-        const total = subtotal + tax + shipping;
-        const code = `ORD-${Date.now()}-${Math.floor(Math.random() * 1e3)}`;
-        const createdOrder = await this.client.$transaction(async (tx) => {
-          const order = await tx.order.create({
-            data: {
-              code,
-              customerId,
-              status: "PENDING",
-              subtotal,
-              tax,
-              shipping,
-              total,
-              currency: "SAR",
-              placedAt: /* @__PURE__ */ new Date()
-            }
-          });
-          for (const pItem of preparedItems) {
-            await tx.orderItem.create({
-              data: {
-                orderId: order.id,
-                ...pItem
-              }
-            });
-            const invRepo = new InventoryRepository();
-            await invRepo.reserveStockForOrder(tx, pItem.productId, pItem.quantity, order.id);
-          }
-          await tx.cartItem.deleteMany({
-            where: { cartId: cart.id }
-          });
-          return tx.order.findUnique({
-            where: { id: order.id },
-            include: {
-              items: {
-                include: { product: true }
-              },
-              customer: {
-                select: { id: true, fullName: true, email: true, phone: true }
-              }
-            }
-          });
-        });
-        if (!createdOrder) {
-          throw new Error("order_creation_failed");
-        }
-        return createdOrder;
-      }
-      async findOrders(options) {
-        const page = Math.max(1, Number(options.page ?? 1));
-        const limit = Math.min(100, Math.max(1, Number(options.limit ?? 10)));
-        const skip = (page - 1) * limit;
-        const sortField = options.sort ?? "createdAt";
-        const sortOrder = options.order ?? "desc";
-        const where = {
-          deletedAt: null
-        };
-        if (options.customerId) {
-          where.customerId = options.customerId;
-        }
-        if (options.status) {
-          where.status = options.status;
-        }
-        if (options.search) {
-          where.OR = [
-            { code: { contains: options.search, mode: "insensitive" } },
-            { items: { some: { name: { contains: options.search, mode: "insensitive" } } } }
-          ];
-        }
-        const [items, total] = await Promise.all([
-          this.client.order.findMany({
-            where,
-            skip,
-            take: limit,
-            orderBy: { [sortField]: sortOrder },
-            include: {
-              items: {
-                include: { product: true }
-              },
-              customer: {
-                select: { id: true, fullName: true, email: true, phone: true }
-              }
-            }
-          }),
-          this.client.order.count({ where })
-        ]);
-        const totalPages = Math.ceil(total / limit);
-        return {
-          items,
-          total,
-          page,
-          limit,
-          totalPages
-        };
-      }
-      async findOrderById(orderId, customerId) {
-        const order = await this.client.order.findUnique({
-          where: { id: orderId },
-          include: {
-            items: {
-              include: { product: true }
-            },
-            customer: {
-              select: { id: true, fullName: true, email: true, phone: true }
-            }
-          }
-        });
-        if (!order || order.deletedAt !== null) return null;
-        if (customerId && order.customerId !== customerId) {
-          return null;
-        }
-        return order;
-      }
-      async updateOrderStatus(orderId, newStatus, customerId) {
-        const order = await this.client.order.findUnique({
-          where: { id: orderId }
-        });
-        if (!order || order.deletedAt !== null) {
-          throw new NotFoundException("order_not_found");
-        }
-        if (customerId) {
-          if (order.customerId !== customerId) {
-            throw new NotFoundException("order_not_found");
-          }
-          if (newStatus !== "CANCELED") {
-            throw new ValidationException("customer_cannot_set_status");
-          }
-          if (order.status !== "PENDING" && order.status !== "CONFIRMED") {
-            throw new ValidationException("order_cannot_be_cancelled");
-          }
-        }
-        const allowed = ALLOWED_TRANSITIONS[order.status] ?? [];
-        if (!allowed.includes(newStatus)) {
-          throw new ValidationException(`invalid_status_transition_${order.status}_to_${newStatus}`);
-        }
-        const orderWithItems = await this.client.order.findUnique({
-          where: { id: orderId },
-          include: { items: true }
-        });
-        const invRepo = new InventoryRepository();
-        if (orderWithItems && orderWithItems.items) {
-          if (newStatus === "CANCELED") {
-            for (const item of orderWithItems.items) {
-              await invRepo.releaseStockForOrder(this.client, item.productId, item.quantity, orderId);
-            }
-          } else if (newStatus === "SHIPPED" || newStatus === "DELIVERED") {
-            for (const item of orderWithItems.items) {
-              await invRepo.deductStockForOrder(this.client, item.productId, item.quantity, orderId);
-            }
-          }
-        }
-        const updated = await this.client.order.update({
-          where: { id: orderId },
-          data: { status: newStatus },
-          include: {
-            items: {
-              include: { product: true }
-            },
-            customer: {
-              select: { id: true, fullName: true, email: true, phone: true }
-            }
-          }
-        });
-        return updated;
-      }
-    };
-    order_repository_default = OrderRepository;
-  }
-});
-
-// ../backend/src/repositories/payment-repository.ts
-var PaymentRepository, payment_repository_default;
-var init_payment_repository = __esm({
-  "../backend/src/repositories/payment-repository.ts"() {
-    "use strict";
-    init_base_repository();
-    init_exceptions();
-    init_validation();
-    PaymentRepository = class extends base_repository_default {
-      constructor() {
-        super("payment");
-      }
-      async createPaymentTransaction(params) {
-        const { orderId, paymentMethod, idempotencyKey, customerIdCheck } = params;
-        const order = await this.client.order.findUnique({
-          where: { id: orderId },
-          include: { customer: true }
-        });
-        if (!order) {
-          throw new NotFoundException("order_not_found");
-        }
-        if (customerIdCheck && order.customerId !== customerIdCheck) {
-          throw new NotFoundException("order_not_found");
-        }
-        const existing = await this.client.payment.findFirst({
-          where: { orderId: order.id },
-          orderBy: { createdAt: "desc" }
-        });
-        if (existing) {
-          return existing;
-        }
-        const amount = order.total;
-        if (amount <= 0) {
-          throw new ValidationException("invalid_order_amount");
-        }
-        const initialStatus = paymentMethod === "CASH_ON_DELIVERY" ? "PENDING" : "COMPLETED";
-        const providerRef = `PAY-REF-${Date.now()}-${Math.floor(Math.random() * 1e4)}`;
-        const transaction = await this.client.payment.create({
-          data: {
-            orderId: order.id,
-            amount,
-            status: initialStatus,
-            method: paymentMethod,
-            providerRef,
-            paidAt: initialStatus === "COMPLETED" ? /* @__PURE__ */ new Date() : null
-          }
-        });
-        if (initialStatus === "COMPLETED" && order.status === "PENDING") {
-          await this.client.order.update({
-            where: { id: order.id },
-            data: { status: "CONFIRMED" }
-          });
-        }
-        return transaction;
-      }
-      async verifyPaymentTransaction(paymentId, targetStatus = "COMPLETED", providerReference) {
-        const existing = await this.client.payment.findUnique({
-          where: { id: paymentId },
-          include: { order: true }
-        });
-        if (!existing) {
-          throw new NotFoundException("payment_transaction_not_found");
-        }
-        const updated = await this.client.payment.update({
-          where: { id: paymentId },
-          data: {
-            status: targetStatus,
-            providerRef: providerReference ?? existing.providerRef,
-            paidAt: targetStatus === "COMPLETED" ? /* @__PURE__ */ new Date() : existing.paidAt
-          }
-        });
-        if (targetStatus === "COMPLETED" && existing.order && existing.order.status === "PENDING") {
-          await this.client.order.update({
-            where: { id: existing.orderId },
-            data: { status: "CONFIRMED" }
-          });
-        }
-        return updated;
-      }
-      async findPaymentByOrderId(orderId, customerIdCheck) {
-        const order = await this.client.order.findUnique({
-          where: { id: orderId }
-        });
-        if (!order) return null;
-        if (customerIdCheck && order.customerId !== customerIdCheck) return null;
-        return this.client.payment.findFirst({
-          where: { orderId },
-          orderBy: { createdAt: "desc" }
-        });
-      }
-    };
-    payment_repository_default = PaymentRepository;
-  }
-});
-
-// ../backend/src/repositories/notification-repository.ts
-var NotificationRepository, notification_repository_default;
-var init_notification_repository = __esm({
-  "../backend/src/repositories/notification-repository.ts"() {
-    "use strict";
-    init_base_repository();
-    init_exceptions();
-    NotificationRepository = class extends base_repository_default {
-      constructor() {
-        super("notification");
-      }
-      async createNotification(data) {
-        return this.client.notification.create({
-          data: {
-            userId: data.userId,
-            title: data.title,
-            body: data.body,
-            channel: data.channel ?? "SYSTEM",
-            read: false,
-            payload: data.payload ? JSON.stringify(data.payload) : null
-          }
-        });
-      }
-      async findUserNotifications(userId, limit = 30) {
-        const [items, unreadCount] = await Promise.all([
-          this.client.notification.findMany({
-            where: { userId },
-            orderBy: { createdAt: "desc" },
-            take: limit
-          }),
-          this.client.notification.count({
-            where: { userId, read: false }
-          })
-        ]);
-        return {
-          items,
-          unreadCount
-        };
-      }
-      async getUnreadCount(userId) {
-        return this.client.notification.count({
-          where: { userId, read: false }
-        });
-      }
-      async markAsRead(notificationId, userId) {
-        const existing = await this.client.notification.findUnique({
-          where: { id: notificationId }
-        });
-        if (!existing || existing.userId !== userId) {
-          throw new NotFoundException("notification_not_found");
-        }
-        return this.client.notification.update({
-          where: { id: notificationId },
-          data: { read: true }
-        });
-      }
-      async markAllAsRead(userId) {
-        const result = await this.client.notification.updateMany({
-          where: { userId, read: false },
-          data: { read: true }
-        });
-        return result.count;
-      }
-    };
-    notification_repository_default = NotificationRepository;
-  }
-});
-
-// ../backend/src/repositories/audit-repository.ts
-function sanitizeObject(obj) {
-  if (!obj) return null;
-  if (typeof obj === "string") {
-    try {
-      obj = JSON.parse(obj);
-    } catch {
-      return obj;
-    }
-  }
-  const clean = { ...obj };
-  for (const key of Object.keys(clean)) {
-    if (SENSITIVE_KEYS.some((sk) => key.toLowerCase().includes(sk.toLowerCase()))) {
-      clean[key] = "[REDACTED]";
-    }
-  }
-  return JSON.stringify(clean);
-}
-var SENSITIVE_KEYS, AuditRepository, audit_repository_default;
-var init_audit_repository = __esm({
-  "../backend/src/repositories/audit-repository.ts"() {
-    "use strict";
-    init_base_repository();
-    SENSITIVE_KEYS = ["password", "passwordHash", "token", "jwt", "secret", "creditCard"];
-    AuditRepository = class extends base_repository_default {
-      constructor() {
-        super("auditLog");
-      }
-      // Append-Only Audit Logging
-      async createAuditLog(data) {
-        return this.client.auditLog.create({
-          data: {
-            actorId: data.actorId ?? null,
-            action: data.action,
-            resource: data.resource,
-            resourceId: data.resourceId ?? null,
-            before: sanitizeObject(data.before),
-            after: sanitizeObject(data.after),
-            ipAddress: data.ipAddress ?? null,
-            userAgent: data.userAgent ?? null
-          }
-        });
-      }
-      async findAuditLogs(params) {
-        const limit = Math.min(params.limit ?? 20, 100);
-        const page = Math.max(params.page ?? 1, 1);
-        const skip = (page - 1) * limit;
-        const where = {};
-        if (params.actorId) where.actorId = params.actorId;
-        if (params.resource) where.resource = params.resource;
-        if (params.action) where.action = params.action;
-        const [items, total] = await Promise.all([
-          this.client.auditLog.findMany({
-            where,
-            include: { actor: true },
-            orderBy: { createdAt: "desc" },
-            skip,
-            take: limit
-          }),
-          this.client.auditLog.count({ where })
-        ]);
-        return {
-          items: items.map((item) => ({
-            id: item.id,
-            actorId: item.actorId,
-            actorName: item.actor?.displayName || item.actor?.email || "\u0627\u0644\u0646\u0638\u0627\u0645 (System)",
-            action: item.action,
-            resource: item.resource,
-            resourceId: item.resourceId,
-            before: item.before,
-            after: item.after,
-            ipAddress: item.ipAddress,
-            createdAt: item.createdAt
-          })),
-          pagination: {
-            page,
-            limit,
-            total,
-            totalPages: Math.ceil(total / limit) || 1
-          }
-        };
-      }
-    };
-    audit_repository_default = AuditRepository;
-  }
-});
-
-// ../backend/src/repositories/repository-factory.ts
-var tenantRepository, userRepository, roleRepository, permissionRepository, storeRepository, branchRepository, categoryRepository, productRepository, inventoryRepository, supplierRepository, customerRepository, cartRepository, orderRepository, paymentRepository, notificationRepository, auditRepository, RepositoryFactory;
-var init_repository_factory = __esm({
-  "../backend/src/repositories/repository-factory.ts"() {
-    "use strict";
-    init_tenant_repository();
-    init_user_repository();
-    init_role_repository();
-    init_permission_repository();
-    init_store_repository();
-    init_branch_repository();
-    init_category_repository();
-    init_product_repository();
-    init_inventory_repository();
-    init_supplier_repository();
-    init_customer_repository();
-    init_cart_repository();
-    init_order_repository();
-    init_payment_repository();
-    init_notification_repository();
-    init_audit_repository();
-    tenantRepository = new tenant_repository_default();
-    userRepository = new user_repository_default();
-    roleRepository = new role_repository_default();
-    permissionRepository = new permission_repository_default();
-    storeRepository = new store_repository_default();
-    branchRepository = new branch_repository_default();
-    categoryRepository = new category_repository_default();
-    productRepository = new product_repository_default();
-    inventoryRepository = new inventory_repository_default();
-    supplierRepository = new supplier_repository_default();
-    customerRepository = new customer_repository_default();
-    cartRepository = new cart_repository_default();
-    orderRepository = new order_repository_default();
-    paymentRepository = new payment_repository_default();
-    notificationRepository = new notification_repository_default();
-    auditRepository = new audit_repository_default();
-    RepositoryFactory = {
-      getTenantRepository: () => tenantRepository,
-      getUserRepository: () => userRepository,
-      getRoleRepository: () => roleRepository,
-      getPermissionRepository: () => permissionRepository,
-      getStoreRepository: () => storeRepository,
-      getBranchRepository: () => branchRepository,
-      getCategoryRepository: () => categoryRepository,
-      getProductRepository: () => productRepository,
-      getInventoryRepository: () => inventoryRepository,
-      getSupplierRepository: () => supplierRepository,
-      getCustomerRepository: () => customerRepository,
-      getCartRepository: () => cartRepository,
-      getOrderRepository: () => orderRepository,
-      getPaymentRepository: () => paymentRepository,
-      getNotificationRepository: () => notificationRepository,
-      getAuditRepository: () => auditRepository
-    };
-  }
-});
-
-// ../backend/src/repositories/logger.ts
-var NoopLogger, logger;
-var init_logger = __esm({
-  "../backend/src/repositories/logger.ts"() {
-    "use strict";
-    NoopLogger = class {
-      debug() {
-      }
-      info() {
-      }
-      warn() {
-      }
-      error() {
-      }
-    };
-    logger = new NoopLogger();
-  }
-});
-
-// ../backend/src/repositories/prisma-error-mapper.ts
-function mapPrismaError(err) {
-  if (err instanceof import_client2.Prisma.PrismaClientKnownRequestError) {
-    switch (err.code) {
-      case "P2002":
-        throw new ConflictException(err.message);
-      case "P2025":
-        throw new NotFoundException(err.message);
-      case "P2003":
-        throw new DatabaseException(err.message);
-      default:
-        throw new DatabaseException(err.message);
-    }
-  }
-  if (err instanceof Error) {
-    throw new DatabaseException(err.message);
-  }
-  throw new DatabaseException("Unknown database error");
-}
-var import_client2;
-var init_prisma_error_mapper = __esm({
-  "../backend/src/repositories/prisma-error-mapper.ts"() {
-    "use strict";
-    import_client2 = require("@prisma/client");
-    init_exceptions();
-  }
-});
-
-// ../backend/src/services/base-service.ts
-var BaseService, base_service_default;
-var init_base_service = __esm({
-  "../backend/src/services/base-service.ts"() {
-    "use strict";
-    init_logger();
-    init_prisma_service();
-    init_prisma_error_mapper();
-    BaseService = class {
-      logger = logger;
-      constructor() {
-      }
-      // Validation hooks (override in concrete services)
-      async validateCreate(_data) {
-      }
-      async validateUpdate(_id, _data) {
-      }
-      async validateDelete(_id) {
-      }
-      // Transaction helper
-      async runInTransaction(work) {
-        try {
-          return await prisma_service_default.transaction(async (tx) => work(tx));
-        } catch (err) {
-          mapPrismaError(err);
-        }
-      }
-      // Generic error wrapper to map Prisma errors
-      handleRepoError(err) {
-        mapPrismaError(err);
-      }
-    };
-    base_service_default = BaseService;
-  }
-});
-
-// ../backend/src/services/tenant-service.ts
-var TenantService, tenant_service_default;
-var init_tenant_service = __esm({
-  "../backend/src/services/tenant-service.ts"() {
-    "use strict";
-    init_base_service();
-    TenantService = class extends base_service_default {
-      constructor(tenantRepo) {
-        super();
-        this.tenantRepo = tenantRepo;
-      }
-      tenantRepo;
-      async create(data) {
-        await this.validateCreate(data);
-        try {
-          return await this.tenantRepo.create(data);
-        } catch (err) {
-          this.handleRepoError(err);
-        }
-      }
-      async findById(id) {
-        return this.tenantRepo.findById(id);
-      }
-      async findMany(filter) {
-        return this.tenantRepo.findMany(filter);
-      }
-      async update(id, data) {
-        await this.validateUpdate(id, data);
-        try {
-          return await this.tenantRepo.update(id, data);
-        } catch (err) {
-          this.handleRepoError(err);
-        }
-      }
-      async delete(id) {
-        await this.validateDelete(id);
-        await this.tenantRepo.delete(id);
-      }
-      async paginate(options) {
-        return this.tenantRepo.paginate(options);
-      }
-    };
-    tenant_service_default = TenantService;
-  }
-});
-
-// ../backend/src/services/user-service.ts
-var UserService, user_service_default;
-var init_user_service = __esm({
-  "../backend/src/services/user-service.ts"() {
-    "use strict";
-    init_base_service();
-    init_exceptions();
-    UserService = class extends base_service_default {
-      constructor(userRepo, roleRepo) {
-        super();
-        this.userRepo = userRepo;
-        this.roleRepo = roleRepo;
-      }
-      userRepo;
-      roleRepo;
-      async create(data) {
-        await this.validateCreate(data);
-        try {
-          return await this.userRepo.create(data);
-        } catch (err) {
-          this.handleRepoError(err);
-        }
-      }
-      async findById(id) {
-        return this.userRepo.findById(id);
-      }
-      async findMany(filter) {
-        return this.userRepo.findMany(filter);
-      }
-      async update(id, data) {
-        await this.validateUpdate(id, data);
-        try {
-          return await this.userRepo.update(id, data);
-        } catch (err) {
-          this.handleRepoError(err);
-        }
-      }
-      async delete(id) {
-        await this.validateDelete(id);
-        await this.userRepo.delete(id);
-      }
-      async paginate(options) {
-        return this.userRepo.paginate(options);
-      }
-      async restore(id) {
-        return this.userRepo.restore(id);
-      }
-      async listRoles(userId) {
-        const user = await this.userRepo.findById(userId);
-        if (!user) throw new NotFoundException("user_not_found");
-        const roles = await this.userRepo.findUserRoles(userId);
-        return { userId, roles };
-      }
-      async assignRole(userId, roleId) {
-        const user = await this.userRepo.findById(userId);
-        if (!user) throw new NotFoundException("user_not_found");
-        if (!this.roleRepo) throw new Error("role_repository_not_configured");
-        const role = await this.roleRepo.findById(roleId);
-        if (!role) throw new NotFoundException("role_not_found");
-        const repository = this.userRepo;
-        if (await repository.hasRole(userId, roleId)) {
-          throw new ConflictException("role_already_assigned");
-        }
-        try {
-          return await repository.assignRole(userId, roleId);
-        } catch (err) {
-          this.handleRepoError(err);
-        }
-      }
-      async removeRole(userId, roleId) {
-        const user = await this.userRepo.findById(userId);
-        if (!user) throw new NotFoundException("user_not_found");
-        if (!this.roleRepo) throw new Error("role_repository_not_configured");
-        const role = await this.roleRepo.findById(roleId);
-        if (!role) throw new NotFoundException("role_not_found");
-        const repository = this.userRepo;
-        if (!await repository.hasRole(userId, roleId)) {
-          throw new NotFoundException("user_role_not_found");
-        }
-        return repository.removeRole(userId, roleId);
-      }
-      async checkRole(userId, roleId) {
-        const user = await this.userRepo.findById(userId);
-        if (!user) throw new NotFoundException("user_not_found");
-        if (!this.roleRepo) throw new Error("role_repository_not_configured");
-        const role = await this.roleRepo.findById(roleId);
-        if (!role) throw new NotFoundException("role_not_found");
-        return this.userRepo.hasRole(userId, roleId);
-      }
-    };
-    user_service_default = UserService;
-  }
-});
-
-// ../backend/src/services/role-service.ts
-var RoleService, role_service_default;
-var init_role_service = __esm({
-  "../backend/src/services/role-service.ts"() {
-    "use strict";
-    init_exceptions();
-    init_base_service();
-    RoleService = class extends base_service_default {
-      constructor(roleRepo, permissionRepo) {
-        super();
-        this.roleRepo = roleRepo;
-        this.permissionRepo = permissionRepo;
-      }
-      roleRepo;
-      permissionRepo;
-      async create(data) {
-        await this.validateCreate(data);
-        try {
-          return await this.roleRepo.create(data);
-        } catch (err) {
-          this.handleRepoError(err);
-        }
-      }
-      async findById(id) {
-        return this.roleRepo.findById(id);
-      }
-      async findMany(filter) {
-        return this.roleRepo.findMany(filter);
-      }
-      async update(id, data) {
-        await this.validateUpdate(id, data);
-        try {
-          return await this.roleRepo.update(id, data);
-        } catch (err) {
-          this.handleRepoError(err);
-        }
-      }
-      async delete(id) {
-        await this.validateDelete(id);
-        await this.roleRepo.delete(id);
-      }
-      async paginate(options) {
-        return this.roleRepo.paginate(options);
-      }
-      async restore(id) {
-        return this.roleRepo.restore(id);
-      }
-      async listPermissions(roleId) {
-        const role = await this.roleRepo.findById(roleId);
-        if (!role) throw new NotFoundException("role_not_found");
-        const permissions = await this.roleRepo.findRolePermissions(roleId);
-        return { role, permissions };
-      }
-      async assignPermission(roleId, permissionId) {
-        const role = await this.roleRepo.findById(roleId);
-        if (!role) throw new NotFoundException("role_not_found");
-        const permission = await this.permissionRepo.findById(permissionId);
-        if (!permission) throw new NotFoundException("permission_not_found");
-        const alreadyAssigned = await this.roleRepo.hasPermission(roleId, permissionId);
-        if (alreadyAssigned) throw new ConflictException("permission_already_assigned");
-        try {
-          return await this.roleRepo.assignPermission(roleId, permissionId);
-        } catch (err) {
-          this.handleRepoError(err);
-        }
-      }
-      async removePermission(roleId, permissionId) {
-        const role = await this.roleRepo.findById(roleId);
-        if (!role) throw new NotFoundException("role_not_found");
-        const permission = await this.permissionRepo.findById(permissionId);
-        if (!permission) throw new NotFoundException("permission_not_found");
-        const exists = await this.roleRepo.hasPermission(roleId, permissionId);
-        if (!exists) throw new NotFoundException("role_permission_not_found");
-        return this.roleRepo.removePermission(roleId, permissionId);
-      }
-      async checkPermission(roleId, permissionId) {
-        const role = await this.roleRepo.findById(roleId);
-        if (!role) throw new NotFoundException("role_not_found");
-        const permission = await this.permissionRepo.findById(permissionId);
-        if (!permission) throw new NotFoundException("permission_not_found");
-        return this.roleRepo.hasPermission(roleId, permissionId);
-      }
-    };
-    role_service_default = RoleService;
-  }
-});
-
-// ../backend/src/services/permission-service.ts
-var PermissionService, permission_service_default;
-var init_permission_service = __esm({
-  "../backend/src/services/permission-service.ts"() {
-    "use strict";
-    init_base_service();
-    PermissionService = class extends base_service_default {
-      constructor(permissionRepo) {
-        super();
-        this.permissionRepo = permissionRepo;
-      }
-      permissionRepo;
-      async create(data) {
-        await this.validateCreate(data);
-        try {
-          return await this.permissionRepo.create(data);
-        } catch (err) {
-          this.handleRepoError(err);
-        }
-      }
-      async findById(id) {
-        return this.permissionRepo.findById(id);
-      }
-      async findMany(filter) {
-        return this.permissionRepo.findMany(filter);
-      }
-      async update(id, data) {
-        await this.validateUpdate(id, data);
-        try {
-          return await this.permissionRepo.update(id, data);
-        } catch (err) {
-          this.handleRepoError(err);
-        }
-      }
-      async delete(id) {
-        await this.validateDelete(id);
-        await this.permissionRepo.delete(id);
-      }
-      async restore(id) {
-        return this.permissionRepo.restore(id);
-      }
-      async paginate(options) {
-        return this.permissionRepo.paginate(options);
-      }
-    };
-    permission_service_default = PermissionService;
-  }
-});
-
-// ../backend/src/services/store-service.ts
-var StoreService, store_service_default;
-var init_store_service = __esm({
-  "../backend/src/services/store-service.ts"() {
-    "use strict";
-    init_base_service();
-    StoreService = class extends base_service_default {
-      constructor(storeRepo) {
-        super();
-        this.storeRepo = storeRepo;
-      }
-      storeRepo;
-      async create(data) {
-        await this.validateCreate(data);
-        try {
-          return await this.storeRepo.create(data);
-        } catch (err) {
-          this.handleRepoError(err);
-        }
-      }
-      async findById(id) {
-        return this.storeRepo.findById(id);
-      }
-      async findMany(filter) {
-        return this.storeRepo.findMany(filter);
-      }
-      async update(id, data) {
-        await this.validateUpdate(id, data);
-        try {
-          return await this.storeRepo.update(id, data);
-        } catch (err) {
-          this.handleRepoError(err);
-        }
-      }
-      async delete(id) {
-        await this.validateDelete(id);
-        await this.storeRepo.delete(id);
-      }
-      async paginate(options) {
-        return this.storeRepo.paginate(options);
-      }
-    };
-    store_service_default = StoreService;
-  }
-});
-
-// ../backend/src/services/branch-service.ts
-var BranchService, branch_service_default;
-var init_branch_service = __esm({
-  "../backend/src/services/branch-service.ts"() {
-    "use strict";
-    init_base_service();
-    BranchService = class extends base_service_default {
-      constructor(branchRepo) {
-        super();
-        this.branchRepo = branchRepo;
-      }
-      branchRepo;
-      async create(data) {
-        await this.validateCreate(data);
-        try {
-          return await this.branchRepo.create(data);
-        } catch (err) {
-          this.handleRepoError(err);
-        }
-      }
-      async findById(id) {
-        return this.branchRepo.findById(id);
-      }
-      async findMany(filter) {
-        return this.branchRepo.findMany(filter);
-      }
-      async update(id, data) {
-        await this.validateUpdate(id, data);
-        try {
-          return await this.branchRepo.update(id, data);
-        } catch (err) {
-          this.handleRepoError(err);
-        }
-      }
-      async delete(id) {
-        await this.validateDelete(id);
-        await this.branchRepo.delete(id);
-      }
-      async paginate(options) {
-        return this.branchRepo.paginate(options);
-      }
-    };
-    branch_service_default = BranchService;
-  }
-});
-
-// ../backend/src/services/category-service.ts
-var CategoryService, category_service_default;
-var init_category_service = __esm({
-  "../backend/src/services/category-service.ts"() {
-    "use strict";
-    init_base_service();
-    CategoryService = class extends base_service_default {
-      constructor(categoryRepo) {
-        super();
-        this.categoryRepo = categoryRepo;
-      }
-      categoryRepo;
-      async create(data) {
-        await this.validateCreate(data);
-        try {
-          return await this.categoryRepo.create(data);
-        } catch (err) {
-          this.handleRepoError(err);
-        }
-      }
-      async findById(id) {
-        return this.categoryRepo.findById(id);
-      }
-      async findMany(filter) {
-        return this.categoryRepo.findMany(filter);
-      }
-      async update(id, data) {
-        await this.validateUpdate(id, data);
-        try {
-          return await this.categoryRepo.update(id, data);
-        } catch (err) {
-          this.handleRepoError(err);
-        }
-      }
-      async delete(id) {
-        await this.validateDelete(id);
-        await this.categoryRepo.delete(id);
-      }
-      async paginate(options) {
-        return this.categoryRepo.paginate(options);
-      }
-    };
-    category_service_default = CategoryService;
-  }
-});
-
-// ../backend/src/services/product-service.ts
-var ProductService, product_service_default;
-var init_product_service = __esm({
-  "../backend/src/services/product-service.ts"() {
-    "use strict";
-    init_base_service();
-    init_exceptions();
-    init_validation();
-    ProductService = class extends base_service_default {
-      constructor(productRepo) {
-        super();
-        this.productRepo = productRepo;
-      }
-      productRepo;
-      async create(data) {
-        await this.validateCreate(data);
-        try {
-          return await this.productRepo.create(this.toPersistencePayload(data));
-        } catch (err) {
-          this.handleRepoError(err);
-        }
-      }
-      async findById(id) {
-        return this.productRepo.findById(id);
-      }
-      async findMany(filter) {
-        return this.productRepo.findMany(filter);
-      }
-      async update(id, data) {
-        await this.validateUpdate(id, data);
-        try {
-          return await this.productRepo.update(id, this.toPersistencePayload(data, true));
-        } catch (err) {
-          this.handleRepoError(err);
-        }
-      }
-      async delete(id) {
-        await this.validateDelete(id);
-        await this.productRepo.delete(id);
-      }
-      async paginate(options) {
-        return this.productRepo.paginate(options);
-      }
-      async restore(id) {
-        if (!id) throw new ValidationException("id_required");
-        try {
-          return await this.productRepo.restore(id);
-        } catch (err) {
-          this.handleRepoError(err);
-        }
-      }
-      async validateCreate(data) {
-        if (!data || typeof data !== "object") throw new ValidationException("data_required");
-        const payload = data;
-        if (typeof payload.name !== "string" || !payload.name.trim()) throw new ValidationException("name_required");
-        if (typeof payload.slug !== "string" || !payload.slug.trim()) throw new ValidationException("slug_required");
-        this.validateOptionalFields(payload);
-        if (await this.productRepo.findBySlug(payload.slug.trim())) throw new ConflictException("product_slug_exists");
-      }
-      async validateUpdate(id, data) {
-        if (!id) throw new ValidationException("id_required");
-        if (!data || typeof data !== "object") throw new ValidationException("data_required");
-        if (!await this.productRepo.findById(id)) throw new NotFoundException("product_not_found");
-        this.validateOptionalFields(data, true);
-        const payload = data;
-        if (typeof payload.slug === "string" && await this.productRepo.findBySlug(payload.slug.trim(), id)) {
-          throw new ConflictException("product_slug_exists");
-        }
-      }
-      async validateDelete(id) {
-        if (!id) throw new ValidationException("id_required");
-        if (!await this.productRepo.findById(id)) throw new NotFoundException("product_not_found");
-      }
-      validateOptionalFields(payload, update = false) {
-        const stringFields = ["sku", "name", "slug", "description", "brandId", "unitId", "categoryId", "subcategoryId"];
-        const maxLengths = {
-          sku: 100,
-          name: 255,
-          slug: 255,
-          description: 5e3,
-          brandId: 36,
-          unitId: 36,
-          categoryId: 36,
-          subcategoryId: 36
-        };
-        for (const field of stringFields) {
-          if (payload[field] !== void 0 && payload[field] !== null && typeof payload[field] !== "string") {
-            throw new ValidationException(`${field}_invalid`);
-          }
-          if (typeof payload[field] === "string") {
-            if (!payload[field].trim()) throw new ValidationException(`${field}_required`);
-            if (payload[field].trim().length > maxLengths[field]) throw new ValidationException(`${field}_too_long`);
-          }
-        }
-        if (typeof payload.slug === "string" && !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(payload.slug.trim())) {
-          throw new ValidationException("slug_invalid");
-        }
-        for (const field of ["brandId", "unitId", "categoryId", "subcategoryId"]) {
-          if (typeof payload[field] === "string" && !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(payload[field].trim())) {
-            throw new ValidationException(`${field}_invalid`);
-          }
-        }
-        if (payload.isPublished !== void 0 && typeof payload.isPublished !== "boolean") {
-          throw new ValidationException("isPublished_invalid");
-        }
-        if (update && !stringFields.some((field) => payload[field] !== void 0) && payload.isPublished === void 0) {
-          throw new ValidationException("data_required");
-        }
-      }
-      toPersistencePayload(payload, update = false) {
-        const fields = ["sku", "name", "slug", "description", "brandId", "unitId", "categoryId", "subcategoryId", "isPublished"];
-        const result = {};
-        for (const field of fields) {
-          if (payload[field] !== void 0) {
-            result[field] = typeof payload[field] === "string" ? payload[field].trim() : payload[field];
-          }
-        }
-        if (!update && result.isPublished === void 0) result.isPublished = false;
-        return result;
-      }
-    };
-    product_service_default = ProductService;
-  }
-});
-
-// ../backend/src/services/inventory-service.ts
-var InventoryService, inventory_service_default;
-var init_inventory_service = __esm({
-  "../backend/src/services/inventory-service.ts"() {
-    "use strict";
-    init_base_service();
-    InventoryService = class extends base_service_default {
-      constructor(inventoryRepo) {
-        super();
-        this.inventoryRepo = inventoryRepo;
-      }
-      inventoryRepo;
-      async create(data) {
-        await this.validateCreate(data);
-        try {
-          return await this.inventoryRepo.create(data);
-        } catch (err) {
-          this.handleRepoError(err);
-        }
-      }
-      async findById(id) {
-        return this.inventoryRepo.findById(id);
-      }
-      async findMany(filter) {
-        return this.inventoryRepo.findMany(filter);
-      }
-      async update(id, data) {
-        await this.validateUpdate(id, data);
-        try {
-          return await this.inventoryRepo.update(id, data);
-        } catch (err) {
-          this.handleRepoError(err);
-        }
-      }
-      async delete(id) {
-        await this.validateDelete(id);
-        await this.inventoryRepo.delete(id);
-      }
-      async paginate(options) {
-        return this.inventoryRepo.paginate(options);
-      }
-    };
-    inventory_service_default = InventoryService;
-  }
-});
-
-// ../backend/src/services/supplier-service.ts
-var SupplierService, supplier_service_default;
-var init_supplier_service = __esm({
-  "../backend/src/services/supplier-service.ts"() {
-    "use strict";
-    init_base_service();
-    SupplierService = class extends base_service_default {
-      constructor(supplierRepo) {
-        super();
-        this.supplierRepo = supplierRepo;
-      }
-      supplierRepo;
-      async create(data) {
-        await this.validateCreate(data);
-        try {
-          return await this.supplierRepo.create(data);
-        } catch (err) {
-          this.handleRepoError(err);
-        }
-      }
-      async findById(id) {
-        return this.supplierRepo.findById(id);
-      }
-      async findMany(filter) {
-        return this.supplierRepo.findMany(filter);
-      }
-      async update(id, data) {
-        await this.validateUpdate(id, data);
-        try {
-          return await this.supplierRepo.update(id, data);
-        } catch (err) {
-          this.handleRepoError(err);
-        }
-      }
-      async delete(id) {
-        await this.validateDelete(id);
-        await this.supplierRepo.delete(id);
-      }
-      async paginate(options) {
-        return this.supplierRepo.paginate(options);
-      }
-    };
-    supplier_service_default = SupplierService;
-  }
-});
-
-// ../backend/src/services/customer-service.ts
-var CustomerService, customer_service_default;
-var init_customer_service = __esm({
-  "../backend/src/services/customer-service.ts"() {
-    "use strict";
-    init_base_service();
-    init_exceptions();
-    init_validation();
-    CustomerService = class extends base_service_default {
-      constructor(customerRepo) {
-        super();
-        this.customerRepo = customerRepo;
-      }
-      customerRepo;
-      async create(data) {
-        this.validateCustomer(data, false);
-        for (const field of ["customerCode", "email", "phone"]) {
-          const value = data[field];
-          if (value && await this.customerRepo.findByUnique(field, value)) throw new ConflictException(`${field}_already_exists`);
-        }
-        try {
-          return await this.customerRepo.create(data);
-        } catch (err) {
-          this.handleRepoError(err);
-        }
-      }
-      async findById(id) {
-        return this.customerRepo.findById(id);
-      }
-      async update(id, data) {
-        if (!this.isUuid(id)) throw new ValidationException("customer_id_invalid");
-        const current = await this.customerRepo.findById(id);
-        if (!current) throw new NotFoundException("customer_not_found");
-        this.validateCustomer({ ...current, ...data }, true);
-        for (const field of ["customerCode", "email", "phone"]) {
-          const value = data[field];
-          if (value && await this.customerRepo.findByUnique(field, value, id)) throw new ConflictException(`${field}_already_exists`);
-        }
-        try {
-          return await this.customerRepo.update(id, data);
-        } catch (err) {
-          this.handleRepoError(err);
-        }
-      }
-      async delete(id) {
-        if (!this.isUuid(id)) throw new ValidationException("customer_id_invalid");
-        if (!await this.customerRepo.findById(id)) throw new NotFoundException("customer_not_found");
-        await this.customerRepo.delete(id);
-      }
-      async paginate(options) {
-        return this.customerRepo.paginate(options);
-      }
-      async createAddress(customerId, data) {
-        await this.requireCustomer(customerId);
-        this.validateAddress(data);
-        return this.customerRepo.createAddress(customerId, data);
-      }
-      async listAddresses(customerId) {
-        await this.requireCustomer(customerId);
-        return this.customerRepo.listAddresses(customerId);
-      }
-      async updateAddress(customerId, addressId, data) {
-        await this.requireCustomer(customerId);
-        if (!this.isUuid(addressId)) throw new ValidationException("address_id_invalid");
-        const current = await this.customerRepo.findAddress(customerId, addressId);
-        if (!current) throw new NotFoundException("address_not_found");
-        this.validateAddress({ ...current, ...data });
-        return this.customerRepo.updateAddress(customerId, addressId, data);
-      }
-      async deleteAddress(customerId, addressId) {
-        await this.requireCustomer(customerId);
-        if (!this.isUuid(addressId)) throw new ValidationException("address_id_invalid");
-        if (!await this.customerRepo.findAddress(customerId, addressId)) throw new NotFoundException("address_not_found");
-        await this.customerRepo.deleteAddress(customerId, addressId);
-      }
-      async requireCustomer(id) {
-        if (!this.isUuid(id)) throw new ValidationException("customer_id_invalid");
-        if (!await this.customerRepo.findById(id)) throw new NotFoundException("customer_not_found");
-      }
-      validateCustomer(data, allowPartial) {
-        if (!data || typeof data !== "object") throw new ValidationException("customer_required");
-        if (!allowPartial && (!data.customerCode || !data.firstName || !data.lastName)) throw new ValidationException("customer_name_required");
-        if (data.customerCode !== void 0 && (!this.text(data.customerCode, 2, 64) || !/^[A-Za-z0-9_-]+$/.test(data.customerCode))) throw new ValidationException("customer_code_invalid");
-        if (data.firstName !== void 0 && !this.text(data.firstName, 1, 100)) throw new ValidationException("first_name_invalid");
-        if (data.lastName !== void 0 && !this.text(data.lastName, 1, 100)) throw new ValidationException("last_name_invalid");
-        if (data.email !== void 0 && data.email !== null && (!this.text(data.email, 3, 255) || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.email))) throw new ValidationException("email_invalid");
-        if (data.phone !== void 0 && data.phone !== null && (!this.text(data.phone, 7, 32) || !/^\+?[0-9 ()-]+$/.test(data.phone))) throw new ValidationException("phone_invalid");
-        if (data.status !== void 0 && !["ACTIVE", "INACTIVE", "BLOCKED"].includes(data.status)) throw new ValidationException("status_invalid");
-        if (data.notes !== void 0 && data.notes !== null && !this.text(data.notes, 0, 2e3)) throw new ValidationException("notes_invalid");
-      }
-      validateAddress(data) {
-        for (const field of ["recipientName", "phone", "country", "city", "district", "street"]) {
-          if (!this.text(data[field], field === "phone" ? 7 : 1, field === "phone" ? 32 : 255)) throw new ValidationException(`${field}_invalid`);
-        }
-        if (!/^\+?[0-9 ()-]+$/.test(data.phone)) throw new ValidationException("phone_invalid");
-        if (data.latitude !== void 0 && data.latitude !== null && (typeof data.latitude !== "number" || data.latitude < -90 || data.latitude > 90)) throw new ValidationException("latitude_invalid");
-        if (data.longitude !== void 0 && data.longitude !== null && (typeof data.longitude !== "number" || data.longitude < -180 || data.longitude > 180)) throw new ValidationException("longitude_invalid");
-      }
-      text(value, min, max) {
-        return typeof value === "string" && value.trim().length >= min && value.trim().length <= max;
-      }
-      isUuid(value) {
-        return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
-      }
-    };
-    customer_service_default = CustomerService;
-  }
-});
-
-// ../backend/src/services/cart-service.ts
-var CartService, cart_service_default;
-var init_cart_service = __esm({
-  "../backend/src/services/cart-service.ts"() {
-    "use strict";
-    init_base_service();
-    init_exceptions();
-    init_errors3();
-    CartService = class extends base_service_default {
-      constructor(cartRepo) {
-        super();
-        this.cartRepo = cartRepo;
-      }
-      cartRepo;
-      createNotFound(message) {
-        const err = new NotFoundException(message);
-        err.code = "not_found";
-        return err;
-      }
-      async getCustomerAndCart(userId, email) {
-        if (!userId) {
-          throw new ValidationException2("user_id_required");
-        }
-        let customer = await this.cartRepo.findCustomerByUserIdOrEmail(userId, email);
-        if (!customer) {
-          customer = await this.cartRepo.createCustomerForUser(userId, email);
-        }
-        const cart = await this.cartRepo.findOrCreateCartByCustomerId(customer.id);
-        return { customer, cart };
-      }
-      formatCartResponse(cart) {
-        const formattedItems = (cart.items ?? []).map((item) => {
-          const lineTotal = Number((item.quantity * item.unitPrice).toFixed(2));
-          return {
-            id: item.id,
-            cartId: item.cartId,
-            productId: item.productId,
-            variantId: item.variantId,
-            quantity: item.quantity,
-            unitPrice: item.unitPrice,
-            lineTotal,
-            product: item.product ? {
-              id: item.product.id,
-              name: item.product.name,
-              sku: item.product.sku
-            } : null,
-            createdAt: item.createdAt.toISOString()
-          };
-        });
-        const subtotal = Number(formattedItems.reduce((sum, item) => sum + item.lineTotal, 0).toFixed(2));
-        const totalQuantity = formattedItems.reduce((sum, item) => sum + item.quantity, 0);
-        const total = subtotal;
-        return {
-          id: cart.id,
-          customerId: cart.customerId,
-          items: formattedItems,
-          subtotal,
-          totalQuantity,
-          total,
-          createdAt: cart.createdAt.toISOString(),
-          updatedAt: cart.updatedAt.toISOString()
-        };
-      }
-      async getCartForUser(userId, email) {
-        const { cart } = await this.getCustomerAndCart(userId, email);
-        return this.formatCartResponse(cart);
-      }
-      async addItem(userId, data, email) {
-        if (!data || typeof data !== "object") {
-          throw new ValidationException2("cart_item_required");
-        }
-        if (!data.productId || typeof data.productId !== "string" || !data.productId.trim()) {
-          throw new ValidationException2("product_id_required");
-        }
-        const quantity = data.quantity ?? 1;
-        if (typeof quantity !== "number" || !Number.isInteger(quantity) || quantity <= 0) {
-          throw new ValidationException2("invalid_quantity");
-        }
-        const product = await this.cartRepo.findProductById(data.productId.trim());
-        if (!product || product.deletedAt !== null) {
-          throw this.createNotFound("product_not_found");
-        }
-        const { cart } = await this.getCustomerAndCart(userId, email);
-        const unitPrice = 0;
-        await this.cartRepo.addItem(cart.id, product.id, data.variantId ?? null, quantity, unitPrice);
-        return this.getCartForUser(userId, email);
-      }
-      async updateItemQuantity(userId, cartItemId, data, email) {
-        if (!cartItemId || typeof cartItemId !== "string") {
-          throw new ValidationException2("cart_item_id_invalid");
-        }
-        if (!data || typeof data.quantity !== "number" || !Number.isInteger(data.quantity) || data.quantity < 0) {
-          throw new ValidationException2("invalid_quantity");
-        }
-        const existingItem = await this.cartRepo.findCartItemById(cartItemId);
-        if (!existingItem) {
-          throw this.createNotFound("cart_item_not_found");
-        }
-        const { cart } = await this.getCustomerAndCart(userId, email);
-        if (existingItem.cartId !== cart.id) {
-          throw new ForbiddenError("cart_item_forbidden");
-        }
-        if (data.quantity === 0) {
-          await this.cartRepo.removeItem(cartItemId);
-        } else {
-          await this.cartRepo.updateItemQuantity(cartItemId, data.quantity);
-        }
-        return this.getCartForUser(userId, email);
-      }
-      async removeItem(userId, cartItemId, email) {
-        if (!cartItemId || typeof cartItemId !== "string") {
-          throw new ValidationException2("cart_item_id_invalid");
-        }
-        const existingItem = await this.cartRepo.findCartItemById(cartItemId);
-        if (!existingItem) {
-          throw this.createNotFound("cart_item_not_found");
-        }
-        const { cart } = await this.getCustomerAndCart(userId, email);
-        if (existingItem.cartId !== cart.id) {
-          throw new ForbiddenError("cart_item_forbidden");
-        }
-        await this.cartRepo.removeItem(cartItemId);
-        return this.getCartForUser(userId, email);
-      }
-      async clearCart(userId, email) {
-        const { cart } = await this.getCustomerAndCart(userId, email);
-        await this.cartRepo.clearCart(cart.id);
-        return this.getCartForUser(userId, email);
-      }
-    };
-    cart_service_default = CartService;
-  }
-});
-
-// ../backend/src/services/order-service.ts
-var OrderService, order_service_default;
-var init_order_service = __esm({
-  "../backend/src/services/order-service.ts"() {
-    "use strict";
-    init_base_service();
-    OrderService = class extends base_service_default {
-      constructor(orderRepo) {
-        super();
-        this.orderRepo = orderRepo;
-      }
-      orderRepo;
-      async create(data) {
-        await this.validateCreate(data);
-        try {
-          return await this.orderRepo.create(data);
-        } catch (err) {
-          this.handleRepoError(err);
-        }
-      }
-      async findById(id) {
-        return this.orderRepo.findById(id);
-      }
-      async findMany(filter) {
-        return this.orderRepo.findMany(filter);
-      }
-      async update(id, data) {
-        await this.validateUpdate(id, data);
-        try {
-          return await this.orderRepo.update(id, data);
-        } catch (err) {
-          this.handleRepoError(err);
-        }
-      }
-      async delete(id) {
-        await this.validateDelete(id);
-        await this.orderRepo.delete(id);
-      }
-      async paginate(options) {
-        return this.orderRepo.paginate(options);
-      }
-    };
-    order_service_default = OrderService;
-  }
-});
-
-// ../backend/src/services/payment-service.ts
-var PaymentService, payment_service_default;
-var init_payment_service = __esm({
-  "../backend/src/services/payment-service.ts"() {
-    "use strict";
-    init_base_service();
-    PaymentService = class extends base_service_default {
-      constructor(paymentRepo) {
-        super();
-        this.paymentRepo = paymentRepo;
-      }
-      paymentRepo;
-      async create(data) {
-        await this.validateCreate(data);
-        try {
-          return await this.paymentRepo.create(data);
-        } catch (err) {
-          this.handleRepoError(err);
-        }
-      }
-      async findById(id) {
-        return this.paymentRepo.findById(id);
-      }
-      async findMany(filter) {
-        return this.paymentRepo.findMany(filter);
-      }
-      async update(id, data) {
-        await this.validateUpdate(id, data);
-        try {
-          return await this.paymentRepo.update(id, data);
-        } catch (err) {
-          this.handleRepoError(err);
-        }
-      }
-      async delete(id) {
-        await this.validateDelete(id);
-        await this.paymentRepo.delete(id);
-      }
-      async paginate(options) {
-        return this.paymentRepo.paginate(options);
-      }
-    };
-    payment_service_default = PaymentService;
-  }
-});
-
-// ../backend/src/services/notification-service.ts
-var NotificationService, notification_service_default;
-var init_notification_service = __esm({
-  "../backend/src/services/notification-service.ts"() {
-    "use strict";
-    init_base_service();
-    NotificationService = class extends base_service_default {
-      constructor(notificationRepo) {
-        super();
-        this.notificationRepo = notificationRepo;
-      }
-      notificationRepo;
-      async create(data) {
-        await this.validateCreate(data);
-        try {
-          return await this.notificationRepo.create(data);
-        } catch (err) {
-          this.handleRepoError(err);
-        }
-      }
-      async findById(id) {
-        return this.notificationRepo.findById(id);
-      }
-      async findMany(filter) {
-        return this.notificationRepo.findMany(filter);
-      }
-      async update(id, data) {
-        await this.validateUpdate(id, data);
-        try {
-          return await this.notificationRepo.update(id, data);
-        } catch (err) {
-          this.handleRepoError(err);
-        }
-      }
-      async delete(id) {
-        await this.validateDelete(id);
-        await this.notificationRepo.delete(id);
-      }
-      async paginate(options) {
-        return this.notificationRepo.paginate(options);
-      }
-    };
-    notification_service_default = NotificationService;
-  }
-});
-
-// ../backend/src/services/audit-service.ts
-var AuditService, audit_service_default;
-var init_audit_service = __esm({
-  "../backend/src/services/audit-service.ts"() {
-    "use strict";
-    init_base_service();
-    AuditService = class extends base_service_default {
-      constructor(auditRepo) {
-        super();
-        this.auditRepo = auditRepo;
-      }
-      auditRepo;
-      async create(data) {
-        await this.validateCreate(data);
-        try {
-          return await this.auditRepo.create(data);
-        } catch (err) {
-          this.handleRepoError(err);
-        }
-      }
-      async findById(id) {
-        return this.auditRepo.findById(id);
-      }
-      async findMany(filter) {
-        return this.auditRepo.findMany(filter);
-      }
-      async update(id, data) {
-        await this.validateUpdate(id, data);
-        try {
-          return await this.auditRepo.update(id, data);
-        } catch (err) {
-          this.handleRepoError(err);
-        }
-      }
-      async delete(id) {
-        await this.validateDelete(id);
-        await this.auditRepo.delete(id);
-      }
-      async paginate(options) {
-        return this.auditRepo.paginate(options);
-      }
-    };
-    audit_service_default = AuditService;
-  }
-});
-
-// ../backend/src/services/service-factory.ts
-var ServiceFactory;
-var init_service_factory = __esm({
-  "../backend/src/services/service-factory.ts"() {
-    "use strict";
-    init_repository_factory();
-    init_tenant_service();
-    init_user_service();
-    init_role_service();
-    init_permission_service();
-    init_store_service();
-    init_branch_service();
-    init_category_service();
-    init_product_service();
-    init_inventory_service();
-    init_supplier_service();
-    init_customer_service();
-    init_cart_service();
-    init_order_service();
-    init_payment_service();
-    init_notification_service();
-    init_audit_service();
-    ServiceFactory = {
-      createTenantService: () => new tenant_service_default(RepositoryFactory.getTenantRepository()),
-      createUserService: () => new user_service_default(
-        RepositoryFactory.getUserRepository(),
-        RepositoryFactory.getRoleRepository()
-      ),
-      createRoleService: () => new role_service_default(RepositoryFactory.getRoleRepository(), RepositoryFactory.getPermissionRepository()),
-      createPermissionService: () => new permission_service_default(RepositoryFactory.getPermissionRepository()),
-      createStoreService: () => new store_service_default(RepositoryFactory.getStoreRepository()),
-      createBranchService: () => new branch_service_default(RepositoryFactory.getBranchRepository()),
-      createCategoryService: () => new category_service_default(RepositoryFactory.getCategoryRepository()),
-      createProductService: () => new product_service_default(RepositoryFactory.getProductRepository()),
-      createInventoryService: () => new inventory_service_default(RepositoryFactory.getInventoryRepository()),
-      createSupplierService: () => new supplier_service_default(RepositoryFactory.getSupplierRepository()),
-      createCustomerService: () => new customer_service_default(RepositoryFactory.getCustomerRepository()),
-      createCartService: () => new cart_service_default(RepositoryFactory.getCartRepository()),
-      createOrderService: () => new order_service_default(RepositoryFactory.getOrderRepository()),
-      createPaymentService: () => new payment_service_default(RepositoryFactory.getPaymentRepository()),
-      createNotificationService: () => new notification_service_default(RepositoryFactory.getNotificationRepository()),
-      createAuditService: () => new audit_service_default(RepositoryFactory.getAuditRepository())
-    };
-  }
-});
-
-// ../backend/src/modules/users/controller.ts
-var UsersController, controller_default4;
-var init_controller = __esm({
-  "../backend/src/modules/users/controller.ts"() {
-    "use strict";
-    init_api();
-    init_service_factory();
-    init_validation();
-    init_exceptions();
-    UsersController = class {
-      userService = ServiceFactory.createUserService();
-      createApiContext(request2) {
-        return {
-          timestamp: request2.context?.metadata?.timestamp ?? (/* @__PURE__ */ new Date()).toISOString(),
-          requestId: request2.context?.metadata?.requestId,
-          version: request2.context?.metadata?.version ?? "v1",
-          locale: request2.context?.metadata?.locale
-        };
-      }
-      mapToDto(entity) {
-        return {
-          id: entity.id,
-          fullName: entity.displayName ?? null,
-          email: entity.email,
-          phone: entity.phone ?? null,
-          createdAt: entity.createdAt ? new Date(entity.createdAt).toISOString() : (/* @__PURE__ */ new Date()).toISOString(),
-          updatedAt: entity.updatedAt ? new Date(entity.updatedAt).toISOString() : (/* @__PURE__ */ new Date()).toISOString(),
-          deletedAt: entity.deletedAt ? new Date(entity.deletedAt).toISOString() : null
-        };
-      }
-      async list(request2) {
-        const ctx = this.createApiContext(request2);
-        const q = request2.query ?? {};
-        const page = Number(q.page ?? 1);
-        const limit = Number(q.limit ?? 25);
-        const rawSort = q.sort ?? void 0;
-        const rawOrder = q.order ?? void 0;
-        const allowedSorts = ["id", "email", "createdAt", "updatedAt", "displayName"];
-        const sort = rawSort && allowedSorts.includes(rawSort) ? rawSort : void 0;
-        const order = rawOrder === "desc" ? "desc" : "asc";
-        const search = q.search;
-        let filters = {};
-        if (q.filters && typeof q.filters === "string") {
-          try {
-            filters = JSON.parse(q.filters) ?? {};
-          } catch {
-          }
-        } else if (typeof q.filters === "object") {
-          filters = q.filters;
-        }
-        if (search && search.trim()) {
-          const s = search.trim();
-          const orCond = [
-            { displayName: { contains: s } },
-            { email: { contains: s } },
-            { phone: { contains: s } }
-          ];
-          if (filters && Object.keys(filters).length > 0) {
-            filters = { AND: [filters, { OR: orCond }] };
-          } else {
-            filters = { OR: orCond };
-          }
-        }
-        const options = { page, limit, sort, order, filters };
-        try {
-          if (process.env.NODE_ENV !== "production") {
-            console.debug("[UsersController] paginate options:", JSON.stringify(options));
-          }
-          const resultAny = await this.userService.paginate(options);
-          const data = (resultAny.data ?? []).map((e) => this.mapToDto(e));
-          return paginated(data, resultAny.page ?? page, resultAny.limit ?? limit, resultAny.total ?? 0, ctx);
-        } catch (err) {
-          return { statusCode: HTTP_STATUS.INTERNAL_SERVER_ERROR, body: { success: false, error: { code: "internal_error", message: err?.message ?? "internal_error" }, meta: ctx } };
-        }
-      }
-      async get(request2) {
-        const ctx = this.createApiContext(request2);
-        const id = request2.params?.id;
-        if (!id) return { statusCode: HTTP_STATUS.BAD_REQUEST, body: { success: false, error: { code: "bad_request", message: "id_required" }, meta: ctx } };
-        try {
-          const result = await this.userService.findById(id);
-          if (!result) return { statusCode: HTTP_STATUS.NOT_FOUND, body: { success: false, error: { code: "not_found", message: "user_not_found" }, meta: ctx } };
-          return success(this.mapToDto(result), ctx);
-        } catch (err) {
-          return { statusCode: HTTP_STATUS.INTERNAL_SERVER_ERROR, body: { success: false, error: { code: "internal_error", message: err?.message ?? "internal_error" }, meta: ctx } };
-        }
-      }
-      async create(request2) {
-        const ctx = this.createApiContext(request2);
-        const body = request2.body;
-        if (!body || typeof body !== "object" || typeof body.email !== "string" || !body.email) {
-          return { statusCode: HTTP_STATUS.BAD_REQUEST, body: { success: false, error: { code: "bad_request", message: "email_required" }, meta: ctx } };
-        }
-        try {
-          const createdUser = await this.userService.create(body);
-          return created(this.mapToDto(createdUser), ctx);
-        } catch (err) {
-          if (err instanceof ValidationException) {
-            return { statusCode: HTTP_STATUS.UNPROCESSABLE_ENTITY, body: { success: false, error: { code: "validation_error", message: err.message }, meta: ctx } };
-          }
-          return { statusCode: HTTP_STATUS.INTERNAL_SERVER_ERROR, body: { success: false, error: { code: "internal_error", message: err?.message ?? "internal_error" }, meta: ctx } };
-        }
-      }
-      async update(request2) {
-        const ctx = this.createApiContext(request2);
-        const id = request2.params?.id;
-        const body = request2.body;
-        if (!id) return { statusCode: HTTP_STATUS.BAD_REQUEST, body: { success: false, error: { code: "bad_request", message: "id_required" }, meta: ctx } };
-        if (!body || typeof body !== "object") return { statusCode: HTTP_STATUS.BAD_REQUEST, body: { success: false, error: { code: "bad_request", message: "data_required" }, meta: ctx } };
-        try {
-          const updated = await this.userService.update(id, body);
-          return success(this.mapToDto(updated), ctx);
-        } catch (err) {
-          if (err instanceof ValidationException) {
-            return { statusCode: HTTP_STATUS.UNPROCESSABLE_ENTITY, body: { success: false, error: { code: "validation_error", message: err.message }, meta: ctx } };
-          }
-          return { statusCode: HTTP_STATUS.INTERNAL_SERVER_ERROR, body: { success: false, error: { code: "internal_error", message: err?.message ?? "internal_error" }, meta: ctx } };
-        }
-      }
-      async remove(request2) {
-        const ctx = this.createApiContext(request2);
-        const id = request2.params?.id;
-        if (!id) return { statusCode: HTTP_STATUS.BAD_REQUEST, body: { success: false, error: { code: "bad_request", message: "id_required" }, meta: ctx } };
-        try {
-          await this.userService.delete(id);
-          return noContent(ctx);
-        } catch (err) {
-          return { statusCode: HTTP_STATUS.INTERNAL_SERVER_ERROR, body: { success: false, error: { code: "internal_error", message: err?.message ?? "internal_error" }, meta: ctx } };
-        }
-      }
-      async restore(request2) {
-        const ctx = this.createApiContext(request2);
-        const id = request2.params?.id;
-        if (!id) return { statusCode: HTTP_STATUS.BAD_REQUEST, body: { success: false, error: { code: "bad_request", message: "id_required" }, meta: ctx } };
-        try {
-          const restored = await this.userService.restore(id);
-          return success(this.mapToDto(restored), ctx);
-        } catch (err) {
-          return { statusCode: HTTP_STATUS.INTERNAL_SERVER_ERROR, body: { success: false, error: { code: "internal_error", message: err?.message ?? "internal_error" }, meta: ctx } };
-        }
-      }
-      async listRoles(request2) {
-        const ctx = this.createApiContext(request2);
-        const userId = request2.params?.userId;
-        if (!userId) return { statusCode: HTTP_STATUS.BAD_REQUEST, body: { success: false, error: { code: "bad_request", message: "user_id_required" }, meta: ctx } };
-        try {
-          const result = await this.userService.listRoles(userId);
-          const roles = (result.roles ?? []).map((assignment) => assignment.role ?? assignment);
-          return success({ userId: result.userId, roles }, ctx);
-        } catch (err) {
-          return this.relationshipError(err, ctx);
-        }
-      }
-      async assignRole(request2) {
-        const ctx = this.createApiContext(request2);
-        const userId = request2.params?.userId;
-        const roleId = request2.body?.roleId;
-        if (!userId || !roleId) return { statusCode: HTTP_STATUS.BAD_REQUEST, body: { success: false, error: { code: "bad_request", message: "user_id_and_role_id_required" }, meta: ctx } };
-        try {
-          return created(await this.userService.assignRole(userId, roleId), ctx);
-        } catch (err) {
-          return this.relationshipError(err, ctx);
-        }
-      }
-      async removeRole(request2) {
-        const ctx = this.createApiContext(request2);
-        const userId = request2.params?.userId;
-        const roleId = request2.params?.roleId;
-        if (!userId || !roleId) return { statusCode: HTTP_STATUS.BAD_REQUEST, body: { success: false, error: { code: "bad_request", message: "user_id_and_role_id_required" }, meta: ctx } };
-        try {
-          await this.userService.removeRole(userId, roleId);
-          return noContent(ctx);
-        } catch (err) {
-          return this.relationshipError(err, ctx);
-        }
-      }
-      async checkRole(request2) {
-        const ctx = this.createApiContext(request2);
-        const userId = request2.params?.userId;
-        const roleId = request2.params?.roleId;
-        if (!userId || !roleId) return { statusCode: HTTP_STATUS.BAD_REQUEST, body: { success: false, error: { code: "bad_request", message: "user_id_and_role_id_required" }, meta: ctx } };
-        try {
-          return success({ assigned: await this.userService.checkRole(userId, roleId) }, ctx);
-        } catch (err) {
-          return this.relationshipError(err, ctx);
-        }
-      }
-      relationshipError(err, ctx) {
-        if (err instanceof ConflictException) return { statusCode: HTTP_STATUS.CONFLICT, body: { success: false, error: { code: "conflict", message: err.message }, meta: ctx } };
-        if (err instanceof NotFoundException) return { statusCode: HTTP_STATUS.NOT_FOUND, body: { success: false, error: { code: "not_found", message: err.message }, meta: ctx } };
-        return { statusCode: HTTP_STATUS.INTERNAL_SERVER_ERROR, body: { success: false, error: { code: "internal_error", message: err?.message ?? "internal_error" }, meta: ctx } };
-      }
-    };
-    controller_default4 = UsersController;
-  }
-});
-
-// ../backend/src/modules/users/routes.ts
-var routes_exports = {};
-__export(routes_exports, {
-  createUserRoutes: () => createUserRoutes,
-  default: () => routes_default
-});
-function toControllerRequest12(ctx) {
-  return {
-    body: ctx.body ?? void 0,
-    headers: ctx.headers,
-    query: ctx.query,
-    params: ctx.params,
-    context: {
-      metadata: {
-        timestamp: (/* @__PURE__ */ new Date()).toISOString(),
-        version: ctx.version ?? "v1"
-      }
-    }
-  };
-}
-function adapt12(handler2) {
-  return (context) => handler2(context);
-}
-function createUserRoutes(controller = new controller_default4()) {
-  const builder = new RouterBuilder();
-  builder.register({
-    name: "users-list",
-    method: "GET",
-    path: "/users",
-    version: "v1",
-    handler: adapt12((ctx) => controller.list(toControllerRequest12(ctx))),
-    options: {
-      mode: "private",
-      publicRoute: false,
-      privateRoute: true,
-      authenticationRequired: true,
-      authorizationRequired: true,
-      requiredPermissions: ["users:read"],
-      tags: ["users"],
-      middleware: []
-    }
-  });
-  builder.register({
-    name: "users-get",
-    method: "GET",
-    path: "/users/:id",
-    version: "v1",
-    handler: adapt12((ctx) => controller.get(toControllerRequest12(ctx))),
-    options: {
-      mode: "private",
-      publicRoute: false,
-      privateRoute: true,
-      authenticationRequired: true,
-      authorizationRequired: true,
-      requiredPermissions: ["users:read"],
-      tags: ["users"],
-      middleware: []
-    }
-  });
-  builder.register({
-    name: "users-create",
-    method: "POST",
-    path: "/users",
-    version: "v1",
-    handler: adapt12((ctx) => controller.create(toControllerRequest12(ctx))),
-    options: {
-      mode: "private",
-      publicRoute: false,
-      privateRoute: true,
-      authenticationRequired: true,
-      authorizationRequired: true,
-      requiredPermissions: ["users:create"],
-      tags: ["users"],
-      middleware: []
-    }
-  });
-  builder.register({
-    name: "users-update",
-    method: "PUT",
-    path: "/users/:id",
-    version: "v1",
-    handler: adapt12((ctx) => controller.update(toControllerRequest12(ctx))),
-    options: {
-      mode: "private",
-      publicRoute: false,
-      privateRoute: true,
-      authenticationRequired: true,
-      authorizationRequired: true,
-      requiredPermissions: ["users:update"],
-      tags: ["users"],
-      middleware: []
-    }
-  });
-  builder.register({
-    name: "users-delete",
-    method: "DELETE",
-    path: "/users/:id",
-    version: "v1",
-    handler: adapt12((ctx) => controller.remove(toControllerRequest12(ctx))),
-    options: {
-      mode: "private",
-      publicRoute: false,
-      privateRoute: true,
-      authenticationRequired: true,
-      authorizationRequired: true,
-      requiredPermissions: ["users:delete"],
-      tags: ["users"],
-      middleware: []
-    }
-  });
-  builder.register({
-    name: "users-restore",
-    method: "PATCH",
-    path: "/users/:id/restore",
-    version: "v1",
-    handler: adapt12((ctx) => controller.restore(toControllerRequest12(ctx))),
-    options: {
-      mode: "private",
-      publicRoute: false,
-      privateRoute: true,
-      authenticationRequired: true,
-      authorizationRequired: true,
-      requiredPermissions: ["users:update"],
-      tags: ["users"],
-      middleware: []
-    }
-  });
-  builder.register({
-    name: "users-roles-list",
-    method: "GET",
-    path: "/users/:userId/roles",
-    version: "v1",
-    handler: adapt12((ctx) => controller.listRoles(toControllerRequest12(ctx))),
-    options: {
-      mode: "private",
-      publicRoute: false,
-      privateRoute: true,
-      authenticationRequired: true,
-      authorizationRequired: true,
-      tags: ["users", "roles"],
-      middleware: []
-    }
-  });
-  builder.register({
-    name: "users-roles-assign",
-    method: "POST",
-    path: "/users/:userId/roles",
-    version: "v1",
-    handler: adapt12((ctx) => controller.assignRole(toControllerRequest12(ctx))),
-    options: {
-      mode: "private",
-      publicRoute: false,
-      privateRoute: true,
-      authenticationRequired: true,
-      authorizationRequired: true,
-      tags: ["users", "roles"],
-      middleware: []
-    }
-  });
-  builder.register({
-    name: "users-roles-check",
-    method: "GET",
-    path: "/users/:userId/roles/:roleId",
-    version: "v1",
-    handler: adapt12((ctx) => controller.checkRole(toControllerRequest12(ctx))),
-    options: {
-      mode: "private",
-      publicRoute: false,
-      privateRoute: true,
-      authenticationRequired: true,
-      authorizationRequired: true,
-      tags: ["users", "roles"],
-      middleware: []
-    }
-  });
-  builder.register({
-    name: "users-roles-remove",
-    method: "DELETE",
-    path: "/users/:userId/roles/:roleId",
-    version: "v1",
-    handler: adapt12((ctx) => controller.removeRole(toControllerRequest12(ctx))),
-    options: {
-      mode: "private",
-      publicRoute: false,
-      privateRoute: true,
-      authenticationRequired: true,
-      authorizationRequired: true,
-      tags: ["users", "roles"],
-      middleware: []
-    }
-  });
-  return builder.build();
-}
-var routes_default;
-var init_routes2 = __esm({
-  "../backend/src/modules/users/routes.ts"() {
-    "use strict";
-    init_routes();
-    init_controller();
-    routes_default = createUserRoutes;
-  }
-});
-
-// ../backend/src/modules/roles/controller.ts
-var RolesController, controller_default5;
-var init_controller2 = __esm({
-  "../backend/src/modules/roles/controller.ts"() {
-    "use strict";
-    init_api();
-    init_service_factory();
-    init_exceptions();
-    init_validation();
-    RolesController = class {
-      roleService = ServiceFactory.createRoleService();
-      createApiContext(request2) {
-        return {
-          timestamp: request2.context?.metadata?.timestamp ?? (/* @__PURE__ */ new Date()).toISOString(),
-          requestId: request2.context?.metadata?.requestId,
-          version: request2.context?.metadata?.version ?? "v1",
-          locale: request2.context?.metadata?.locale
-        };
-      }
-      mapToDto(entity) {
-        return {
-          id: entity.id,
-          name: entity.name,
-          displayName: entity.displayName ?? null,
-          description: entity.description ?? null,
-          isSystem: typeof entity.isSystem === "boolean" ? entity.isSystem : null,
-          createdAt: entity.createdAt ? new Date(entity.createdAt).toISOString() : (/* @__PURE__ */ new Date()).toISOString(),
-          updatedAt: entity.updatedAt ? new Date(entity.updatedAt).toISOString() : (/* @__PURE__ */ new Date()).toISOString(),
-          deletedAt: entity.deletedAt ? new Date(entity.deletedAt).toISOString() : null
-        };
-      }
-      async list(request2) {
-        const ctx = this.createApiContext(request2);
-        const q = request2.query ?? {};
-        const page = Number(q.page ?? 1);
-        const limit = Number(q.limit ?? 25);
-        const rawSort = q.sort ?? void 0;
-        const rawOrder = q.order ?? void 0;
-        const allowedSorts = ["id", "name", "createdAt", "updatedAt", "displayName"];
-        const sort = rawSort && allowedSorts.includes(rawSort) ? rawSort : void 0;
-        const order = rawOrder === "desc" ? "desc" : "asc";
-        const search = q.search;
-        let filters = {};
-        if (q.filters && typeof q.filters === "string") {
-          try {
-            filters = JSON.parse(q.filters) ?? {};
-          } catch {
-          }
-        } else if (typeof q.filters === "object") {
-          filters = q.filters;
-        }
-        if (search && search.trim()) {
-          const s = search.trim();
-          const orCond = [
-            { name: { contains: s } },
-            { displayName: { contains: s } },
-            { description: { contains: s } }
-          ];
-          if (filters && Object.keys(filters).length > 0) {
-            filters = { AND: [filters, { OR: orCond }] };
-          } else {
-            filters = { OR: orCond };
-          }
-        }
-        const options = { page, limit, sort, order, filters };
-        try {
-          if (process.env.NODE_ENV !== "production") {
-            console.debug("[RolesController] paginate options:", JSON.stringify(options));
-          }
-          const resultAny = await this.roleService.paginate(options);
-          const data = (resultAny.data ?? []).map((e) => this.mapToDto(e));
-          return paginated(data, resultAny.page ?? page, resultAny.limit ?? limit, resultAny.total ?? 0, ctx);
-        } catch (err) {
-          return { statusCode: HTTP_STATUS.INTERNAL_SERVER_ERROR, body: { success: false, error: { code: "internal_error", message: err?.message ?? "internal_error" }, meta: ctx } };
-        }
-      }
-      async get(request2) {
-        const ctx = this.createApiContext(request2);
-        const id = request2.params?.id;
-        if (!id) return { statusCode: HTTP_STATUS.BAD_REQUEST, body: { success: false, error: { code: "bad_request", message: "id_required" }, meta: ctx } };
-        try {
-          const result = await this.roleService.findById(id);
-          if (!result) return { statusCode: HTTP_STATUS.NOT_FOUND, body: { success: false, error: { code: "not_found", message: "role_not_found" }, meta: ctx } };
-          return success(this.mapToDto(result), ctx);
-        } catch (err) {
-          return { statusCode: HTTP_STATUS.INTERNAL_SERVER_ERROR, body: { success: false, error: { code: "internal_error", message: err?.message ?? "internal_error" }, meta: ctx } };
-        }
-      }
-      async create(request2) {
-        const ctx = this.createApiContext(request2);
-        const body = request2.body;
-        if (!body || typeof body !== "object" || typeof body.name !== "string" || !body.name) {
-          return { statusCode: HTTP_STATUS.BAD_REQUEST, body: { success: false, error: { code: "bad_request", message: "name_required" }, meta: ctx } };
-        }
-        try {
-          const payload = {
-            name: body.name
-          };
-          if (body.description !== void 0) payload.description = body.description;
-          const createdRole = await this.roleService.create(payload);
-          return created(this.mapToDto(createdRole), ctx);
-        } catch (err) {
-          if (err instanceof ValidationException) {
-            return { statusCode: HTTP_STATUS.UNPROCESSABLE_ENTITY, body: { success: false, error: { code: "validation_error", message: err.message }, meta: ctx } };
-          }
-          return { statusCode: HTTP_STATUS.INTERNAL_SERVER_ERROR, body: { success: false, error: { code: "internal_error", message: err?.message ?? "internal_error" }, meta: ctx } };
-        }
-      }
-      async update(request2) {
-        const ctx = this.createApiContext(request2);
-        const id = request2.params?.id;
-        const body = request2.body;
-        if (!id) return { statusCode: HTTP_STATUS.BAD_REQUEST, body: { success: false, error: { code: "bad_request", message: "id_required" }, meta: ctx } };
-        if (!body || typeof body !== "object") return { statusCode: HTTP_STATUS.BAD_REQUEST, body: { success: false, error: { code: "bad_request", message: "data_required" }, meta: ctx } };
-        try {
-          const payload = {};
-          if (body.description !== void 0) payload.description = body.description;
-          const updated = await this.roleService.update(id, payload);
-          return success(this.mapToDto(updated), ctx);
-        } catch (err) {
-          if (err instanceof ValidationException) {
-            return { statusCode: HTTP_STATUS.UNPROCESSABLE_ENTITY, body: { success: false, error: { code: "validation_error", message: err.message }, meta: ctx } };
-          }
-          return { statusCode: HTTP_STATUS.INTERNAL_SERVER_ERROR, body: { success: false, error: { code: "internal_error", message: err?.message ?? "internal_error" }, meta: ctx } };
-        }
-      }
-      async remove(request2) {
-        const ctx = this.createApiContext(request2);
-        const id = request2.params?.id;
-        if (!id) return { statusCode: HTTP_STATUS.BAD_REQUEST, body: { success: false, error: { code: "bad_request", message: "id_required" }, meta: ctx } };
-        try {
-          await this.roleService.delete(id);
-          return noContent(ctx);
-        } catch (err) {
-          return { statusCode: HTTP_STATUS.INTERNAL_SERVER_ERROR, body: { success: false, error: { code: "internal_error", message: err?.message ?? "internal_error" }, meta: ctx } };
-        }
-      }
-      async restore(request2) {
-        const ctx = this.createApiContext(request2);
-        const id = request2.params?.id;
-        if (!id) return { statusCode: HTTP_STATUS.BAD_REQUEST, body: { success: false, error: { code: "bad_request", message: "id_required" }, meta: ctx } };
-        try {
-          const restored = await this.roleService.restore(id);
-          return success(this.mapToDto(restored), ctx);
-        } catch (err) {
-          return { statusCode: HTTP_STATUS.INTERNAL_SERVER_ERROR, body: { success: false, error: { code: "internal_error", message: err?.message ?? "internal_error" }, meta: ctx } };
-        }
-      }
-      mapPermissionEntity(entity) {
-        const permission = entity?.permission ?? null;
-        return {
-          id: entity?.id ?? "",
-          roleId: entity?.roleId ?? "",
-          permissionId: entity?.permissionId ?? "",
-          createdAt: entity?.createdAt ? new Date(entity.createdAt).toISOString() : (/* @__PURE__ */ new Date()).toISOString(),
-          permission: permission ? {
-            id: permission.id,
-            name: typeof permission.name === "string" && permission.name ? permission.name : `${permission.resource}_${permission.action}`,
-            resource: permission.resource,
-            action: permission.action,
-            description: permission.description ?? null
-          } : null
-        };
-      }
-      async listPermissions(request2) {
-        const ctx = this.createApiContext(request2);
-        const roleId = request2.params?.roleId;
-        if (!roleId) return { statusCode: HTTP_STATUS.BAD_REQUEST, body: { success: false, error: { code: "bad_request", message: "role_id_required" }, meta: ctx } };
-        try {
-          const result = await this.roleService.listPermissions(roleId);
-          const dto = {
-            role: this.mapToDto(result.role),
-            permissions: (result.permissions ?? []).map((e) => this.mapPermissionEntity(e))
-          };
-          return success(dto, ctx);
-        } catch (err) {
-          if (err instanceof NotFoundException) return { statusCode: HTTP_STATUS.NOT_FOUND, body: { success: false, error: { code: "not_found", message: err.message }, meta: ctx } };
-          return { statusCode: HTTP_STATUS.INTERNAL_SERVER_ERROR, body: { success: false, error: { code: "internal_error", message: err?.message ?? "internal_error" }, meta: ctx } };
-        }
-      }
-      async assignPermission(request2) {
-        const ctx = this.createApiContext(request2);
-        const roleId = request2.params?.roleId;
-        const body = request2.body;
-        if (!roleId) return { statusCode: HTTP_STATUS.BAD_REQUEST, body: { success: false, error: { code: "bad_request", message: "role_id_required" }, meta: ctx } };
-        if (!body || typeof body !== "object" || typeof body.permissionId !== "string" || !body.permissionId) {
-          return { statusCode: HTTP_STATUS.BAD_REQUEST, body: { success: false, error: { code: "bad_request", message: "permission_id_required" }, meta: ctx } };
-        }
-        try {
-          const result = await this.roleService.assignPermission(roleId, body.permissionId);
-          return created(this.mapPermissionEntity(result), ctx);
-        } catch (err) {
-          if (err instanceof NotFoundException) return { statusCode: HTTP_STATUS.NOT_FOUND, body: { success: false, error: { code: "not_found", message: err.message }, meta: ctx } };
-          if (err instanceof ConflictException) return { statusCode: HTTP_STATUS.CONFLICT, body: { success: false, error: { code: "conflict", message: err.message }, meta: ctx } };
-          return { statusCode: HTTP_STATUS.INTERNAL_SERVER_ERROR, body: { success: false, error: { code: "internal_error", message: err?.message ?? "internal_error" }, meta: ctx } };
-        }
-      }
-      async removePermission(request2) {
-        const ctx = this.createApiContext(request2);
-        const roleId = request2.params?.roleId;
-        const permissionId = request2.params?.permissionId;
-        if (!roleId) return { statusCode: HTTP_STATUS.BAD_REQUEST, body: { success: false, error: { code: "bad_request", message: "role_id_required" }, meta: ctx } };
-        if (!permissionId) return { statusCode: HTTP_STATUS.BAD_REQUEST, body: { success: false, error: { code: "bad_request", message: "permission_id_required" }, meta: ctx } };
-        try {
-          await this.roleService.removePermission(roleId, permissionId);
-          return noContent(ctx);
-        } catch (err) {
-          if (err instanceof NotFoundException) return { statusCode: HTTP_STATUS.NOT_FOUND, body: { success: false, error: { code: "not_found", message: err.message }, meta: ctx } };
-          return { statusCode: HTTP_STATUS.INTERNAL_SERVER_ERROR, body: { success: false, error: { code: "internal_error", message: err?.message ?? "internal_error" }, meta: ctx } };
-        }
-      }
-      async checkPermission(request2) {
-        const ctx = this.createApiContext(request2);
-        const roleId = request2.params?.roleId;
-        const permissionId = request2.params?.permissionId;
-        if (!roleId) return { statusCode: HTTP_STATUS.BAD_REQUEST, body: { success: false, error: { code: "bad_request", message: "role_id_required" }, meta: ctx } };
-        if (!permissionId) return { statusCode: HTTP_STATUS.BAD_REQUEST, body: { success: false, error: { code: "bad_request", message: "permission_id_required" }, meta: ctx } };
-        try {
-          const exists = await this.roleService.checkPermission(roleId, permissionId);
-          return success({ assigned: exists }, ctx);
-        } catch (err) {
-          if (err instanceof NotFoundException) return { statusCode: HTTP_STATUS.NOT_FOUND, body: { success: false, error: { code: "not_found", message: err.message }, meta: ctx } };
-          return { statusCode: HTTP_STATUS.INTERNAL_SERVER_ERROR, body: { success: false, error: { code: "internal_error", message: err?.message ?? "internal_error" }, meta: ctx } };
-        }
-      }
-    };
-    controller_default5 = RolesController;
-  }
-});
-
-// ../backend/src/modules/roles/routes.ts
-var routes_exports2 = {};
-__export(routes_exports2, {
-  createRoleRoutes: () => createRoleRoutes,
-  default: () => routes_default2
-});
-function toControllerRequest13(ctx) {
-  return {
-    body: ctx.body ?? void 0,
-    headers: ctx.headers,
-    query: ctx.query,
-    params: ctx.params,
-    context: {
-      metadata: {
-        timestamp: (/* @__PURE__ */ new Date()).toISOString(),
-        version: ctx.version ?? "v1"
-      }
-    }
-  };
-}
-function adapt13(handler2) {
-  return (context) => handler2(context);
-}
-function createRoleRoutes(controller = new controller_default5()) {
-  const builder = new RouterBuilder();
-  builder.register({
-    name: "roles-list",
-    method: "GET",
-    path: "/roles",
-    version: "v1",
-    handler: adapt13((ctx) => controller.list(toControllerRequest13(ctx))),
-    options: {
-      mode: "private",
-      publicRoute: false,
-      privateRoute: true,
-      authenticationRequired: true,
-      authorizationRequired: true,
-      requiredPermissions: ["roles:read"],
-      tags: ["roles"],
-      middleware: []
-    }
-  });
-  builder.register({
-    name: "roles-get",
-    method: "GET",
-    path: "/roles/:id",
-    version: "v1",
-    handler: adapt13((ctx) => controller.get(toControllerRequest13(ctx))),
-    options: {
-      mode: "private",
-      publicRoute: false,
-      privateRoute: true,
-      authenticationRequired: true,
-      authorizationRequired: true,
-      requiredPermissions: ["roles:read"],
-      tags: ["roles"],
-      middleware: []
-    }
-  });
-  builder.register({
-    name: "roles-create",
-    method: "POST",
-    path: "/roles",
-    version: "v1",
-    handler: adapt13((ctx) => controller.create(toControllerRequest13(ctx))),
-    options: {
-      mode: "private",
-      publicRoute: false,
-      privateRoute: true,
-      authenticationRequired: true,
-      authorizationRequired: true,
-      requiredPermissions: ["roles:create"],
-      tags: ["roles"],
-      middleware: []
-    }
-  });
-  builder.register({
-    name: "roles-update",
-    method: "PUT",
-    path: "/roles/:id",
-    version: "v1",
-    handler: adapt13((ctx) => controller.update(toControllerRequest13(ctx))),
-    options: {
-      mode: "private",
-      publicRoute: false,
-      privateRoute: true,
-      authenticationRequired: true,
-      authorizationRequired: true,
-      requiredPermissions: ["roles:update"],
-      tags: ["roles"],
-      middleware: []
-    }
-  });
-  builder.register({
-    name: "roles-delete",
-    method: "DELETE",
-    path: "/roles/:id",
-    version: "v1",
-    handler: adapt13((ctx) => controller.remove(toControllerRequest13(ctx))),
-    options: {
-      mode: "private",
-      publicRoute: false,
-      privateRoute: true,
-      authenticationRequired: true,
-      authorizationRequired: true,
-      requiredPermissions: ["roles:delete"],
-      tags: ["roles"],
-      middleware: []
-    }
-  });
-  builder.register({
-    name: "roles-restore",
-    method: "PATCH",
-    path: "/roles/:id/restore",
-    version: "v1",
-    handler: adapt13((ctx) => controller.restore(toControllerRequest13(ctx))),
-    options: {
-      mode: "private",
-      publicRoute: false,
-      privateRoute: true,
-      authenticationRequired: true,
-      authorizationRequired: true,
-      requiredPermissions: ["roles:update"],
-      tags: ["roles"],
-      middleware: []
-    }
-  });
-  builder.register({
-    name: "roles-permissions-list",
-    method: "GET",
-    path: "/roles/:roleId/permissions",
-    version: "v1",
-    handler: adapt13((ctx) => controller.listPermissions(toControllerRequest13(ctx))),
-    options: {
-      mode: "private",
-      publicRoute: false,
-      privateRoute: true,
-      authenticationRequired: true,
-      authorizationRequired: false,
-      tags: ["roles"],
-      middleware: []
-    }
-  });
-  builder.register({
-    name: "roles-permissions-assign",
-    method: "POST",
-    path: "/roles/:roleId/permissions",
-    version: "v1",
-    handler: adapt13((ctx) => controller.assignPermission(toControllerRequest13(ctx))),
-    options: {
-      mode: "private",
-      publicRoute: false,
-      privateRoute: true,
-      authenticationRequired: true,
-      authorizationRequired: false,
-      tags: ["roles"],
-      middleware: []
-    }
-  });
-  builder.register({
-    name: "roles-permissions-get",
-    method: "GET",
-    path: "/roles/:roleId/permissions/:permissionId",
-    version: "v1",
-    handler: adapt13((ctx) => controller.checkPermission(toControllerRequest13(ctx))),
-    options: {
-      mode: "private",
-      publicRoute: false,
-      privateRoute: true,
-      authenticationRequired: true,
-      authorizationRequired: false,
-      tags: ["roles"],
-      middleware: []
-    }
-  });
-  builder.register({
-    name: "roles-permissions-remove",
-    method: "DELETE",
-    path: "/roles/:roleId/permissions/:permissionId",
-    version: "v1",
-    handler: adapt13((ctx) => controller.removePermission(toControllerRequest13(ctx))),
-    options: {
-      mode: "private",
-      publicRoute: false,
-      privateRoute: true,
-      authenticationRequired: true,
-      authorizationRequired: false,
-      tags: ["roles"],
-      middleware: []
-    }
-  });
-  return builder.build();
-}
-var routes_default2;
-var init_routes3 = __esm({
-  "../backend/src/modules/roles/routes.ts"() {
-    "use strict";
-    init_routes();
-    init_controller2();
-    routes_default2 = createRoleRoutes;
-  }
-});
-
-// ../backend/src/modules/permissions/controller.ts
-var PERMISSION_ACTIONS, PermissionsController, controller_default6;
-var init_controller3 = __esm({
-  "../backend/src/modules/permissions/controller.ts"() {
-    "use strict";
-    init_api();
-    init_service_factory();
-    init_validation();
-    PERMISSION_ACTIONS = ["CREATE", "READ", "UPDATE", "DELETE", "LIST", "EXECUTE"];
-    PermissionsController = class {
-      permissionService = ServiceFactory.createPermissionService();
-      createApiContext(request2) {
-        return {
-          timestamp: request2.context?.metadata?.timestamp ?? (/* @__PURE__ */ new Date()).toISOString(),
-          requestId: request2.context?.metadata?.requestId,
-          version: request2.context?.metadata?.version ?? "v1",
-          locale: request2.context?.metadata?.locale
-        };
-      }
-      mapToDto(entity) {
-        return {
-          id: entity.id,
-          name: typeof entity.name === "string" && entity.name ? entity.name : `${entity.resource}_${entity.action}`,
-          resource: entity.resource,
-          action: entity.action,
-          description: entity.description ?? null,
-          createdAt: entity.createdAt ? new Date(entity.createdAt).toISOString() : (/* @__PURE__ */ new Date()).toISOString(),
-          updatedAt: entity.updatedAt ? new Date(entity.updatedAt).toISOString() : (/* @__PURE__ */ new Date()).toISOString(),
-          deletedAt: entity.deletedAt ? new Date(entity.deletedAt).toISOString() : null
-        };
-      }
-      async list(request2) {
-        const ctx = this.createApiContext(request2);
-        const q = request2.query ?? {};
-        const page = Number(q.page ?? 1);
-        const limit = Number(q.limit ?? 25);
-        const rawSort = q.sort ?? void 0;
-        const rawOrder = q.order ?? void 0;
-        const allowedSorts = ["id", "resource", "action", "createdAt", "updatedAt"];
-        const sort = rawSort && allowedSorts.includes(rawSort) ? rawSort : void 0;
-        const order = rawOrder === "desc" ? "desc" : "asc";
-        const search = q.search;
-        let filters = {};
-        if (q.filters && typeof q.filters === "string") {
-          try {
-            filters = JSON.parse(q.filters) ?? {};
-          } catch {
-          }
-        } else if (typeof q.filters === "object") {
-          filters = q.filters;
-        }
-        if (search && search.trim()) {
-          const s = search.trim();
-          const orCond = [
-            { resource: { contains: s } },
-            { description: { contains: s } }
-          ];
-          if (filters && Object.keys(filters).length > 0) {
-            filters = { AND: [filters, { OR: orCond }] };
-          } else {
-            filters = { OR: orCond };
-          }
-        }
-        const options = { page, limit, sort, order, filters };
-        try {
-          const resultAny = await this.permissionService.paginate(options);
-          const data = (resultAny.data ?? []).map((e) => this.mapToDto(e));
-          return paginated(data, resultAny.page ?? page, resultAny.limit ?? limit, resultAny.total ?? 0, ctx);
-        } catch (err) {
-          return { statusCode: HTTP_STATUS.INTERNAL_SERVER_ERROR, body: { success: false, error: { code: "internal_error", message: err?.message ?? "internal_error" }, meta: ctx } };
-        }
-      }
-      async get(request2) {
-        const ctx = this.createApiContext(request2);
-        const id = request2.params?.id;
-        if (!id) return { statusCode: HTTP_STATUS.BAD_REQUEST, body: { success: false, error: { code: "bad_request", message: "id_required" }, meta: ctx } };
-        try {
-          const result = await this.permissionService.findById(id);
-          if (!result) return { statusCode: HTTP_STATUS.NOT_FOUND, body: { success: false, error: { code: "not_found", message: "permission_not_found" }, meta: ctx } };
-          return success(this.mapToDto(result), ctx);
-        } catch (err) {
-          return { statusCode: HTTP_STATUS.INTERNAL_SERVER_ERROR, body: { success: false, error: { code: "internal_error", message: err?.message ?? "internal_error" }, meta: ctx } };
-        }
-      }
-      async create(request2) {
-        const ctx = this.createApiContext(request2);
-        const body = request2.body;
-        if (!body || typeof body !== "object" || typeof body.resource !== "string" || !body.resource) {
-          return { statusCode: HTTP_STATUS.BAD_REQUEST, body: { success: false, error: { code: "bad_request", message: "resource_required" }, meta: ctx } };
-        }
-        if (typeof body.action !== "string" || !PERMISSION_ACTIONS.includes(body.action)) {
-          return { statusCode: HTTP_STATUS.UNPROCESSABLE_ENTITY, body: { success: false, error: { code: "validation_error", message: "action_invalid" }, meta: ctx } };
-        }
-        try {
-          const payload = {
-            resource: body.resource,
-            action: body.action
-          };
-          if (body.description !== void 0) payload.description = body.description;
-          const createdPermission = await this.permissionService.create(payload);
-          return created(this.mapToDto(createdPermission), ctx);
-        } catch (err) {
-          if (err instanceof ValidationException) {
-            return { statusCode: HTTP_STATUS.UNPROCESSABLE_ENTITY, body: { success: false, error: { code: "validation_error", message: err.message }, meta: ctx } };
-          }
-          return { statusCode: HTTP_STATUS.INTERNAL_SERVER_ERROR, body: { success: false, error: { code: "internal_error", message: err?.message ?? "internal_error" }, meta: ctx } };
-        }
-      }
-      async update(request2) {
-        const ctx = this.createApiContext(request2);
-        const id = request2.params?.id;
-        const body = request2.body;
-        if (!id) return { statusCode: HTTP_STATUS.BAD_REQUEST, body: { success: false, error: { code: "bad_request", message: "id_required" }, meta: ctx } };
-        if (!body || typeof body !== "object") return { statusCode: HTTP_STATUS.BAD_REQUEST, body: { success: false, error: { code: "bad_request", message: "data_required" }, meta: ctx } };
-        if (body.action !== void 0 && (typeof body.action !== "string" || !PERMISSION_ACTIONS.includes(body.action))) {
-          return { statusCode: HTTP_STATUS.UNPROCESSABLE_ENTITY, body: { success: false, error: { code: "validation_error", message: "action_invalid" }, meta: ctx } };
-        }
-        try {
-          const payload = {};
-          if (body.resource !== void 0) payload.resource = body.resource;
-          if (body.action !== void 0) payload.action = body.action;
-          if (body.description !== void 0) payload.description = body.description;
-          const updated = await this.permissionService.update(id, payload);
-          return success(this.mapToDto(updated), ctx);
-        } catch (err) {
-          if (err instanceof ValidationException) {
-            return { statusCode: HTTP_STATUS.UNPROCESSABLE_ENTITY, body: { success: false, error: { code: "validation_error", message: err.message }, meta: ctx } };
-          }
-          return { statusCode: HTTP_STATUS.INTERNAL_SERVER_ERROR, body: { success: false, error: { code: "internal_error", message: err?.message ?? "internal_error" }, meta: ctx } };
-        }
-      }
-      async remove(request2) {
-        const ctx = this.createApiContext(request2);
-        const id = request2.params?.id;
-        if (!id) return { statusCode: HTTP_STATUS.BAD_REQUEST, body: { success: false, error: { code: "bad_request", message: "id_required" }, meta: ctx } };
-        try {
-          await this.permissionService.delete(id);
-          return noContent(ctx);
-        } catch (err) {
-          return { statusCode: HTTP_STATUS.INTERNAL_SERVER_ERROR, body: { success: false, error: { code: "internal_error", message: err?.message ?? "internal_error" }, meta: ctx } };
-        }
-      }
-      async restore(request2) {
-        const ctx = this.createApiContext(request2);
-        const id = request2.params?.id;
-        if (!id) return { statusCode: HTTP_STATUS.BAD_REQUEST, body: { success: false, error: { code: "bad_request", message: "id_required" }, meta: ctx } };
-        try {
-          const restored = await this.permissionService.restore(id);
-          return success(this.mapToDto(restored), ctx);
-        } catch (err) {
-          return { statusCode: HTTP_STATUS.INTERNAL_SERVER_ERROR, body: { success: false, error: { code: "internal_error", message: err?.message ?? "internal_error" }, meta: ctx } };
-        }
-      }
-    };
-    controller_default6 = PermissionsController;
-  }
-});
-
-// ../backend/src/modules/permissions/routes.ts
-var routes_exports3 = {};
-__export(routes_exports3, {
-  createPermissionRoutes: () => createPermissionRoutes,
-  default: () => routes_default3
-});
-function toControllerRequest14(ctx) {
-  return {
-    body: ctx.body ?? void 0,
-    headers: ctx.headers,
-    query: ctx.query,
-    params: ctx.params,
-    context: {
-      metadata: {
-        timestamp: (/* @__PURE__ */ new Date()).toISOString(),
-        version: ctx.version ?? "v1"
-      }
-    }
-  };
-}
-function adapt14(handler2) {
-  return (context) => handler2(context);
-}
-function createPermissionRoutes(controller = new controller_default6()) {
-  const builder = new RouterBuilder();
-  builder.register({
-    name: "permissions-list",
-    method: "GET",
-    path: "/permissions",
-    version: "v1",
-    handler: adapt14((ctx) => controller.list(toControllerRequest14(ctx))),
-    options: {
-      mode: "private",
-      publicRoute: false,
-      privateRoute: true,
-      authenticationRequired: true,
-      authorizationRequired: true,
-      requiredPermissions: ["permissions:read"],
-      tags: ["permissions"],
-      middleware: []
-    }
-  });
-  builder.register({
-    name: "permissions-get",
-    method: "GET",
-    path: "/permissions/:id",
-    version: "v1",
-    handler: adapt14((ctx) => controller.get(toControllerRequest14(ctx))),
-    options: {
-      mode: "private",
-      publicRoute: false,
-      privateRoute: true,
-      authenticationRequired: true,
-      authorizationRequired: true,
-      requiredPermissions: ["permissions:read"],
-      tags: ["permissions"],
-      middleware: []
-    }
-  });
-  builder.register({
-    name: "permissions-create",
-    method: "POST",
-    path: "/permissions",
-    version: "v1",
-    handler: adapt14((ctx) => controller.create(toControllerRequest14(ctx))),
-    options: {
-      mode: "private",
-      publicRoute: false,
-      privateRoute: true,
-      authenticationRequired: true,
-      authorizationRequired: true,
-      requiredPermissions: ["permissions:create"],
-      tags: ["permissions"],
-      middleware: []
-    }
-  });
-  builder.register({
-    name: "permissions-update",
-    method: "PUT",
-    path: "/permissions/:id",
-    version: "v1",
-    handler: adapt14((ctx) => controller.update(toControllerRequest14(ctx))),
-    options: {
-      mode: "private",
-      publicRoute: false,
-      privateRoute: true,
-      authenticationRequired: true,
-      authorizationRequired: true,
-      requiredPermissions: ["permissions:update"],
-      tags: ["permissions"],
-      middleware: []
-    }
-  });
-  builder.register({
-    name: "permissions-delete",
-    method: "DELETE",
-    path: "/permissions/:id",
-    version: "v1",
-    handler: adapt14((ctx) => controller.remove(toControllerRequest14(ctx))),
-    options: {
-      mode: "private",
-      publicRoute: false,
-      privateRoute: true,
-      authenticationRequired: true,
-      authorizationRequired: true,
-      requiredPermissions: ["permissions:delete"],
-      tags: ["permissions"],
-      middleware: []
-    }
-  });
-  builder.register({
-    name: "permissions-restore",
-    method: "PATCH",
-    path: "/permissions/:id/restore",
-    version: "v1",
-    handler: adapt14((ctx) => controller.restore(toControllerRequest14(ctx))),
-    options: {
-      mode: "private",
-      publicRoute: false,
-      privateRoute: true,
-      authenticationRequired: true,
-      authorizationRequired: true,
-      requiredPermissions: ["permissions:update"],
-      tags: ["permissions"],
-      middleware: []
-    }
-  });
-  return builder.build();
-}
-var routes_default3;
-var init_routes4 = __esm({
-  "../backend/src/modules/permissions/routes.ts"() {
-    "use strict";
-    init_routes();
-    init_controller3();
-    routes_default3 = createPermissionRoutes;
-  }
-});
-
 // api-src/index.ts
 var index_exports = {};
 __export(index_exports, {
@@ -4967,17 +582,366 @@ module.exports = __toCommonJS(index_exports);
 
 // ../backend/src/system/server.ts
 var import_node_http = require("node:http");
-init_api();
-init_routes();
-init_routes();
 
-// ../backend/src/modules/auth/routes.ts
-init_routes();
+// ../backend/src/api/status.ts
+var HTTP_STATUS = {
+  OK: 200,
+  CREATED: 201,
+  ACCEPTED: 202,
+  NO_CONTENT: 204,
+  BAD_REQUEST: 400,
+  UNAUTHORIZED: 401,
+  FORBIDDEN: 403,
+  NOT_FOUND: 404,
+  CONFLICT: 409,
+  UNPROCESSABLE_ENTITY: 422,
+  INTERNAL_SERVER_ERROR: 500
+};
+
+// ../backend/src/api/response-builder.ts
+function createMeta(context) {
+  return {
+    timestamp: context.timestamp,
+    requestId: context.requestId,
+    version: context.version,
+    locale: context.locale
+  };
+}
+function success(data, context) {
+  return {
+    statusCode: HTTP_STATUS.OK,
+    body: {
+      success: true,
+      data,
+      meta: createMeta(context)
+    }
+  };
+}
+function created(data, context) {
+  return {
+    statusCode: HTTP_STATUS.CREATED,
+    body: {
+      success: true,
+      data,
+      meta: createMeta(context)
+    }
+  };
+}
+function noContent(context) {
+  return {
+    statusCode: HTTP_STATUS.NO_CONTENT,
+    body: {
+      success: true,
+      data: null,
+      meta: createMeta(context)
+    }
+  };
+}
+function unauthorized(message, context) {
+  return errorResponse("unauthorized", message, HTTP_STATUS.UNAUTHORIZED, context);
+}
+function forbidden(message, context) {
+  return errorResponse("forbidden", message, HTTP_STATUS.FORBIDDEN, context);
+}
+function notFound(message, context) {
+  return errorResponse("not_found", message, HTTP_STATUS.NOT_FOUND, context);
+}
+function conflict(message, context) {
+  return errorResponse("conflict", message, HTTP_STATUS.CONFLICT, context);
+}
+function validationError(message, context) {
+  return errorResponse("validation_error", message, HTTP_STATUS.UNPROCESSABLE_ENTITY, context);
+}
+function errorResponse(code, message, statusCode, context) {
+  return {
+    statusCode,
+    body: {
+      success: false,
+      error: {
+        code,
+        message
+      },
+      meta: createMeta(context)
+    }
+  };
+}
+function paginated(data, page, limit, total, context) {
+  return {
+    statusCode: HTTP_STATUS.OK,
+    body: {
+      data,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.max(1, Math.ceil(total / Math.max(limit, 1)))
+      },
+      meta: createMeta(context)
+    }
+  };
+}
+
+// ../backend/src/routes/metadata.ts
+function createRouteMetadata(name, path3, version, options = {}) {
+  const middleware = options.middleware ? [...options.middleware] : [];
+  const tags = options.tags ? [...options.tags] : [];
+  const requiredPermissions = options.requiredPermissions ? [...options.requiredPermissions] : [];
+  const requiredRoles = options.requiredRoles ? [...options.requiredRoles] : [];
+  const metadata = {
+    name,
+    path: path3,
+    version,
+    mode: options.mode ?? "private",
+    tags,
+    authenticationRequired: options.authenticationRequired ?? true,
+    authorizationRequired: options.authorizationRequired ?? false,
+    publicRoute: options.publicRoute ?? false,
+    privateRoute: options.privateRoute ?? true,
+    requiredPermissions,
+    requiredRoles,
+    requiredScope: options.requiredScope,
+    requireAllPermissions: options.requireAllPermissions ?? false,
+    tenantScope: options.tenantScope,
+    middleware
+  };
+  return Object.freeze(metadata);
+}
+
+// ../backend/src/routes/registry.ts
+var RouteRegistry = class {
+  routes = /* @__PURE__ */ new Map();
+  versions = /* @__PURE__ */ new Map();
+  tags = /* @__PURE__ */ new Map();
+  middlewarePipeline = [];
+  register(route) {
+    const key = this.createKey(route.method, route.path, route.version);
+    this.routes.set(key, route);
+    this.addToIndex(this.versions, route.version, route);
+    for (const tag of route.metadata.tags) {
+      this.addToIndex(this.tags, tag, route);
+    }
+    return route;
+  }
+  registerGroup(group) {
+    const definitions = [];
+    const resolvedVersion = group.version ?? "v1";
+    const prefix = group.prefix.startsWith("/") ? group.prefix : `/${group.prefix}`;
+    for (const route of group.routes) {
+      const normalizedPath = this.normalizePath(prefix, route.path);
+      const metadata = createRouteMetadata(route.name, normalizedPath, resolvedVersion, {
+        ...route.metadata,
+        ...group.metadata,
+        name: route.name,
+        path: normalizedPath,
+        version: resolvedVersion
+      });
+      const definition = {
+        ...route,
+        path: normalizedPath,
+        version: resolvedVersion,
+        metadata
+      };
+      this.register(definition);
+      definitions.push(definition);
+    }
+    return definitions;
+  }
+  registerMiddleware(middlewareName) {
+    this.middlewarePipeline.push(middlewareName);
+  }
+  getMiddlewarePipeline() {
+    return [...this.middlewarePipeline];
+  }
+  all() {
+    return Array.from(this.routes.values());
+  }
+  findByName(name) {
+    return Array.from(this.routes.values()).find((route) => route.name === name);
+  }
+  findByPath(method, path3, version) {
+    const candidates = Array.from(this.routes.values()).filter((route) => route.method === method && route.path === path3);
+    if (candidates.length > 0) {
+      if (!version) return candidates[0];
+      return candidates.find((route) => route.version === version) ?? candidates[0];
+    }
+    const methodCandidates = Array.from(this.routes.values()).filter((route) => route.method === method);
+    for (const route of methodCandidates) {
+      const routeParts = route.path.split("/").filter(Boolean);
+      const pathParts = path3.split("/").filter(Boolean);
+      if (routeParts.length !== pathParts.length) continue;
+      const params = {};
+      let matched = true;
+      for (let i = 0; i < routeParts.length; i++) {
+        const rp = routeParts[i];
+        const pp = pathParts[i];
+        if (rp.startsWith(":")) {
+          const name = rp.substring(1);
+          params[name] = decodeURIComponent(pp);
+        } else if (rp !== pp) {
+          matched = false;
+          break;
+        }
+      }
+      if (matched) {
+        const copy = { ...route, runtimeParams: params };
+        if (!version) return copy;
+        if (copy.version === version) return copy;
+      }
+    }
+    return void 0;
+  }
+  findByVersion(version) {
+    return [...this.versions.get(version) ?? []];
+  }
+  findByTag(tag) {
+    return [...this.tags.get(tag) ?? []];
+  }
+  createKey(method, path3, version) {
+    return `${method}:${version}:${path3}`;
+  }
+  normalizePath(prefix, path3) {
+    const normalizedPath = path3.startsWith("/") ? path3 : `/${path3}`;
+    return `${prefix}${normalizedPath}`;
+  }
+  addToIndex(map, key, route) {
+    const existing = map.get(key) ?? [];
+    existing.push(route);
+    map.set(key, existing);
+  }
+};
+
+// ../backend/src/routes/builder.ts
+var RouterBuilder = class {
+  registry = new RouteRegistry();
+  middlewarePipeline = [];
+  register(definition) {
+    const version = definition.version ?? "v1";
+    const metadata = createRouteMetadata(definition.name, definition.path, version, {
+      ...definition.options,
+      middleware: [...definition.options?.middleware ?? [], ...this.middlewarePipeline]
+    });
+    const route = {
+      name: definition.name,
+      method: definition.method,
+      path: definition.path,
+      version,
+      handler: definition.handler,
+      metadata
+    };
+    return this.registry.register(route);
+  }
+  registerGroup(group) {
+    return this.registry.registerGroup(group);
+  }
+  registerVersion(version) {
+    this.middlewarePipeline.push(`version:${version}`);
+    return this;
+  }
+  registerMiddleware(middlewareName) {
+    this.middlewarePipeline.push(middlewareName);
+    return this;
+  }
+  getRegistry() {
+    return this.registry;
+  }
+  build() {
+    return this.registry.all();
+  }
+};
+
+// ../backend/src/routes/resolver.ts
+var RouteResolver = class {
+  resolve(registry, request2) {
+    return registry.findByPath(request2.method, request2.path, request2.version);
+  }
+  resolveByName(registry, name) {
+    return registry.findByName(name);
+  }
+  resolveByVersion(registry, version) {
+    return registry.findByVersion(version);
+  }
+  resolveByTag(registry, tag) {
+    return registry.findByTag(tag);
+  }
+};
 
 // ../backend/src/modules/auth/controller.ts
-init_api();
 init_errors();
-init_validation();
+
+// ../backend/src/validation/errors.ts
+var ValidationException = class _ValidationException extends Error {
+  code;
+  constructor(code, message) {
+    super(message ?? code);
+    this.code = code;
+    Object.setPrototypeOf(this, _ValidationException.prototype);
+  }
+};
+var InvalidRequestError = class _InvalidRequestError extends ValidationException {
+  constructor(message) {
+    super("invalid_request", message ?? "invalid_request");
+    Object.setPrototypeOf(this, _InvalidRequestError.prototype);
+  }
+};
+
+// ../backend/src/validation/engine.ts
+var ValidationEngine = class {
+  validate(value, validator, context) {
+    return validator.validate(value, context);
+  }
+  async validateAsync(value, validator, context) {
+    if (validator.validateAsync) {
+      return validator.validateAsync(value, context);
+    }
+    return this.validate(value, validator, context);
+  }
+  validateOrThrow(value, validator, context) {
+    const result = this.validate(value, validator, context);
+    if (!result.valid) {
+      throw new InvalidRequestError(result.errors.map((error) => error.message).join(", "));
+    }
+    return value;
+  }
+  composeValidators(...validators) {
+    return {
+      validate: (value, context) => {
+        const errors = [];
+        for (const validator of validators) {
+          const result = this.evaluateCompositeValidator(validator, value, context);
+          if (!result.valid) {
+            errors.push(...result.errors);
+          }
+        }
+        return { valid: errors.length === 0, errors };
+      }
+    };
+  }
+  composeRules(...rules) {
+    return {
+      name: "composed",
+      validate: (context) => {
+        const errors = [];
+        for (const rule of rules) {
+          const result = rule.validate(context);
+          if (!result.valid) {
+            errors.push(...result.errors);
+          }
+        }
+        return { valid: errors.length === 0, errors };
+      }
+    };
+  }
+  evaluateCompositeValidator(validator, value, context) {
+    const isValidator = "validate" in validator && typeof validator.validate === "function" && validator.validate.length > 1;
+    if (isValidator) {
+      return validator.validate(value, context);
+    }
+    return validator.validate({ value, ...context });
+  }
+};
+var engine_default = new ValidationEngine();
+
+// ../backend/src/modules/auth/controller.ts
 init_prisma_service();
 
 // ../backend/src/services/auth-service.ts
@@ -5154,7 +1118,6 @@ init_rate_limiter();
 init_prisma_service();
 var import_crypto3 = __toESM(require("crypto"));
 init_errors();
-init_validation();
 var AuthService = class {
   constructor(userLookup) {
     this.userLookup = userLookup;
@@ -6249,8 +2212,41 @@ function hasAnyPermission(permissions, ...requiredPermissions) {
   return requiredPermissions.some((permission) => hasPermission(permissions, permission));
 }
 
+// ../backend/src/authorization/errors.ts
+var AuthorizationError = class _AuthorizationError extends Error {
+  code;
+  constructor(code, message) {
+    super(message ?? code);
+    this.code = code;
+    Object.setPrototypeOf(this, _AuthorizationError.prototype);
+  }
+};
+var UnauthorizedError2 = class _UnauthorizedError extends AuthorizationError {
+  constructor(message) {
+    super("unauthorized", message ?? "unauthorized");
+    Object.setPrototypeOf(this, _UnauthorizedError.prototype);
+  }
+};
+var ForbiddenError = class _ForbiddenError extends AuthorizationError {
+  constructor(message) {
+    super("forbidden", message ?? "forbidden");
+    Object.setPrototypeOf(this, _ForbiddenError.prototype);
+  }
+};
+var PermissionDeniedError = class _PermissionDeniedError extends ForbiddenError {
+  constructor(message) {
+    super(message ?? "permission_denied");
+    Object.setPrototypeOf(this, _PermissionDeniedError.prototype);
+  }
+};
+var RoleDeniedError = class _RoleDeniedError extends ForbiddenError {
+  constructor(message) {
+    super(message ?? "role_denied");
+    Object.setPrototypeOf(this, _RoleDeniedError.prototype);
+  }
+};
+
 // ../backend/src/authorization/service.ts
-init_errors3();
 var AuthorizationService = class {
   evaluate(context, options = {}) {
     const requiredPermissions = this.normalizePermissions(options.requiredPermissions);
@@ -6609,12 +2605,6 @@ var RouteProtectionRegistry = class {
 };
 var registry_default = new RouteProtectionRegistry();
 
-// ../backend/src/system/routes.ts
-init_routes();
-
-// ../backend/src/system/controller.ts
-init_api();
-
 // ../backend/src/system/service.ts
 var SystemHealthService = class {
   getHealth() {
@@ -6756,14 +2746,3467 @@ function createSystemRoutes(controller = new SystemController()) {
   return builder.build();
 }
 
-// ../backend/src/modules/products/routes.ts
-init_routes();
+// ../backend/src/repositories/base-repository.ts
+init_prisma_service();
+var BaseRepository = class {
+  client = prisma_service_default.getClient();
+  modelName;
+  constructor(modelName) {
+    this.modelName = modelName;
+  }
+  get model() {
+    return this.client[this.modelName];
+  }
+  async findById(id) {
+    const result = await this.model.findUnique({ where: { id } });
+    return result ?? null;
+  }
+  async findMany(filter) {
+    const where = filter ?? {};
+    const results = await this.model.findMany({ where });
+    return results ?? [];
+  }
+  async create(data) {
+    return this.model.create({ data });
+  }
+  async update(id, data) {
+    return this.model.update({ where: { id }, data });
+  }
+  async delete(id) {
+    try {
+      await this.model.update({ where: { id }, data: { deletedAt: /* @__PURE__ */ new Date() } });
+    } catch (err) {
+      await this.model.delete({ where: { id } });
+    }
+  }
+  async restore(id) {
+    return this.model.update({ where: { id }, data: { deletedAt: null } });
+  }
+  async exists(id) {
+    const count = await this.model.count({ where: { id } });
+    return count > 0;
+  }
+  async count(filter) {
+    const where = filter ?? {};
+    return this.model.count({ where });
+  }
+  async paginate(options) {
+    const page = Math.max(1, options.page ?? 1);
+    const limit = Math.max(1, Math.min(100, options.limit ?? 25));
+    const skip = (page - 1) * limit;
+    const rawWhere = options.filters ?? {};
+    const cleanWhere = (obj) => {
+      if (obj == null) return {};
+      if (Array.isArray(obj)) {
+        const arr = obj.map(cleanWhere).filter((x) => {
+          return !(x && typeof x === "object" && Object.keys(x).length === 0);
+        });
+        return arr.length > 0 ? arr : void 0;
+      }
+      if (typeof obj !== "object") return obj;
+      const out = {};
+      for (const [k, v] of Object.entries(obj)) {
+        if (v === void 0) continue;
+        if ((k === "AND" || k === "OR" || k === "NOT") && Array.isArray(v)) {
+          const cleaned = cleanWhere(v);
+          if (cleaned !== void 0 && cleaned.length > 0) out[k] = cleaned;
+        } else if (v && typeof v === "object") {
+          const cleaned = cleanWhere(v);
+          if (cleaned !== void 0 && (typeof cleaned !== "object" || Object.keys(cleaned).length > 0)) {
+            out[k] = cleaned;
+          }
+        } else if (v !== void 0) {
+          out[k] = v;
+        }
+      }
+      return Object.keys(out).length > 0 ? out : void 0;
+    };
+    const where = cleanWhere(rawWhere) ?? {};
+    const orderBy = options.sort && (options.order === "asc" || options.order === "desc") ? { [options.sort]: options.order } : void 0;
+    let data = [];
+    let total = 0;
+    try {
+      const res = await Promise.all([
+        this.model.findMany({ where, skip, take: limit, orderBy }),
+        this.model.count({ where })
+      ]);
+      data = res[0] ?? [];
+      total = res[1] ?? 0;
+    } catch (err) {
+      const debug = { where, orderBy, skip, take: limit };
+      const msg = `paginate_error: ${err?.message ?? "unknown"} -- query: ${JSON.stringify(debug)}`;
+      throw new Error(msg);
+    }
+    return {
+      data,
+      total,
+      page,
+      limit
+    };
+  }
+};
+var base_repository_default = BaseRepository;
+
+// ../backend/src/repositories/tenant-repository.ts
+var TenantRepository = class extends base_repository_default {
+  constructor() {
+    super("tenant");
+  }
+};
+var tenant_repository_default = TenantRepository;
+
+// ../backend/src/repositories/user-repository.ts
+var UserRepository = class extends base_repository_default {
+  constructor() {
+    super("user");
+  }
+  async findUserRoles(userId) {
+    return this.client.userRole.findMany({
+      where: { userId },
+      include: { role: true }
+    });
+  }
+  async assignRole(userId, roleId) {
+    return this.client.userRole.create({
+      data: { userId, roleId },
+      include: { role: true }
+    });
+  }
+  async removeRole(userId, roleId) {
+    const existing = await this.client.userRole.findFirst({
+      where: { userId, roleId }
+    });
+    if (!existing) return null;
+    return this.client.userRole.delete({ where: { id: existing.id } });
+  }
+  async hasRole(userId, roleId) {
+    const count = await this.client.userRole.count({ where: { userId, roleId } });
+    return count > 0;
+  }
+};
+var user_repository_default = UserRepository;
+
+// ../backend/src/repositories/role-repository.ts
+var RoleRepository = class extends base_repository_default {
+  constructor() {
+    super("role");
+  }
+  /**
+   * Persistence-only operations for the implicit Role ↔ Permission join
+   * (RolePermission / role_permissions). Business rules live in the service.
+   */
+  async findRolePermissions(roleId) {
+    const role = await this.model.findUnique({
+      where: { id: roleId },
+      include: { permissions: { include: { permission: true } } }
+    });
+    if (!role) return [];
+    return role.permissions ?? [];
+  }
+  async assignPermission(roleId, permissionId) {
+    return this.client.rolePermission.create({
+      data: { roleId, permissionId },
+      include: { permission: true }
+    });
+  }
+  async removePermission(roleId, permissionId) {
+    const existing = await this.client.rolePermission.findUnique({
+      where: { roleId_permissionId: { roleId, permissionId } }
+    });
+    if (!existing) return null;
+    return this.client.rolePermission.delete({
+      where: { id: existing.id }
+    });
+  }
+  async hasPermission(roleId, permissionId) {
+    const count = await this.client.rolePermission.count({
+      where: { roleId, permissionId }
+    });
+    return count > 0;
+  }
+};
+var role_repository_default = RoleRepository;
+
+// ../backend/src/repositories/permission-repository.ts
+var PermissionRepository = class extends base_repository_default {
+  constructor() {
+    super("permission");
+  }
+  /**
+   * The `Permission` model has no `deletedAt` column, so soft-delete is not
+   * supported for this entity. DELETE falls back to a hard delete in
+   * BaseRepository. Restore is therefore a no-op that returns the existing
+   * record (if present) to keep the endpoint contract consistent.
+   */
+  async restore(id) {
+    return this.findById(id);
+  }
+};
+var permission_repository_default = PermissionRepository;
+
+// ../backend/src/repositories/store-repository.ts
+var StoreRepository = class extends base_repository_default {
+  constructor() {
+    super("store");
+  }
+};
+var store_repository_default = StoreRepository;
+
+// ../backend/src/repositories/branch-repository.ts
+var BranchRepository = class extends base_repository_default {
+  constructor() {
+    super("branch");
+  }
+};
+var branch_repository_default = BranchRepository;
+
+// ../backend/src/repositories/category-repository.ts
+var CategoryRepository = class extends base_repository_default {
+  constructor() {
+    super("category");
+  }
+};
+var category_repository_default = CategoryRepository;
+
+// ../backend/src/repositories/product-repository.ts
+var ProductRepository = class extends base_repository_default {
+  constructor() {
+    super("product");
+  }
+  async findById(id) {
+    return await this.model.findFirst({ where: { id, deletedAt: null } }) ?? null;
+  }
+  async findBySlug(slug, excludeId) {
+    const where = excludeId ? { slug, id: { not: excludeId }, deletedAt: null } : { slug, deletedAt: null };
+    return await this.model.findFirst({ where }) ?? null;
+  }
+  async create(data) {
+    return this.model.create({ data });
+  }
+  async update(id, data) {
+    return this.model.update({ where: { id }, data });
+  }
+  async findMany(filter) {
+    return this.model.findMany({
+      where: { AND: [{ deletedAt: null }, filter ?? {}] }
+    });
+  }
+  async delete(id) {
+    await this.model.update({ where: { id }, data: { deletedAt: /* @__PURE__ */ new Date() } });
+  }
+  async restore(id) {
+    return this.model.update({ where: { id }, data: { deletedAt: null } });
+  }
+  async paginate(options) {
+    const filters = options.filters && Object.keys(options.filters).length > 0 ? { AND: [{ deletedAt: null }, options.filters] } : { deletedAt: null };
+    return super.paginate({ ...options, filters });
+  }
+};
+var product_repository_default = ProductRepository;
+
+// ../backend/src/repositories/inventory-repository.ts
+var InventoryRepository = class extends base_repository_default {
+  constructor() {
+    super("inventory");
+  }
+  async findOrCreateDefaultWarehouse() {
+    let warehouse = await this.client.warehouse.findFirst({
+      where: { code: "DEFAULT" }
+    });
+    if (!warehouse) {
+      warehouse = await this.client.warehouse.create({
+        data: {
+          name: "\u0627\u0644\u0645\u0633\u062A\u0648\u062F\u0639 \u0627\u0644\u0631\u0626\u064A\u0633\u064A (Default Warehouse)",
+          code: "DEFAULT"
+        }
+      });
+    }
+    return warehouse;
+  }
+  async findOrCreateInventory(productId, warehouseId) {
+    let targetWarehouseId = warehouseId;
+    if (!targetWarehouseId) {
+      const defaultW = await this.findOrCreateDefaultWarehouse();
+      targetWarehouseId = defaultW.id;
+    }
+    let inv = await this.client.inventory.findFirst({
+      where: { productId, warehouseId: targetWarehouseId },
+      include: {
+        product: { select: { id: true, name: true, sku: true } },
+        warehouse: { select: { id: true, name: true } }
+      }
+    });
+    if (!inv) {
+      inv = await this.client.inventory.create({
+        data: {
+          productId,
+          warehouseId: targetWarehouseId,
+          quantity: 0,
+          reserved: 0,
+          available: 0,
+          safetyStock: 10
+        },
+        include: {
+          product: { select: { id: true, name: true, sku: true } },
+          warehouse: { select: { id: true, name: true } }
+        }
+      });
+    }
+    return inv;
+  }
+  async reserveStockForOrder(tx, productId, qty, orderId) {
+    const inv = await tx.inventory.findFirst({
+      where: { productId }
+    });
+    if (!inv) {
+      throw new ValidationException(`inventory_not_found_for_product_${productId}`);
+    }
+    if (inv.available < qty) {
+      throw new ValidationException(`insufficient_stock_for_product_${productId}`);
+    }
+    const newReserved = inv.reserved + qty;
+    const newAvailable = Math.max(0, inv.quantity - newReserved);
+    await tx.inventory.update({
+      where: { id: inv.id },
+      data: {
+        reserved: newReserved,
+        available: newAvailable
+      }
+    });
+    await tx.stockMovement.create({
+      data: {
+        inventoryId: inv.id,
+        type: "RESERVATION",
+        quantity: qty,
+        referenceId: orderId
+      }
+    });
+  }
+  async releaseStockForOrder(tx, productId, qty, orderId) {
+    const inv = await tx.inventory.findFirst({
+      where: { productId }
+    });
+    if (!inv) return;
+    const newReserved = Math.max(0, inv.reserved - qty);
+    const newAvailable = Math.max(0, inv.quantity - newReserved);
+    await tx.inventory.update({
+      where: { id: inv.id },
+      data: {
+        reserved: newReserved,
+        available: newAvailable
+      }
+    });
+    await tx.stockMovement.create({
+      data: {
+        inventoryId: inv.id,
+        type: "RELEASE",
+        quantity: qty,
+        referenceId: orderId
+      }
+    });
+  }
+  async deductStockForShipment(tx, productId, qty, orderId) {
+    const inv = await tx.inventory.findFirst({
+      where: { productId }
+    });
+    if (!inv) return;
+    const newReserved = Math.max(0, inv.reserved - qty);
+    const newQuantity = Math.max(0, inv.quantity - qty);
+    const newAvailable = Math.max(0, newQuantity - newReserved);
+    await tx.inventory.update({
+      where: { id: inv.id },
+      data: {
+        quantity: newQuantity,
+        reserved: newReserved,
+        available: newAvailable
+      }
+    });
+    await tx.stockMovement.create({
+      data: {
+        inventoryId: inv.id,
+        type: "OUT",
+        quantity: qty,
+        referenceId: orderId
+      }
+    });
+  }
+  async deductStockForOrder(tx, productId, qty, orderId) {
+    return this.deductStockForShipment(tx, productId, qty, orderId);
+  }
+  async adjustStock(productId, type, qty, reason, performedById) {
+    if (qty < 0) {
+      throw new ValidationException("quantity_cannot_be_negative");
+    }
+    const defaultW = await this.findOrCreateDefaultWarehouse();
+    const { updated } = await this.client.$transaction(
+      async (tx) => {
+        let inv = await tx.inventory.findFirst({
+          where: { productId, warehouseId: defaultW.id }
+        });
+        if (!inv) {
+          inv = await tx.inventory.create({
+            data: {
+              productId,
+              warehouseId: defaultW.id,
+              quantity: 0,
+              reserved: 0,
+              available: 0,
+              safetyStock: 10
+            }
+          });
+        }
+        let up;
+        if (type === "IN") {
+          up = await tx.inventory.update({
+            where: { id: inv.id },
+            data: {
+              quantity: { increment: qty },
+              available: { increment: qty }
+            },
+            include: {
+              product: { select: { id: true, name: true, sku: true } },
+              warehouse: { select: { id: true, name: true } }
+            }
+          });
+        } else if (type === "OUT") {
+          up = await tx.inventory.update({
+            where: { id: inv.id },
+            data: {
+              quantity: { decrement: qty },
+              available: { decrement: qty }
+            },
+            include: {
+              product: { select: { id: true, name: true, sku: true } },
+              warehouse: { select: { id: true, name: true } }
+            }
+          });
+        } else {
+          const newQty = Math.max(0, qty);
+          const newAvail = Math.max(0, newQty - inv.reserved);
+          up = await tx.inventory.update({
+            where: { id: inv.id },
+            data: {
+              quantity: newQty,
+              available: newAvail
+            },
+            include: {
+              product: { select: { id: true, name: true, sku: true } },
+              warehouse: { select: { id: true, name: true } }
+            }
+          });
+        }
+        await tx.stockMovement.create({
+          data: {
+            inventoryId: inv.id,
+            type,
+            quantity: qty,
+            referenceId: reason ?? null,
+            performedById: performedById ?? null
+          }
+        });
+        return { updated: up };
+      },
+      { maxWait: 1e4, timeout: 2e4 }
+    );
+    const avail = updated.available ?? updated.quantity - updated.reserved;
+    return {
+      ...updated,
+      reservedQuantity: updated.reserved,
+      availableQuantity: avail,
+      lowStockThreshold: updated.safetyStock,
+      isLowStock: avail <= updated.safetyStock,
+      isOutOfStock: avail <= 0
+    };
+  }
+  async findInventoryList(options) {
+    const page = Math.max(1, Number(options.page ?? 1));
+    const limit = Math.min(100, Math.max(1, Number(options.limit ?? 10)));
+    const skip = (page - 1) * limit;
+    const where = {};
+    if (options.search) {
+      where.product = {
+        OR: [
+          { name: { contains: options.search, mode: "insensitive" } },
+          { sku: { contains: options.search, mode: "insensitive" } }
+        ]
+      };
+    }
+    const [items, total] = await Promise.all([
+      this.client.inventory.findMany({
+        where,
+        include: {
+          product: { select: { id: true, name: true, sku: true } },
+          warehouse: { select: { id: true, name: true } }
+        },
+        skip,
+        take: limit,
+        orderBy: { createdAt: "desc" }
+      }),
+      this.client.inventory.count({ where })
+    ]);
+    let filteredItems = items;
+    if (options.status === "LOW_STOCK") {
+      filteredItems = items.filter((i) => i.available > 0 && i.available <= i.safetyStock);
+    } else if (options.status === "OUT_OF_STOCK") {
+      filteredItems = items.filter((i) => i.available <= 0);
+    } else if (options.status === "IN_STOCK") {
+      filteredItems = items.filter((i) => i.available > i.safetyStock);
+    }
+    return {
+      items: filteredItems.map((inv) => {
+        const avail = inv.available ?? inv.quantity - inv.reserved;
+        return {
+          ...inv,
+          reservedQuantity: inv.reserved,
+          availableQuantity: avail,
+          lowStockThreshold: inv.safetyStock,
+          isLowStock: avail <= inv.safetyStock,
+          isOutOfStock: avail <= 0
+        };
+      }),
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit) || 1
+      }
+    };
+  }
+  async findStockMovements(options) {
+    const page = Math.max(1, Number(options.page ?? 1));
+    const limit = Math.min(100, Math.max(1, Number(options.limit ?? 20)));
+    const skip = (page - 1) * limit;
+    const where = {};
+    if (options.inventoryId) where.inventoryId = options.inventoryId;
+    if (options.type) where.type = options.type;
+    const [items, total] = await Promise.all([
+      this.client.stockMovement.findMany({
+        where,
+        orderBy: { createdAt: "desc" },
+        skip,
+        take: limit
+      }),
+      this.client.stockMovement.count({ where })
+    ]);
+    return {
+      items,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit) || 1
+      }
+    };
+  }
+  async findMovements(options) {
+    return this.findStockMovements(options);
+  }
+};
+var inventory_repository_default = InventoryRepository;
+
+// ../backend/src/repositories/supplier-repository.ts
+var SupplierRepository = class extends base_repository_default {
+  constructor() {
+    super("supplier");
+  }
+};
+var supplier_repository_default = SupplierRepository;
+
+// ../backend/src/repositories/customer-repository.ts
+init_prisma_service();
+var CustomerRepository = class extends base_repository_default {
+  constructor() {
+    super("customer");
+  }
+  async create(data) {
+    return this.client.customer.create({
+      data: {
+        customerCode: data.customerCode,
+        firstName: data.firstName,
+        lastName: data.lastName,
+        fullName: `${data.firstName} ${data.lastName}`.trim(),
+        phone: data.phone ?? null,
+        email: data.email ?? null,
+        status: data.status ?? "ACTIVE",
+        notes: data.notes ?? null
+      }
+    });
+  }
+  async findById(id) {
+    return this.client.customer.findFirst({ where: { id, deletedAt: null } });
+  }
+  async findByUnique(field, value, excludeId) {
+    return this.client.customer.findFirst({
+      where: {
+        [field]: value,
+        deletedAt: null,
+        ...excludeId ? { NOT: { id: excludeId } } : {}
+      }
+    });
+  }
+  async update(id, data) {
+    const firstName = data.firstName;
+    const lastName = data.lastName;
+    const current = await this.client.customer.findUnique({ where: { id } });
+    if (!current || current.deletedAt) throw new Error("customer_not_found");
+    return this.client.customer.update({
+      where: { id },
+      data: {
+        ...data.customerCode === void 0 ? {} : { customerCode: data.customerCode },
+        ...firstName === void 0 ? {} : { firstName },
+        ...lastName === void 0 ? {} : { lastName },
+        ...firstName === void 0 && lastName === void 0 ? {} : {
+          fullName: `${firstName ?? current.firstName} ${lastName ?? current.lastName}`.trim()
+        },
+        ...data.phone === void 0 ? {} : { phone: data.phone },
+        ...data.email === void 0 ? {} : { email: data.email },
+        ...data.status === void 0 ? {} : { status: data.status },
+        ...data.notes === void 0 ? {} : { notes: data.notes }
+      }
+    });
+  }
+  async delete(id) {
+    await this.client.customer.update({ where: { id }, data: { deletedAt: /* @__PURE__ */ new Date() } });
+  }
+  async paginate(options) {
+    const page = Math.max(1, options.page ?? 1);
+    const limit = Math.max(1, Math.min(100, options.limit ?? 25));
+    const where = { AND: [{ deletedAt: null }, options.filters ?? {}] };
+    const orderBy = options.sort ? { [options.sort]: options.order ?? "asc" } : { createdAt: "desc" };
+    const [data, total] = await Promise.all([
+      this.client.customer.findMany({ where, skip: (page - 1) * limit, take: limit, orderBy }),
+      this.client.customer.count({ where })
+    ]);
+    return { data, total, page, limit };
+  }
+  async createAddress(customerId, data) {
+    return prisma_service_default.transaction(async (tx) => {
+      if (data.isDefault) {
+        await tx.customerAddress.updateMany({ where: { customerId }, data: { isDefault: false } });
+      }
+      const address = await tx.address.create({
+        data: {
+          label: data.label ?? null,
+          line1: data.street,
+          city: data.city,
+          state: data.district,
+          country: data.country,
+          latitude: data.latitude ?? null,
+          longitude: data.longitude ?? null
+        }
+      });
+      return tx.customerAddress.create({
+        data: {
+          customerId,
+          addressId: address.id,
+          label: data.label ?? null,
+          recipientName: data.recipientName,
+          phone: data.phone,
+          country: data.country,
+          city: data.city,
+          district: data.district,
+          street: data.street,
+          building: data.building ?? null,
+          floor: data.floor ?? null,
+          landmark: data.landmark ?? null,
+          latitude: data.latitude ?? null,
+          longitude: data.longitude ?? null,
+          isDefault: data.isDefault ?? false
+        }
+      });
+    });
+  }
+  async listAddresses(customerId) {
+    return this.client.customerAddress.findMany({ where: { customerId }, orderBy: [{ isDefault: "desc" }, { createdAt: "asc" }] });
+  }
+  async findAddress(customerId, addressId) {
+    return this.client.customerAddress.findFirst({ where: { id: addressId, customerId } });
+  }
+  async updateAddress(customerId, addressId, data) {
+    return prisma_service_default.transaction(async (tx) => {
+      if (data.isDefault) {
+        await tx.customerAddress.updateMany({ where: { customerId, NOT: { id: addressId } }, data: { isDefault: false } });
+      }
+      const current = await tx.customerAddress.findFirst({ where: { id: addressId, customerId } });
+      if (!current) throw new Error("address_not_found");
+      const updated = await tx.customerAddress.update({
+        where: { id: addressId },
+        data: {
+          ...data.label === void 0 ? {} : { label: data.label },
+          ...data.recipientName === void 0 ? {} : { recipientName: data.recipientName },
+          ...data.phone === void 0 ? {} : { phone: data.phone },
+          ...data.country === void 0 ? {} : { country: data.country },
+          ...data.city === void 0 ? {} : { city: data.city },
+          ...data.district === void 0 ? {} : { district: data.district },
+          ...data.street === void 0 ? {} : { street: data.street },
+          ...data.building === void 0 ? {} : { building: data.building },
+          ...data.floor === void 0 ? {} : { floor: data.floor },
+          ...data.landmark === void 0 ? {} : { landmark: data.landmark },
+          ...data.latitude === void 0 ? {} : { latitude: data.latitude },
+          ...data.longitude === void 0 ? {} : { longitude: data.longitude },
+          ...data.isDefault === void 0 ? {} : { isDefault: data.isDefault }
+        }
+      });
+      await tx.address.update({
+        where: { id: current.addressId },
+        data: {
+          ...data.label === void 0 ? {} : { label: data.label },
+          ...data.street === void 0 ? {} : { line1: data.street },
+          ...data.city === void 0 ? {} : { city: data.city },
+          ...data.district === void 0 ? {} : { state: data.district },
+          ...data.country === void 0 ? {} : { country: data.country },
+          ...data.latitude === void 0 ? {} : { latitude: data.latitude },
+          ...data.longitude === void 0 ? {} : { longitude: data.longitude }
+        }
+      });
+      return updated;
+    });
+  }
+  async deleteAddress(customerId, addressId) {
+    const address = await this.client.customerAddress.findFirst({ where: { id: addressId, customerId } });
+    if (!address) throw new Error("address_not_found");
+    await this.client.customerAddress.delete({ where: { id: addressId } });
+  }
+};
+var customer_repository_default = CustomerRepository;
+
+// ../backend/src/repositories/cart-repository.ts
+var CartRepository = class extends base_repository_default {
+  constructor() {
+    super("cart");
+  }
+  async findOrCreateCartByCustomerId(customerId) {
+    let cart = await this.client.cart.findFirst({
+      where: { customerId },
+      include: {
+        items: {
+          include: {
+            product: true
+          },
+          orderBy: { createdAt: "asc" }
+        }
+      }
+    });
+    if (!cart) {
+      cart = await this.client.cart.create({
+        data: { customerId },
+        include: {
+          items: {
+            include: {
+              product: true
+            },
+            orderBy: { createdAt: "asc" }
+          }
+        }
+      });
+    }
+    return cart;
+  }
+  async findCartByCustomerId(customerId) {
+    return this.client.cart.findFirst({
+      where: { customerId },
+      include: {
+        items: {
+          include: {
+            product: true
+          },
+          orderBy: { createdAt: "asc" }
+        }
+      }
+    });
+  }
+  async findCartItemById(cartItemId) {
+    return this.client.cartItem.findUnique({
+      where: { id: cartItemId },
+      include: {
+        cart: true,
+        product: true
+      }
+    });
+  }
+  async findCartItemByCartAndProduct(cartId, productId, variantId) {
+    return this.client.cartItem.findFirst({
+      where: {
+        cartId,
+        productId,
+        ...variantId ? { variantId } : {}
+      }
+    });
+  }
+  async addItem(cartId, productId, variantId, quantity, unitPrice) {
+    const existing = await this.findCartItemByCartAndProduct(cartId, productId, variantId);
+    if (existing) {
+      return this.client.cartItem.update({
+        where: { id: existing.id },
+        data: {
+          quantity: existing.quantity + quantity,
+          unitPrice
+        }
+      });
+    }
+    return this.client.cartItem.create({
+      data: {
+        cartId,
+        productId,
+        variantId: variantId ?? null,
+        quantity,
+        unitPrice
+      }
+    });
+  }
+  async updateItemQuantity(cartItemId, quantity) {
+    return this.client.cartItem.update({
+      where: { id: cartItemId },
+      data: { quantity }
+    });
+  }
+  async removeItem(cartItemId) {
+    await this.client.cartItem.delete({
+      where: { id: cartItemId }
+    });
+  }
+  async clearCart(cartId) {
+    await this.client.cartItem.deleteMany({
+      where: { cartId }
+    });
+  }
+  async findCustomerByUserIdOrEmail(userId, email) {
+    if (userId) {
+      const byUser = await this.client.customer.findFirst({
+        where: { userId, deletedAt: null }
+      });
+      if (byUser) return byUser;
+    }
+    if (email) {
+      const byEmail = await this.client.customer.findFirst({
+        where: { email, deletedAt: null }
+      });
+      if (byEmail) return byEmail;
+    }
+    return null;
+  }
+  async createCustomerForUser(userId, email) {
+    const code = `CUST-${Date.now()}-${Math.floor(Math.random() * 1e3)}`;
+    const user = await this.client.user.findUnique({ where: { id: userId } });
+    const nameParts = user?.displayName?.split(" ") ?? ["User", "Customer"];
+    const firstName = nameParts[0] || "User";
+    const lastName = nameParts.slice(1).join(" ") || "Customer";
+    return this.client.customer.create({
+      data: {
+        userId,
+        customerCode: code,
+        firstName,
+        lastName,
+        fullName: `${firstName} ${lastName}`.trim(),
+        email: email || user?.email || null,
+        phone: user?.phone || null,
+        status: "ACTIVE"
+      }
+    });
+  }
+  async findProductById(productId) {
+    return this.client.product.findUnique({
+      where: { id: productId }
+    });
+  }
+};
+var cart_repository_default = CartRepository;
+
+// ../backend/src/repositories/exceptions.ts
+var DatabaseException = class extends Error {
+  constructor(message) {
+    super(message ?? "Database error");
+    this.name = "DatabaseException";
+  }
+};
+var NotFoundException = class extends Error {
+  constructor(message) {
+    super(message ?? "Resource not found");
+    this.name = "NotFoundException";
+  }
+};
+var ConflictException = class extends Error {
+  constructor(message) {
+    super(message ?? "Conflict");
+    this.name = "ConflictException";
+  }
+};
+var ValidationException2 = class extends Error {
+  constructor(message) {
+    super(message ?? "Validation failed");
+    this.name = "ValidationException";
+  }
+};
+
+// ../backend/src/repositories/order-repository.ts
+var ALLOWED_TRANSITIONS = {
+  DRAFT: ["PENDING", "CONFIRMED", "CANCELED"],
+  PENDING: ["CONFIRMED", "CANCELED"],
+  CONFIRMED: ["PACKED", "SHIPPED", "CANCELED"],
+  PACKED: ["SHIPPED", "CANCELED"],
+  SHIPPED: ["DELIVERED", "RETURNED"],
+  DELIVERED: ["RETURNED", "REFUNDED"],
+  CANCELED: [],
+  RETURNED: ["REFUNDED"],
+  REFUNDED: []
+};
+var OrderRepository = class extends base_repository_default {
+  constructor() {
+    super("order");
+  }
+  async createOrderFromCart(customerId, options) {
+    const cart = await this.client.cart.findFirst({
+      where: { customerId },
+      include: {
+        items: {
+          include: {
+            product: true
+          }
+        }
+      }
+    });
+    if (!cart || !cart.items || cart.items.length === 0) {
+      throw new ValidationException("cart_is_empty");
+    }
+    for (const item of cart.items) {
+      if (!item.product || item.product.deletedAt !== null || item.product.isActive === false) {
+        throw new ValidationException(`product_unavailable_${item.productId}`);
+      }
+      if (!item.quantity || item.quantity <= 0) {
+        throw new ValidationException("invalid_item_quantity");
+      }
+    }
+    let subtotal = 0;
+    const preparedItems = cart.items.map((item) => {
+      const unitPrice = typeof item.product.price === "number" ? item.product.price : item.unitPrice || 0;
+      const itemTotal = unitPrice * item.quantity;
+      subtotal += itemTotal;
+      return {
+        productId: item.productId,
+        variantId: item.variantId ?? null,
+        sku: item.product.sku ?? null,
+        name: item.product.name,
+        quantity: item.quantity,
+        unitPrice,
+        taxAmount: 0,
+        total: itemTotal
+      };
+    });
+    const tax = 0;
+    const shipping = 0;
+    const total = subtotal + tax + shipping;
+    const code = `ORD-${Date.now()}-${Math.floor(Math.random() * 1e3)}`;
+    const createdOrder = await this.client.$transaction(async (tx) => {
+      const order = await tx.order.create({
+        data: {
+          code,
+          customerId,
+          status: "PENDING",
+          subtotal,
+          tax,
+          shipping,
+          total,
+          currency: "SAR",
+          placedAt: /* @__PURE__ */ new Date()
+        }
+      });
+      for (const pItem of preparedItems) {
+        await tx.orderItem.create({
+          data: {
+            orderId: order.id,
+            ...pItem
+          }
+        });
+        const invRepo = new InventoryRepository();
+        await invRepo.reserveStockForOrder(tx, pItem.productId, pItem.quantity, order.id);
+      }
+      await tx.cartItem.deleteMany({
+        where: { cartId: cart.id }
+      });
+      return tx.order.findUnique({
+        where: { id: order.id },
+        include: {
+          items: {
+            include: { product: true }
+          },
+          customer: {
+            select: { id: true, fullName: true, email: true, phone: true }
+          }
+        }
+      });
+    });
+    if (!createdOrder) {
+      throw new Error("order_creation_failed");
+    }
+    return createdOrder;
+  }
+  async findOrders(options) {
+    const page = Math.max(1, Number(options.page ?? 1));
+    const limit = Math.min(100, Math.max(1, Number(options.limit ?? 10)));
+    const skip = (page - 1) * limit;
+    const sortField = options.sort ?? "createdAt";
+    const sortOrder = options.order ?? "desc";
+    const where = {
+      deletedAt: null
+    };
+    if (options.customerId) {
+      where.customerId = options.customerId;
+    }
+    if (options.status) {
+      where.status = options.status;
+    }
+    if (options.search) {
+      where.OR = [
+        { code: { contains: options.search, mode: "insensitive" } },
+        { items: { some: { name: { contains: options.search, mode: "insensitive" } } } }
+      ];
+    }
+    const [items, total] = await Promise.all([
+      this.client.order.findMany({
+        where,
+        skip,
+        take: limit,
+        orderBy: { [sortField]: sortOrder },
+        include: {
+          items: {
+            include: { product: true }
+          },
+          customer: {
+            select: { id: true, fullName: true, email: true, phone: true }
+          }
+        }
+      }),
+      this.client.order.count({ where })
+    ]);
+    const totalPages = Math.ceil(total / limit);
+    return {
+      items,
+      total,
+      page,
+      limit,
+      totalPages
+    };
+  }
+  async findOrderById(orderId, customerId) {
+    const order = await this.client.order.findUnique({
+      where: { id: orderId },
+      include: {
+        items: {
+          include: { product: true }
+        },
+        customer: {
+          select: { id: true, fullName: true, email: true, phone: true }
+        }
+      }
+    });
+    if (!order || order.deletedAt !== null) return null;
+    if (customerId && order.customerId !== customerId) {
+      return null;
+    }
+    return order;
+  }
+  async updateOrderStatus(orderId, newStatus, customerId) {
+    const order = await this.client.order.findUnique({
+      where: { id: orderId }
+    });
+    if (!order || order.deletedAt !== null) {
+      throw new NotFoundException("order_not_found");
+    }
+    if (customerId) {
+      if (order.customerId !== customerId) {
+        throw new NotFoundException("order_not_found");
+      }
+      if (newStatus !== "CANCELED") {
+        throw new ValidationException("customer_cannot_set_status");
+      }
+      if (order.status !== "PENDING" && order.status !== "CONFIRMED") {
+        throw new ValidationException("order_cannot_be_cancelled");
+      }
+    }
+    const allowed = ALLOWED_TRANSITIONS[order.status] ?? [];
+    if (!allowed.includes(newStatus)) {
+      throw new ValidationException(`invalid_status_transition_${order.status}_to_${newStatus}`);
+    }
+    const orderWithItems = await this.client.order.findUnique({
+      where: { id: orderId },
+      include: { items: true }
+    });
+    const invRepo = new InventoryRepository();
+    if (orderWithItems && orderWithItems.items) {
+      if (newStatus === "CANCELED") {
+        for (const item of orderWithItems.items) {
+          await invRepo.releaseStockForOrder(this.client, item.productId, item.quantity, orderId);
+        }
+      } else if (newStatus === "SHIPPED" || newStatus === "DELIVERED") {
+        for (const item of orderWithItems.items) {
+          await invRepo.deductStockForOrder(this.client, item.productId, item.quantity, orderId);
+        }
+      }
+    }
+    const updated = await this.client.order.update({
+      where: { id: orderId },
+      data: { status: newStatus },
+      include: {
+        items: {
+          include: { product: true }
+        },
+        customer: {
+          select: { id: true, fullName: true, email: true, phone: true }
+        }
+      }
+    });
+    return updated;
+  }
+};
+var order_repository_default = OrderRepository;
+
+// ../backend/src/repositories/payment-repository.ts
+var PaymentRepository = class extends base_repository_default {
+  constructor() {
+    super("payment");
+  }
+  async createPaymentTransaction(params) {
+    const { orderId, paymentMethod, idempotencyKey, customerIdCheck } = params;
+    const order = await this.client.order.findUnique({
+      where: { id: orderId },
+      include: { customer: true }
+    });
+    if (!order) {
+      throw new NotFoundException("order_not_found");
+    }
+    if (customerIdCheck && order.customerId !== customerIdCheck) {
+      throw new NotFoundException("order_not_found");
+    }
+    const existing = await this.client.payment.findFirst({
+      where: { orderId: order.id },
+      orderBy: { createdAt: "desc" }
+    });
+    if (existing) {
+      return existing;
+    }
+    const amount = order.total;
+    if (amount <= 0) {
+      throw new ValidationException("invalid_order_amount");
+    }
+    const initialStatus = paymentMethod === "CASH_ON_DELIVERY" ? "PENDING" : "COMPLETED";
+    const providerRef = `PAY-REF-${Date.now()}-${Math.floor(Math.random() * 1e4)}`;
+    const transaction = await this.client.payment.create({
+      data: {
+        orderId: order.id,
+        amount,
+        status: initialStatus,
+        method: paymentMethod,
+        providerRef,
+        paidAt: initialStatus === "COMPLETED" ? /* @__PURE__ */ new Date() : null
+      }
+    });
+    if (initialStatus === "COMPLETED" && order.status === "PENDING") {
+      await this.client.order.update({
+        where: { id: order.id },
+        data: { status: "CONFIRMED" }
+      });
+    }
+    return transaction;
+  }
+  async verifyPaymentTransaction(paymentId, targetStatus = "COMPLETED", providerReference) {
+    const existing = await this.client.payment.findUnique({
+      where: { id: paymentId },
+      include: { order: true }
+    });
+    if (!existing) {
+      throw new NotFoundException("payment_transaction_not_found");
+    }
+    const updated = await this.client.payment.update({
+      where: { id: paymentId },
+      data: {
+        status: targetStatus,
+        providerRef: providerReference ?? existing.providerRef,
+        paidAt: targetStatus === "COMPLETED" ? /* @__PURE__ */ new Date() : existing.paidAt
+      }
+    });
+    if (targetStatus === "COMPLETED" && existing.order && existing.order.status === "PENDING") {
+      await this.client.order.update({
+        where: { id: existing.orderId },
+        data: { status: "CONFIRMED" }
+      });
+    }
+    return updated;
+  }
+  async findPaymentByOrderId(orderId, customerIdCheck) {
+    const order = await this.client.order.findUnique({
+      where: { id: orderId }
+    });
+    if (!order) return null;
+    if (customerIdCheck && order.customerId !== customerIdCheck) return null;
+    return this.client.payment.findFirst({
+      where: { orderId },
+      orderBy: { createdAt: "desc" }
+    });
+  }
+};
+var payment_repository_default = PaymentRepository;
+
+// ../backend/src/repositories/notification-repository.ts
+var NotificationRepository = class extends base_repository_default {
+  constructor() {
+    super("notification");
+  }
+  async createNotification(data) {
+    return this.client.notification.create({
+      data: {
+        userId: data.userId,
+        title: data.title,
+        body: data.body,
+        channel: data.channel ?? "SYSTEM",
+        read: false,
+        payload: data.payload ? JSON.stringify(data.payload) : null
+      }
+    });
+  }
+  async findUserNotifications(userId, limit = 30) {
+    const [items, unreadCount] = await Promise.all([
+      this.client.notification.findMany({
+        where: { userId },
+        orderBy: { createdAt: "desc" },
+        take: limit
+      }),
+      this.client.notification.count({
+        where: { userId, read: false }
+      })
+    ]);
+    return {
+      items,
+      unreadCount
+    };
+  }
+  async getUnreadCount(userId) {
+    return this.client.notification.count({
+      where: { userId, read: false }
+    });
+  }
+  async markAsRead(notificationId, userId) {
+    const existing = await this.client.notification.findUnique({
+      where: { id: notificationId }
+    });
+    if (!existing || existing.userId !== userId) {
+      throw new NotFoundException("notification_not_found");
+    }
+    return this.client.notification.update({
+      where: { id: notificationId },
+      data: { read: true }
+    });
+  }
+  async markAllAsRead(userId) {
+    const result = await this.client.notification.updateMany({
+      where: { userId, read: false },
+      data: { read: true }
+    });
+    return result.count;
+  }
+};
+var notification_repository_default = NotificationRepository;
+
+// ../backend/src/repositories/audit-repository.ts
+var SENSITIVE_KEYS = ["password", "passwordHash", "token", "jwt", "secret", "creditCard"];
+function sanitizeObject(obj) {
+  if (!obj) return null;
+  if (typeof obj === "string") {
+    try {
+      obj = JSON.parse(obj);
+    } catch {
+      return obj;
+    }
+  }
+  const clean = { ...obj };
+  for (const key of Object.keys(clean)) {
+    if (SENSITIVE_KEYS.some((sk) => key.toLowerCase().includes(sk.toLowerCase()))) {
+      clean[key] = "[REDACTED]";
+    }
+  }
+  return JSON.stringify(clean);
+}
+var AuditRepository = class extends base_repository_default {
+  constructor() {
+    super("auditLog");
+  }
+  // Append-Only Audit Logging
+  async createAuditLog(data) {
+    return this.client.auditLog.create({
+      data: {
+        actorId: data.actorId ?? null,
+        action: data.action,
+        resource: data.resource,
+        resourceId: data.resourceId ?? null,
+        before: sanitizeObject(data.before),
+        after: sanitizeObject(data.after),
+        ipAddress: data.ipAddress ?? null,
+        userAgent: data.userAgent ?? null
+      }
+    });
+  }
+  async findAuditLogs(params) {
+    const limit = Math.min(params.limit ?? 20, 100);
+    const page = Math.max(params.page ?? 1, 1);
+    const skip = (page - 1) * limit;
+    const where = {};
+    if (params.actorId) where.actorId = params.actorId;
+    if (params.resource) where.resource = params.resource;
+    if (params.action) where.action = params.action;
+    const [items, total] = await Promise.all([
+      this.client.auditLog.findMany({
+        where,
+        include: { actor: true },
+        orderBy: { createdAt: "desc" },
+        skip,
+        take: limit
+      }),
+      this.client.auditLog.count({ where })
+    ]);
+    return {
+      items: items.map((item) => ({
+        id: item.id,
+        actorId: item.actorId,
+        actorName: item.actor?.displayName || item.actor?.email || "\u0627\u0644\u0646\u0638\u0627\u0645 (System)",
+        action: item.action,
+        resource: item.resource,
+        resourceId: item.resourceId,
+        before: item.before,
+        after: item.after,
+        ipAddress: item.ipAddress,
+        createdAt: item.createdAt
+      })),
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit) || 1
+      }
+    };
+  }
+};
+var audit_repository_default = AuditRepository;
+
+// ../backend/src/repositories/repository-factory.ts
+var tenantRepository = new tenant_repository_default();
+var userRepository = new user_repository_default();
+var roleRepository = new role_repository_default();
+var permissionRepository = new permission_repository_default();
+var storeRepository = new store_repository_default();
+var branchRepository = new branch_repository_default();
+var categoryRepository = new category_repository_default();
+var productRepository = new product_repository_default();
+var inventoryRepository = new inventory_repository_default();
+var supplierRepository = new supplier_repository_default();
+var customerRepository = new customer_repository_default();
+var cartRepository = new cart_repository_default();
+var orderRepository = new order_repository_default();
+var paymentRepository = new payment_repository_default();
+var notificationRepository = new notification_repository_default();
+var auditRepository = new audit_repository_default();
+var RepositoryFactory = {
+  getTenantRepository: () => tenantRepository,
+  getUserRepository: () => userRepository,
+  getRoleRepository: () => roleRepository,
+  getPermissionRepository: () => permissionRepository,
+  getStoreRepository: () => storeRepository,
+  getBranchRepository: () => branchRepository,
+  getCategoryRepository: () => categoryRepository,
+  getProductRepository: () => productRepository,
+  getInventoryRepository: () => inventoryRepository,
+  getSupplierRepository: () => supplierRepository,
+  getCustomerRepository: () => customerRepository,
+  getCartRepository: () => cartRepository,
+  getOrderRepository: () => orderRepository,
+  getPaymentRepository: () => paymentRepository,
+  getNotificationRepository: () => notificationRepository,
+  getAuditRepository: () => auditRepository
+};
+
+// ../backend/src/repositories/logger.ts
+var NoopLogger = class {
+  debug() {
+  }
+  info() {
+  }
+  warn() {
+  }
+  error() {
+  }
+};
+var logger = new NoopLogger();
+
+// ../backend/src/services/base-service.ts
+init_prisma_service();
+
+// ../backend/src/repositories/prisma-error-mapper.ts
+var import_client2 = require("@prisma/client");
+function mapPrismaError(err) {
+  if (err instanceof import_client2.Prisma.PrismaClientKnownRequestError) {
+    switch (err.code) {
+      case "P2002":
+        throw new ConflictException(err.message);
+      case "P2025":
+        throw new NotFoundException(err.message);
+      case "P2003":
+        throw new DatabaseException(err.message);
+      default:
+        throw new DatabaseException(err.message);
+    }
+  }
+  if (err instanceof Error) {
+    throw new DatabaseException(err.message);
+  }
+  throw new DatabaseException("Unknown database error");
+}
+
+// ../backend/src/services/base-service.ts
+var BaseService = class {
+  logger = logger;
+  constructor() {
+  }
+  // Validation hooks (override in concrete services)
+  async validateCreate(_data) {
+  }
+  async validateUpdate(_id, _data) {
+  }
+  async validateDelete(_id) {
+  }
+  // Transaction helper
+  async runInTransaction(work) {
+    try {
+      return await prisma_service_default.transaction(async (tx) => work(tx));
+    } catch (err) {
+      mapPrismaError(err);
+    }
+  }
+  // Generic error wrapper to map Prisma errors
+  handleRepoError(err) {
+    mapPrismaError(err);
+  }
+};
+var base_service_default = BaseService;
+
+// ../backend/src/services/tenant-service.ts
+var TenantService = class extends base_service_default {
+  constructor(tenantRepo) {
+    super();
+    this.tenantRepo = tenantRepo;
+  }
+  tenantRepo;
+  async create(data) {
+    await this.validateCreate(data);
+    try {
+      return await this.tenantRepo.create(data);
+    } catch (err) {
+      this.handleRepoError(err);
+    }
+  }
+  async findById(id) {
+    return this.tenantRepo.findById(id);
+  }
+  async findMany(filter) {
+    return this.tenantRepo.findMany(filter);
+  }
+  async update(id, data) {
+    await this.validateUpdate(id, data);
+    try {
+      return await this.tenantRepo.update(id, data);
+    } catch (err) {
+      this.handleRepoError(err);
+    }
+  }
+  async delete(id) {
+    await this.validateDelete(id);
+    await this.tenantRepo.delete(id);
+  }
+  async paginate(options) {
+    return this.tenantRepo.paginate(options);
+  }
+};
+var tenant_service_default = TenantService;
+
+// ../backend/src/services/user-service.ts
+var UserService = class extends base_service_default {
+  constructor(userRepo, roleRepo) {
+    super();
+    this.userRepo = userRepo;
+    this.roleRepo = roleRepo;
+  }
+  userRepo;
+  roleRepo;
+  async create(data) {
+    await this.validateCreate(data);
+    try {
+      return await this.userRepo.create(data);
+    } catch (err) {
+      this.handleRepoError(err);
+    }
+  }
+  async findById(id) {
+    return this.userRepo.findById(id);
+  }
+  async findMany(filter) {
+    return this.userRepo.findMany(filter);
+  }
+  async update(id, data) {
+    await this.validateUpdate(id, data);
+    try {
+      return await this.userRepo.update(id, data);
+    } catch (err) {
+      this.handleRepoError(err);
+    }
+  }
+  async delete(id) {
+    await this.validateDelete(id);
+    await this.userRepo.delete(id);
+  }
+  async paginate(options) {
+    return this.userRepo.paginate(options);
+  }
+  async restore(id) {
+    return this.userRepo.restore(id);
+  }
+  async listRoles(userId) {
+    const user = await this.userRepo.findById(userId);
+    if (!user) throw new NotFoundException("user_not_found");
+    const roles = await this.userRepo.findUserRoles(userId);
+    return { userId, roles };
+  }
+  async assignRole(userId, roleId) {
+    const user = await this.userRepo.findById(userId);
+    if (!user) throw new NotFoundException("user_not_found");
+    if (!this.roleRepo) throw new Error("role_repository_not_configured");
+    const role = await this.roleRepo.findById(roleId);
+    if (!role) throw new NotFoundException("role_not_found");
+    const repository = this.userRepo;
+    if (await repository.hasRole(userId, roleId)) {
+      throw new ConflictException("role_already_assigned");
+    }
+    try {
+      return await repository.assignRole(userId, roleId);
+    } catch (err) {
+      this.handleRepoError(err);
+    }
+  }
+  async removeRole(userId, roleId) {
+    const user = await this.userRepo.findById(userId);
+    if (!user) throw new NotFoundException("user_not_found");
+    if (!this.roleRepo) throw new Error("role_repository_not_configured");
+    const role = await this.roleRepo.findById(roleId);
+    if (!role) throw new NotFoundException("role_not_found");
+    const repository = this.userRepo;
+    if (!await repository.hasRole(userId, roleId)) {
+      throw new NotFoundException("user_role_not_found");
+    }
+    return repository.removeRole(userId, roleId);
+  }
+  async checkRole(userId, roleId) {
+    const user = await this.userRepo.findById(userId);
+    if (!user) throw new NotFoundException("user_not_found");
+    if (!this.roleRepo) throw new Error("role_repository_not_configured");
+    const role = await this.roleRepo.findById(roleId);
+    if (!role) throw new NotFoundException("role_not_found");
+    return this.userRepo.hasRole(userId, roleId);
+  }
+};
+var user_service_default = UserService;
+
+// ../backend/src/services/role-service.ts
+var RoleService = class extends base_service_default {
+  constructor(roleRepo, permissionRepo) {
+    super();
+    this.roleRepo = roleRepo;
+    this.permissionRepo = permissionRepo;
+  }
+  roleRepo;
+  permissionRepo;
+  async create(data) {
+    await this.validateCreate(data);
+    try {
+      return await this.roleRepo.create(data);
+    } catch (err) {
+      this.handleRepoError(err);
+    }
+  }
+  async findById(id) {
+    return this.roleRepo.findById(id);
+  }
+  async findMany(filter) {
+    return this.roleRepo.findMany(filter);
+  }
+  async update(id, data) {
+    await this.validateUpdate(id, data);
+    try {
+      return await this.roleRepo.update(id, data);
+    } catch (err) {
+      this.handleRepoError(err);
+    }
+  }
+  async delete(id) {
+    await this.validateDelete(id);
+    await this.roleRepo.delete(id);
+  }
+  async paginate(options) {
+    return this.roleRepo.paginate(options);
+  }
+  async restore(id) {
+    return this.roleRepo.restore(id);
+  }
+  async listPermissions(roleId) {
+    const role = await this.roleRepo.findById(roleId);
+    if (!role) throw new NotFoundException("role_not_found");
+    const permissions = await this.roleRepo.findRolePermissions(roleId);
+    return { role, permissions };
+  }
+  async assignPermission(roleId, permissionId) {
+    const role = await this.roleRepo.findById(roleId);
+    if (!role) throw new NotFoundException("role_not_found");
+    const permission = await this.permissionRepo.findById(permissionId);
+    if (!permission) throw new NotFoundException("permission_not_found");
+    const alreadyAssigned = await this.roleRepo.hasPermission(roleId, permissionId);
+    if (alreadyAssigned) throw new ConflictException("permission_already_assigned");
+    try {
+      return await this.roleRepo.assignPermission(roleId, permissionId);
+    } catch (err) {
+      this.handleRepoError(err);
+    }
+  }
+  async removePermission(roleId, permissionId) {
+    const role = await this.roleRepo.findById(roleId);
+    if (!role) throw new NotFoundException("role_not_found");
+    const permission = await this.permissionRepo.findById(permissionId);
+    if (!permission) throw new NotFoundException("permission_not_found");
+    const exists = await this.roleRepo.hasPermission(roleId, permissionId);
+    if (!exists) throw new NotFoundException("role_permission_not_found");
+    return this.roleRepo.removePermission(roleId, permissionId);
+  }
+  async checkPermission(roleId, permissionId) {
+    const role = await this.roleRepo.findById(roleId);
+    if (!role) throw new NotFoundException("role_not_found");
+    const permission = await this.permissionRepo.findById(permissionId);
+    if (!permission) throw new NotFoundException("permission_not_found");
+    return this.roleRepo.hasPermission(roleId, permissionId);
+  }
+};
+var role_service_default = RoleService;
+
+// ../backend/src/services/permission-service.ts
+var PermissionService = class extends base_service_default {
+  constructor(permissionRepo) {
+    super();
+    this.permissionRepo = permissionRepo;
+  }
+  permissionRepo;
+  async create(data) {
+    await this.validateCreate(data);
+    try {
+      return await this.permissionRepo.create(data);
+    } catch (err) {
+      this.handleRepoError(err);
+    }
+  }
+  async findById(id) {
+    return this.permissionRepo.findById(id);
+  }
+  async findMany(filter) {
+    return this.permissionRepo.findMany(filter);
+  }
+  async update(id, data) {
+    await this.validateUpdate(id, data);
+    try {
+      return await this.permissionRepo.update(id, data);
+    } catch (err) {
+      this.handleRepoError(err);
+    }
+  }
+  async delete(id) {
+    await this.validateDelete(id);
+    await this.permissionRepo.delete(id);
+  }
+  async restore(id) {
+    return this.permissionRepo.restore(id);
+  }
+  async paginate(options) {
+    return this.permissionRepo.paginate(options);
+  }
+};
+var permission_service_default = PermissionService;
+
+// ../backend/src/services/store-service.ts
+var StoreService = class extends base_service_default {
+  constructor(storeRepo) {
+    super();
+    this.storeRepo = storeRepo;
+  }
+  storeRepo;
+  async create(data) {
+    await this.validateCreate(data);
+    try {
+      return await this.storeRepo.create(data);
+    } catch (err) {
+      this.handleRepoError(err);
+    }
+  }
+  async findById(id) {
+    return this.storeRepo.findById(id);
+  }
+  async findMany(filter) {
+    return this.storeRepo.findMany(filter);
+  }
+  async update(id, data) {
+    await this.validateUpdate(id, data);
+    try {
+      return await this.storeRepo.update(id, data);
+    } catch (err) {
+      this.handleRepoError(err);
+    }
+  }
+  async delete(id) {
+    await this.validateDelete(id);
+    await this.storeRepo.delete(id);
+  }
+  async paginate(options) {
+    return this.storeRepo.paginate(options);
+  }
+};
+var store_service_default = StoreService;
+
+// ../backend/src/services/branch-service.ts
+var BranchService = class extends base_service_default {
+  constructor(branchRepo) {
+    super();
+    this.branchRepo = branchRepo;
+  }
+  branchRepo;
+  async create(data) {
+    await this.validateCreate(data);
+    try {
+      return await this.branchRepo.create(data);
+    } catch (err) {
+      this.handleRepoError(err);
+    }
+  }
+  async findById(id) {
+    return this.branchRepo.findById(id);
+  }
+  async findMany(filter) {
+    return this.branchRepo.findMany(filter);
+  }
+  async update(id, data) {
+    await this.validateUpdate(id, data);
+    try {
+      return await this.branchRepo.update(id, data);
+    } catch (err) {
+      this.handleRepoError(err);
+    }
+  }
+  async delete(id) {
+    await this.validateDelete(id);
+    await this.branchRepo.delete(id);
+  }
+  async paginate(options) {
+    return this.branchRepo.paginate(options);
+  }
+};
+var branch_service_default = BranchService;
+
+// ../backend/src/services/category-service.ts
+var CategoryService = class extends base_service_default {
+  constructor(categoryRepo) {
+    super();
+    this.categoryRepo = categoryRepo;
+  }
+  categoryRepo;
+  async create(data) {
+    await this.validateCreate(data);
+    try {
+      return await this.categoryRepo.create(data);
+    } catch (err) {
+      this.handleRepoError(err);
+    }
+  }
+  async findById(id) {
+    return this.categoryRepo.findById(id);
+  }
+  async findMany(filter) {
+    return this.categoryRepo.findMany(filter);
+  }
+  async update(id, data) {
+    await this.validateUpdate(id, data);
+    try {
+      return await this.categoryRepo.update(id, data);
+    } catch (err) {
+      this.handleRepoError(err);
+    }
+  }
+  async delete(id) {
+    await this.validateDelete(id);
+    await this.categoryRepo.delete(id);
+  }
+  async paginate(options) {
+    return this.categoryRepo.paginate(options);
+  }
+};
+var category_service_default = CategoryService;
+
+// ../backend/src/services/product-service.ts
+var ProductService = class extends base_service_default {
+  constructor(productRepo) {
+    super();
+    this.productRepo = productRepo;
+  }
+  productRepo;
+  async create(data) {
+    await this.validateCreate(data);
+    try {
+      return await this.productRepo.create(this.toPersistencePayload(data));
+    } catch (err) {
+      this.handleRepoError(err);
+    }
+  }
+  async findById(id) {
+    return this.productRepo.findById(id);
+  }
+  async findMany(filter) {
+    return this.productRepo.findMany(filter);
+  }
+  async update(id, data) {
+    await this.validateUpdate(id, data);
+    try {
+      return await this.productRepo.update(id, this.toPersistencePayload(data, true));
+    } catch (err) {
+      this.handleRepoError(err);
+    }
+  }
+  async delete(id) {
+    await this.validateDelete(id);
+    await this.productRepo.delete(id);
+  }
+  async paginate(options) {
+    return this.productRepo.paginate(options);
+  }
+  async restore(id) {
+    if (!id) throw new ValidationException("id_required");
+    try {
+      return await this.productRepo.restore(id);
+    } catch (err) {
+      this.handleRepoError(err);
+    }
+  }
+  async validateCreate(data) {
+    if (!data || typeof data !== "object") throw new ValidationException("data_required");
+    const payload = data;
+    if (typeof payload.name !== "string" || !payload.name.trim()) throw new ValidationException("name_required");
+    if (typeof payload.slug !== "string" || !payload.slug.trim()) throw new ValidationException("slug_required");
+    this.validateOptionalFields(payload);
+    if (await this.productRepo.findBySlug(payload.slug.trim())) throw new ConflictException("product_slug_exists");
+  }
+  async validateUpdate(id, data) {
+    if (!id) throw new ValidationException("id_required");
+    if (!data || typeof data !== "object") throw new ValidationException("data_required");
+    if (!await this.productRepo.findById(id)) throw new NotFoundException("product_not_found");
+    this.validateOptionalFields(data, true);
+    const payload = data;
+    if (typeof payload.slug === "string" && await this.productRepo.findBySlug(payload.slug.trim(), id)) {
+      throw new ConflictException("product_slug_exists");
+    }
+  }
+  async validateDelete(id) {
+    if (!id) throw new ValidationException("id_required");
+    if (!await this.productRepo.findById(id)) throw new NotFoundException("product_not_found");
+  }
+  validateOptionalFields(payload, update = false) {
+    const stringFields = ["sku", "name", "slug", "description", "brandId", "unitId", "categoryId", "subcategoryId"];
+    const maxLengths = {
+      sku: 100,
+      name: 255,
+      slug: 255,
+      description: 5e3,
+      brandId: 36,
+      unitId: 36,
+      categoryId: 36,
+      subcategoryId: 36
+    };
+    for (const field of stringFields) {
+      if (payload[field] !== void 0 && payload[field] !== null && typeof payload[field] !== "string") {
+        throw new ValidationException(`${field}_invalid`);
+      }
+      if (typeof payload[field] === "string") {
+        if (!payload[field].trim()) throw new ValidationException(`${field}_required`);
+        if (payload[field].trim().length > maxLengths[field]) throw new ValidationException(`${field}_too_long`);
+      }
+    }
+    if (typeof payload.slug === "string" && !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(payload.slug.trim())) {
+      throw new ValidationException("slug_invalid");
+    }
+    for (const field of ["brandId", "unitId", "categoryId", "subcategoryId"]) {
+      if (typeof payload[field] === "string" && !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(payload[field].trim())) {
+        throw new ValidationException(`${field}_invalid`);
+      }
+    }
+    if (payload.isPublished !== void 0 && typeof payload.isPublished !== "boolean") {
+      throw new ValidationException("isPublished_invalid");
+    }
+    if (update && !stringFields.some((field) => payload[field] !== void 0) && payload.isPublished === void 0) {
+      throw new ValidationException("data_required");
+    }
+  }
+  toPersistencePayload(payload, update = false) {
+    const fields = ["sku", "name", "slug", "description", "brandId", "unitId", "categoryId", "subcategoryId", "isPublished"];
+    const result = {};
+    for (const field of fields) {
+      if (payload[field] !== void 0) {
+        result[field] = typeof payload[field] === "string" ? payload[field].trim() : payload[field];
+      }
+    }
+    if (!update && result.isPublished === void 0) result.isPublished = false;
+    return result;
+  }
+};
+var product_service_default = ProductService;
+
+// ../backend/src/services/inventory-service.ts
+var InventoryService = class extends base_service_default {
+  constructor(inventoryRepo) {
+    super();
+    this.inventoryRepo = inventoryRepo;
+  }
+  inventoryRepo;
+  async create(data) {
+    await this.validateCreate(data);
+    try {
+      return await this.inventoryRepo.create(data);
+    } catch (err) {
+      this.handleRepoError(err);
+    }
+  }
+  async findById(id) {
+    return this.inventoryRepo.findById(id);
+  }
+  async findMany(filter) {
+    return this.inventoryRepo.findMany(filter);
+  }
+  async update(id, data) {
+    await this.validateUpdate(id, data);
+    try {
+      return await this.inventoryRepo.update(id, data);
+    } catch (err) {
+      this.handleRepoError(err);
+    }
+  }
+  async delete(id) {
+    await this.validateDelete(id);
+    await this.inventoryRepo.delete(id);
+  }
+  async paginate(options) {
+    return this.inventoryRepo.paginate(options);
+  }
+};
+var inventory_service_default = InventoryService;
+
+// ../backend/src/services/supplier-service.ts
+var SupplierService = class extends base_service_default {
+  constructor(supplierRepo) {
+    super();
+    this.supplierRepo = supplierRepo;
+  }
+  supplierRepo;
+  async create(data) {
+    await this.validateCreate(data);
+    try {
+      return await this.supplierRepo.create(data);
+    } catch (err) {
+      this.handleRepoError(err);
+    }
+  }
+  async findById(id) {
+    return this.supplierRepo.findById(id);
+  }
+  async findMany(filter) {
+    return this.supplierRepo.findMany(filter);
+  }
+  async update(id, data) {
+    await this.validateUpdate(id, data);
+    try {
+      return await this.supplierRepo.update(id, data);
+    } catch (err) {
+      this.handleRepoError(err);
+    }
+  }
+  async delete(id) {
+    await this.validateDelete(id);
+    await this.supplierRepo.delete(id);
+  }
+  async paginate(options) {
+    return this.supplierRepo.paginate(options);
+  }
+};
+var supplier_service_default = SupplierService;
+
+// ../backend/src/services/customer-service.ts
+var CustomerService = class extends base_service_default {
+  constructor(customerRepo) {
+    super();
+    this.customerRepo = customerRepo;
+  }
+  customerRepo;
+  async create(data) {
+    this.validateCustomer(data, false);
+    for (const field of ["customerCode", "email", "phone"]) {
+      const value = data[field];
+      if (value && await this.customerRepo.findByUnique(field, value)) throw new ConflictException(`${field}_already_exists`);
+    }
+    try {
+      return await this.customerRepo.create(data);
+    } catch (err) {
+      this.handleRepoError(err);
+    }
+  }
+  async findById(id) {
+    return this.customerRepo.findById(id);
+  }
+  async update(id, data) {
+    if (!this.isUuid(id)) throw new ValidationException("customer_id_invalid");
+    const current = await this.customerRepo.findById(id);
+    if (!current) throw new NotFoundException("customer_not_found");
+    this.validateCustomer({ ...current, ...data }, true);
+    for (const field of ["customerCode", "email", "phone"]) {
+      const value = data[field];
+      if (value && await this.customerRepo.findByUnique(field, value, id)) throw new ConflictException(`${field}_already_exists`);
+    }
+    try {
+      return await this.customerRepo.update(id, data);
+    } catch (err) {
+      this.handleRepoError(err);
+    }
+  }
+  async delete(id) {
+    if (!this.isUuid(id)) throw new ValidationException("customer_id_invalid");
+    if (!await this.customerRepo.findById(id)) throw new NotFoundException("customer_not_found");
+    await this.customerRepo.delete(id);
+  }
+  async paginate(options) {
+    return this.customerRepo.paginate(options);
+  }
+  async createAddress(customerId, data) {
+    await this.requireCustomer(customerId);
+    this.validateAddress(data);
+    return this.customerRepo.createAddress(customerId, data);
+  }
+  async listAddresses(customerId) {
+    await this.requireCustomer(customerId);
+    return this.customerRepo.listAddresses(customerId);
+  }
+  async updateAddress(customerId, addressId, data) {
+    await this.requireCustomer(customerId);
+    if (!this.isUuid(addressId)) throw new ValidationException("address_id_invalid");
+    const current = await this.customerRepo.findAddress(customerId, addressId);
+    if (!current) throw new NotFoundException("address_not_found");
+    this.validateAddress({ ...current, ...data });
+    return this.customerRepo.updateAddress(customerId, addressId, data);
+  }
+  async deleteAddress(customerId, addressId) {
+    await this.requireCustomer(customerId);
+    if (!this.isUuid(addressId)) throw new ValidationException("address_id_invalid");
+    if (!await this.customerRepo.findAddress(customerId, addressId)) throw new NotFoundException("address_not_found");
+    await this.customerRepo.deleteAddress(customerId, addressId);
+  }
+  async requireCustomer(id) {
+    if (!this.isUuid(id)) throw new ValidationException("customer_id_invalid");
+    if (!await this.customerRepo.findById(id)) throw new NotFoundException("customer_not_found");
+  }
+  validateCustomer(data, allowPartial) {
+    if (!data || typeof data !== "object") throw new ValidationException("customer_required");
+    if (!allowPartial && (!data.customerCode || !data.firstName || !data.lastName)) throw new ValidationException("customer_name_required");
+    if (data.customerCode !== void 0 && (!this.text(data.customerCode, 2, 64) || !/^[A-Za-z0-9_-]+$/.test(data.customerCode))) throw new ValidationException("customer_code_invalid");
+    if (data.firstName !== void 0 && !this.text(data.firstName, 1, 100)) throw new ValidationException("first_name_invalid");
+    if (data.lastName !== void 0 && !this.text(data.lastName, 1, 100)) throw new ValidationException("last_name_invalid");
+    if (data.email !== void 0 && data.email !== null && (!this.text(data.email, 3, 255) || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.email))) throw new ValidationException("email_invalid");
+    if (data.phone !== void 0 && data.phone !== null && (!this.text(data.phone, 7, 32) || !/^\+?[0-9 ()-]+$/.test(data.phone))) throw new ValidationException("phone_invalid");
+    if (data.status !== void 0 && !["ACTIVE", "INACTIVE", "BLOCKED"].includes(data.status)) throw new ValidationException("status_invalid");
+    if (data.notes !== void 0 && data.notes !== null && !this.text(data.notes, 0, 2e3)) throw new ValidationException("notes_invalid");
+  }
+  validateAddress(data) {
+    for (const field of ["recipientName", "phone", "country", "city", "district", "street"]) {
+      if (!this.text(data[field], field === "phone" ? 7 : 1, field === "phone" ? 32 : 255)) throw new ValidationException(`${field}_invalid`);
+    }
+    if (!/^\+?[0-9 ()-]+$/.test(data.phone)) throw new ValidationException("phone_invalid");
+    if (data.latitude !== void 0 && data.latitude !== null && (typeof data.latitude !== "number" || data.latitude < -90 || data.latitude > 90)) throw new ValidationException("latitude_invalid");
+    if (data.longitude !== void 0 && data.longitude !== null && (typeof data.longitude !== "number" || data.longitude < -180 || data.longitude > 180)) throw new ValidationException("longitude_invalid");
+  }
+  text(value, min, max) {
+    return typeof value === "string" && value.trim().length >= min && value.trim().length <= max;
+  }
+  isUuid(value) {
+    return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
+  }
+};
+var customer_service_default = CustomerService;
+
+// ../backend/src/services/cart-service.ts
+var CartService = class extends base_service_default {
+  constructor(cartRepo) {
+    super();
+    this.cartRepo = cartRepo;
+  }
+  cartRepo;
+  createNotFound(message) {
+    const err = new NotFoundException(message);
+    err.code = "not_found";
+    return err;
+  }
+  async getCustomerAndCart(userId, email) {
+    if (!userId) {
+      throw new ValidationException2("user_id_required");
+    }
+    let customer = await this.cartRepo.findCustomerByUserIdOrEmail(userId, email);
+    if (!customer) {
+      customer = await this.cartRepo.createCustomerForUser(userId, email);
+    }
+    const cart = await this.cartRepo.findOrCreateCartByCustomerId(customer.id);
+    return { customer, cart };
+  }
+  formatCartResponse(cart) {
+    const formattedItems = (cart.items ?? []).map((item) => {
+      const lineTotal = Number((item.quantity * item.unitPrice).toFixed(2));
+      return {
+        id: item.id,
+        cartId: item.cartId,
+        productId: item.productId,
+        variantId: item.variantId,
+        quantity: item.quantity,
+        unitPrice: item.unitPrice,
+        lineTotal,
+        product: item.product ? {
+          id: item.product.id,
+          name: item.product.name,
+          sku: item.product.sku
+        } : null,
+        createdAt: item.createdAt.toISOString()
+      };
+    });
+    const subtotal = Number(formattedItems.reduce((sum, item) => sum + item.lineTotal, 0).toFixed(2));
+    const totalQuantity = formattedItems.reduce((sum, item) => sum + item.quantity, 0);
+    const total = subtotal;
+    return {
+      id: cart.id,
+      customerId: cart.customerId,
+      items: formattedItems,
+      subtotal,
+      totalQuantity,
+      total,
+      createdAt: cart.createdAt.toISOString(),
+      updatedAt: cart.updatedAt.toISOString()
+    };
+  }
+  async getCartForUser(userId, email) {
+    const { cart } = await this.getCustomerAndCart(userId, email);
+    return this.formatCartResponse(cart);
+  }
+  async addItem(userId, data, email) {
+    if (!data || typeof data !== "object") {
+      throw new ValidationException2("cart_item_required");
+    }
+    if (!data.productId || typeof data.productId !== "string" || !data.productId.trim()) {
+      throw new ValidationException2("product_id_required");
+    }
+    const quantity = data.quantity ?? 1;
+    if (typeof quantity !== "number" || !Number.isInteger(quantity) || quantity <= 0) {
+      throw new ValidationException2("invalid_quantity");
+    }
+    const product = await this.cartRepo.findProductById(data.productId.trim());
+    if (!product || product.deletedAt !== null) {
+      throw this.createNotFound("product_not_found");
+    }
+    const { cart } = await this.getCustomerAndCart(userId, email);
+    const unitPrice = 0;
+    await this.cartRepo.addItem(cart.id, product.id, data.variantId ?? null, quantity, unitPrice);
+    return this.getCartForUser(userId, email);
+  }
+  async updateItemQuantity(userId, cartItemId, data, email) {
+    if (!cartItemId || typeof cartItemId !== "string") {
+      throw new ValidationException2("cart_item_id_invalid");
+    }
+    if (!data || typeof data.quantity !== "number" || !Number.isInteger(data.quantity) || data.quantity < 0) {
+      throw new ValidationException2("invalid_quantity");
+    }
+    const existingItem = await this.cartRepo.findCartItemById(cartItemId);
+    if (!existingItem) {
+      throw this.createNotFound("cart_item_not_found");
+    }
+    const { cart } = await this.getCustomerAndCart(userId, email);
+    if (existingItem.cartId !== cart.id) {
+      throw new ForbiddenError("cart_item_forbidden");
+    }
+    if (data.quantity === 0) {
+      await this.cartRepo.removeItem(cartItemId);
+    } else {
+      await this.cartRepo.updateItemQuantity(cartItemId, data.quantity);
+    }
+    return this.getCartForUser(userId, email);
+  }
+  async removeItem(userId, cartItemId, email) {
+    if (!cartItemId || typeof cartItemId !== "string") {
+      throw new ValidationException2("cart_item_id_invalid");
+    }
+    const existingItem = await this.cartRepo.findCartItemById(cartItemId);
+    if (!existingItem) {
+      throw this.createNotFound("cart_item_not_found");
+    }
+    const { cart } = await this.getCustomerAndCart(userId, email);
+    if (existingItem.cartId !== cart.id) {
+      throw new ForbiddenError("cart_item_forbidden");
+    }
+    await this.cartRepo.removeItem(cartItemId);
+    return this.getCartForUser(userId, email);
+  }
+  async clearCart(userId, email) {
+    const { cart } = await this.getCustomerAndCart(userId, email);
+    await this.cartRepo.clearCart(cart.id);
+    return this.getCartForUser(userId, email);
+  }
+};
+var cart_service_default = CartService;
+
+// ../backend/src/services/order-service.ts
+var OrderService = class extends base_service_default {
+  constructor(orderRepo) {
+    super();
+    this.orderRepo = orderRepo;
+  }
+  orderRepo;
+  async create(data) {
+    await this.validateCreate(data);
+    try {
+      return await this.orderRepo.create(data);
+    } catch (err) {
+      this.handleRepoError(err);
+    }
+  }
+  async findById(id) {
+    return this.orderRepo.findById(id);
+  }
+  async findMany(filter) {
+    return this.orderRepo.findMany(filter);
+  }
+  async update(id, data) {
+    await this.validateUpdate(id, data);
+    try {
+      return await this.orderRepo.update(id, data);
+    } catch (err) {
+      this.handleRepoError(err);
+    }
+  }
+  async delete(id) {
+    await this.validateDelete(id);
+    await this.orderRepo.delete(id);
+  }
+  async paginate(options) {
+    return this.orderRepo.paginate(options);
+  }
+};
+var order_service_default = OrderService;
+
+// ../backend/src/services/payment-service.ts
+var PaymentService = class extends base_service_default {
+  constructor(paymentRepo) {
+    super();
+    this.paymentRepo = paymentRepo;
+  }
+  paymentRepo;
+  async create(data) {
+    await this.validateCreate(data);
+    try {
+      return await this.paymentRepo.create(data);
+    } catch (err) {
+      this.handleRepoError(err);
+    }
+  }
+  async findById(id) {
+    return this.paymentRepo.findById(id);
+  }
+  async findMany(filter) {
+    return this.paymentRepo.findMany(filter);
+  }
+  async update(id, data) {
+    await this.validateUpdate(id, data);
+    try {
+      return await this.paymentRepo.update(id, data);
+    } catch (err) {
+      this.handleRepoError(err);
+    }
+  }
+  async delete(id) {
+    await this.validateDelete(id);
+    await this.paymentRepo.delete(id);
+  }
+  async paginate(options) {
+    return this.paymentRepo.paginate(options);
+  }
+};
+var payment_service_default = PaymentService;
+
+// ../backend/src/services/notification-service.ts
+var NotificationService = class extends base_service_default {
+  constructor(notificationRepo) {
+    super();
+    this.notificationRepo = notificationRepo;
+  }
+  notificationRepo;
+  async create(data) {
+    await this.validateCreate(data);
+    try {
+      return await this.notificationRepo.create(data);
+    } catch (err) {
+      this.handleRepoError(err);
+    }
+  }
+  async findById(id) {
+    return this.notificationRepo.findById(id);
+  }
+  async findMany(filter) {
+    return this.notificationRepo.findMany(filter);
+  }
+  async update(id, data) {
+    await this.validateUpdate(id, data);
+    try {
+      return await this.notificationRepo.update(id, data);
+    } catch (err) {
+      this.handleRepoError(err);
+    }
+  }
+  async delete(id) {
+    await this.validateDelete(id);
+    await this.notificationRepo.delete(id);
+  }
+  async paginate(options) {
+    return this.notificationRepo.paginate(options);
+  }
+};
+var notification_service_default = NotificationService;
+
+// ../backend/src/services/audit-service.ts
+var AuditService = class extends base_service_default {
+  constructor(auditRepo) {
+    super();
+    this.auditRepo = auditRepo;
+  }
+  auditRepo;
+  async create(data) {
+    await this.validateCreate(data);
+    try {
+      return await this.auditRepo.create(data);
+    } catch (err) {
+      this.handleRepoError(err);
+    }
+  }
+  async findById(id) {
+    return this.auditRepo.findById(id);
+  }
+  async findMany(filter) {
+    return this.auditRepo.findMany(filter);
+  }
+  async update(id, data) {
+    await this.validateUpdate(id, data);
+    try {
+      return await this.auditRepo.update(id, data);
+    } catch (err) {
+      this.handleRepoError(err);
+    }
+  }
+  async delete(id) {
+    await this.validateDelete(id);
+    await this.auditRepo.delete(id);
+  }
+  async paginate(options) {
+    return this.auditRepo.paginate(options);
+  }
+};
+var audit_service_default = AuditService;
+
+// ../backend/src/services/service-factory.ts
+var ServiceFactory = {
+  createTenantService: () => new tenant_service_default(RepositoryFactory.getTenantRepository()),
+  createUserService: () => new user_service_default(
+    RepositoryFactory.getUserRepository(),
+    RepositoryFactory.getRoleRepository()
+  ),
+  createRoleService: () => new role_service_default(RepositoryFactory.getRoleRepository(), RepositoryFactory.getPermissionRepository()),
+  createPermissionService: () => new permission_service_default(RepositoryFactory.getPermissionRepository()),
+  createStoreService: () => new store_service_default(RepositoryFactory.getStoreRepository()),
+  createBranchService: () => new branch_service_default(RepositoryFactory.getBranchRepository()),
+  createCategoryService: () => new category_service_default(RepositoryFactory.getCategoryRepository()),
+  createProductService: () => new product_service_default(RepositoryFactory.getProductRepository()),
+  createInventoryService: () => new inventory_service_default(RepositoryFactory.getInventoryRepository()),
+  createSupplierService: () => new supplier_service_default(RepositoryFactory.getSupplierRepository()),
+  createCustomerService: () => new customer_service_default(RepositoryFactory.getCustomerRepository()),
+  createCartService: () => new cart_service_default(RepositoryFactory.getCartRepository()),
+  createOrderService: () => new order_service_default(RepositoryFactory.getOrderRepository()),
+  createPaymentService: () => new payment_service_default(RepositoryFactory.getPaymentRepository()),
+  createNotificationService: () => new notification_service_default(RepositoryFactory.getNotificationRepository()),
+  createAuditService: () => new audit_service_default(RepositoryFactory.getAuditRepository())
+};
+
+// ../backend/src/modules/users/controller.ts
+var UsersController = class {
+  userService = ServiceFactory.createUserService();
+  createApiContext(request2) {
+    return {
+      timestamp: request2.context?.metadata?.timestamp ?? (/* @__PURE__ */ new Date()).toISOString(),
+      requestId: request2.context?.metadata?.requestId,
+      version: request2.context?.metadata?.version ?? "v1",
+      locale: request2.context?.metadata?.locale
+    };
+  }
+  mapToDto(entity) {
+    return {
+      id: entity.id,
+      fullName: entity.displayName ?? null,
+      email: entity.email,
+      phone: entity.phone ?? null,
+      createdAt: entity.createdAt ? new Date(entity.createdAt).toISOString() : (/* @__PURE__ */ new Date()).toISOString(),
+      updatedAt: entity.updatedAt ? new Date(entity.updatedAt).toISOString() : (/* @__PURE__ */ new Date()).toISOString(),
+      deletedAt: entity.deletedAt ? new Date(entity.deletedAt).toISOString() : null
+    };
+  }
+  async list(request2) {
+    const ctx = this.createApiContext(request2);
+    const q = request2.query ?? {};
+    const page = Number(q.page ?? 1);
+    const limit = Number(q.limit ?? 25);
+    const rawSort = q.sort ?? void 0;
+    const rawOrder = q.order ?? void 0;
+    const allowedSorts = ["id", "email", "createdAt", "updatedAt", "displayName"];
+    const sort = rawSort && allowedSorts.includes(rawSort) ? rawSort : void 0;
+    const order = rawOrder === "desc" ? "desc" : "asc";
+    const search = q.search;
+    let filters = {};
+    if (q.filters && typeof q.filters === "string") {
+      try {
+        filters = JSON.parse(q.filters) ?? {};
+      } catch {
+      }
+    } else if (typeof q.filters === "object") {
+      filters = q.filters;
+    }
+    if (search && search.trim()) {
+      const s = search.trim();
+      const orCond = [
+        { displayName: { contains: s } },
+        { email: { contains: s } },
+        { phone: { contains: s } }
+      ];
+      if (filters && Object.keys(filters).length > 0) {
+        filters = { AND: [filters, { OR: orCond }] };
+      } else {
+        filters = { OR: orCond };
+      }
+    }
+    const options = { page, limit, sort, order, filters };
+    try {
+      if (process.env.NODE_ENV !== "production") {
+        console.debug("[UsersController] paginate options:", JSON.stringify(options));
+      }
+      const resultAny = await this.userService.paginate(options);
+      const data = (resultAny.data ?? []).map((e) => this.mapToDto(e));
+      return paginated(data, resultAny.page ?? page, resultAny.limit ?? limit, resultAny.total ?? 0, ctx);
+    } catch (err) {
+      return { statusCode: HTTP_STATUS.INTERNAL_SERVER_ERROR, body: { success: false, error: { code: "internal_error", message: err?.message ?? "internal_error" }, meta: ctx } };
+    }
+  }
+  async get(request2) {
+    const ctx = this.createApiContext(request2);
+    const id = request2.params?.id;
+    if (!id) return { statusCode: HTTP_STATUS.BAD_REQUEST, body: { success: false, error: { code: "bad_request", message: "id_required" }, meta: ctx } };
+    try {
+      const result = await this.userService.findById(id);
+      if (!result) return { statusCode: HTTP_STATUS.NOT_FOUND, body: { success: false, error: { code: "not_found", message: "user_not_found" }, meta: ctx } };
+      return success(this.mapToDto(result), ctx);
+    } catch (err) {
+      return { statusCode: HTTP_STATUS.INTERNAL_SERVER_ERROR, body: { success: false, error: { code: "internal_error", message: err?.message ?? "internal_error" }, meta: ctx } };
+    }
+  }
+  async create(request2) {
+    const ctx = this.createApiContext(request2);
+    const body = request2.body;
+    if (!body || typeof body !== "object" || typeof body.email !== "string" || !body.email) {
+      return { statusCode: HTTP_STATUS.BAD_REQUEST, body: { success: false, error: { code: "bad_request", message: "email_required" }, meta: ctx } };
+    }
+    try {
+      const createdUser = await this.userService.create(body);
+      return created(this.mapToDto(createdUser), ctx);
+    } catch (err) {
+      if (err instanceof ValidationException) {
+        return { statusCode: HTTP_STATUS.UNPROCESSABLE_ENTITY, body: { success: false, error: { code: "validation_error", message: err.message }, meta: ctx } };
+      }
+      return { statusCode: HTTP_STATUS.INTERNAL_SERVER_ERROR, body: { success: false, error: { code: "internal_error", message: err?.message ?? "internal_error" }, meta: ctx } };
+    }
+  }
+  async update(request2) {
+    const ctx = this.createApiContext(request2);
+    const id = request2.params?.id;
+    const body = request2.body;
+    if (!id) return { statusCode: HTTP_STATUS.BAD_REQUEST, body: { success: false, error: { code: "bad_request", message: "id_required" }, meta: ctx } };
+    if (!body || typeof body !== "object") return { statusCode: HTTP_STATUS.BAD_REQUEST, body: { success: false, error: { code: "bad_request", message: "data_required" }, meta: ctx } };
+    try {
+      const updated = await this.userService.update(id, body);
+      return success(this.mapToDto(updated), ctx);
+    } catch (err) {
+      if (err instanceof ValidationException) {
+        return { statusCode: HTTP_STATUS.UNPROCESSABLE_ENTITY, body: { success: false, error: { code: "validation_error", message: err.message }, meta: ctx } };
+      }
+      return { statusCode: HTTP_STATUS.INTERNAL_SERVER_ERROR, body: { success: false, error: { code: "internal_error", message: err?.message ?? "internal_error" }, meta: ctx } };
+    }
+  }
+  async remove(request2) {
+    const ctx = this.createApiContext(request2);
+    const id = request2.params?.id;
+    if (!id) return { statusCode: HTTP_STATUS.BAD_REQUEST, body: { success: false, error: { code: "bad_request", message: "id_required" }, meta: ctx } };
+    try {
+      await this.userService.delete(id);
+      return noContent(ctx);
+    } catch (err) {
+      return { statusCode: HTTP_STATUS.INTERNAL_SERVER_ERROR, body: { success: false, error: { code: "internal_error", message: err?.message ?? "internal_error" }, meta: ctx } };
+    }
+  }
+  async restore(request2) {
+    const ctx = this.createApiContext(request2);
+    const id = request2.params?.id;
+    if (!id) return { statusCode: HTTP_STATUS.BAD_REQUEST, body: { success: false, error: { code: "bad_request", message: "id_required" }, meta: ctx } };
+    try {
+      const restored = await this.userService.restore(id);
+      return success(this.mapToDto(restored), ctx);
+    } catch (err) {
+      return { statusCode: HTTP_STATUS.INTERNAL_SERVER_ERROR, body: { success: false, error: { code: "internal_error", message: err?.message ?? "internal_error" }, meta: ctx } };
+    }
+  }
+  async listRoles(request2) {
+    const ctx = this.createApiContext(request2);
+    const userId = request2.params?.userId;
+    if (!userId) return { statusCode: HTTP_STATUS.BAD_REQUEST, body: { success: false, error: { code: "bad_request", message: "user_id_required" }, meta: ctx } };
+    try {
+      const result = await this.userService.listRoles(userId);
+      const roles = (result.roles ?? []).map((assignment) => assignment.role ?? assignment);
+      return success({ userId: result.userId, roles }, ctx);
+    } catch (err) {
+      return this.relationshipError(err, ctx);
+    }
+  }
+  async assignRole(request2) {
+    const ctx = this.createApiContext(request2);
+    const userId = request2.params?.userId;
+    const roleId = request2.body?.roleId;
+    if (!userId || !roleId) return { statusCode: HTTP_STATUS.BAD_REQUEST, body: { success: false, error: { code: "bad_request", message: "user_id_and_role_id_required" }, meta: ctx } };
+    try {
+      return created(await this.userService.assignRole(userId, roleId), ctx);
+    } catch (err) {
+      return this.relationshipError(err, ctx);
+    }
+  }
+  async removeRole(request2) {
+    const ctx = this.createApiContext(request2);
+    const userId = request2.params?.userId;
+    const roleId = request2.params?.roleId;
+    if (!userId || !roleId) return { statusCode: HTTP_STATUS.BAD_REQUEST, body: { success: false, error: { code: "bad_request", message: "user_id_and_role_id_required" }, meta: ctx } };
+    try {
+      await this.userService.removeRole(userId, roleId);
+      return noContent(ctx);
+    } catch (err) {
+      return this.relationshipError(err, ctx);
+    }
+  }
+  async checkRole(request2) {
+    const ctx = this.createApiContext(request2);
+    const userId = request2.params?.userId;
+    const roleId = request2.params?.roleId;
+    if (!userId || !roleId) return { statusCode: HTTP_STATUS.BAD_REQUEST, body: { success: false, error: { code: "bad_request", message: "user_id_and_role_id_required" }, meta: ctx } };
+    try {
+      return success({ assigned: await this.userService.checkRole(userId, roleId) }, ctx);
+    } catch (err) {
+      return this.relationshipError(err, ctx);
+    }
+  }
+  relationshipError(err, ctx) {
+    if (err instanceof ConflictException) return { statusCode: HTTP_STATUS.CONFLICT, body: { success: false, error: { code: "conflict", message: err.message }, meta: ctx } };
+    if (err instanceof NotFoundException) return { statusCode: HTTP_STATUS.NOT_FOUND, body: { success: false, error: { code: "not_found", message: err.message }, meta: ctx } };
+    return { statusCode: HTTP_STATUS.INTERNAL_SERVER_ERROR, body: { success: false, error: { code: "internal_error", message: err?.message ?? "internal_error" }, meta: ctx } };
+  }
+};
+var controller_default = UsersController;
+
+// ../backend/src/modules/users/routes.ts
+function toControllerRequest2(ctx) {
+  return {
+    body: ctx.body ?? void 0,
+    headers: ctx.headers,
+    query: ctx.query,
+    params: ctx.params,
+    context: {
+      metadata: {
+        timestamp: (/* @__PURE__ */ new Date()).toISOString(),
+        version: ctx.version ?? "v1"
+      }
+    }
+  };
+}
+function adapt2(handler2) {
+  return (context) => handler2(context);
+}
+function createUserRoutes(controller = new controller_default()) {
+  const builder = new RouterBuilder();
+  builder.register({
+    name: "users-list",
+    method: "GET",
+    path: "/users",
+    version: "v1",
+    handler: adapt2((ctx) => controller.list(toControllerRequest2(ctx))),
+    options: {
+      mode: "private",
+      publicRoute: false,
+      privateRoute: true,
+      authenticationRequired: true,
+      authorizationRequired: true,
+      requiredPermissions: ["users:read"],
+      tags: ["users"],
+      middleware: []
+    }
+  });
+  builder.register({
+    name: "users-get",
+    method: "GET",
+    path: "/users/:id",
+    version: "v1",
+    handler: adapt2((ctx) => controller.get(toControllerRequest2(ctx))),
+    options: {
+      mode: "private",
+      publicRoute: false,
+      privateRoute: true,
+      authenticationRequired: true,
+      authorizationRequired: true,
+      requiredPermissions: ["users:read"],
+      tags: ["users"],
+      middleware: []
+    }
+  });
+  builder.register({
+    name: "users-create",
+    method: "POST",
+    path: "/users",
+    version: "v1",
+    handler: adapt2((ctx) => controller.create(toControllerRequest2(ctx))),
+    options: {
+      mode: "private",
+      publicRoute: false,
+      privateRoute: true,
+      authenticationRequired: true,
+      authorizationRequired: true,
+      requiredPermissions: ["users:create"],
+      tags: ["users"],
+      middleware: []
+    }
+  });
+  builder.register({
+    name: "users-update",
+    method: "PUT",
+    path: "/users/:id",
+    version: "v1",
+    handler: adapt2((ctx) => controller.update(toControllerRequest2(ctx))),
+    options: {
+      mode: "private",
+      publicRoute: false,
+      privateRoute: true,
+      authenticationRequired: true,
+      authorizationRequired: true,
+      requiredPermissions: ["users:update"],
+      tags: ["users"],
+      middleware: []
+    }
+  });
+  builder.register({
+    name: "users-delete",
+    method: "DELETE",
+    path: "/users/:id",
+    version: "v1",
+    handler: adapt2((ctx) => controller.remove(toControllerRequest2(ctx))),
+    options: {
+      mode: "private",
+      publicRoute: false,
+      privateRoute: true,
+      authenticationRequired: true,
+      authorizationRequired: true,
+      requiredPermissions: ["users:delete"],
+      tags: ["users"],
+      middleware: []
+    }
+  });
+  builder.register({
+    name: "users-restore",
+    method: "PATCH",
+    path: "/users/:id/restore",
+    version: "v1",
+    handler: adapt2((ctx) => controller.restore(toControllerRequest2(ctx))),
+    options: {
+      mode: "private",
+      publicRoute: false,
+      privateRoute: true,
+      authenticationRequired: true,
+      authorizationRequired: true,
+      requiredPermissions: ["users:update"],
+      tags: ["users"],
+      middleware: []
+    }
+  });
+  builder.register({
+    name: "users-roles-list",
+    method: "GET",
+    path: "/users/:userId/roles",
+    version: "v1",
+    handler: adapt2((ctx) => controller.listRoles(toControllerRequest2(ctx))),
+    options: {
+      mode: "private",
+      publicRoute: false,
+      privateRoute: true,
+      authenticationRequired: true,
+      authorizationRequired: true,
+      tags: ["users", "roles"],
+      middleware: []
+    }
+  });
+  builder.register({
+    name: "users-roles-assign",
+    method: "POST",
+    path: "/users/:userId/roles",
+    version: "v1",
+    handler: adapt2((ctx) => controller.assignRole(toControllerRequest2(ctx))),
+    options: {
+      mode: "private",
+      publicRoute: false,
+      privateRoute: true,
+      authenticationRequired: true,
+      authorizationRequired: true,
+      tags: ["users", "roles"],
+      middleware: []
+    }
+  });
+  builder.register({
+    name: "users-roles-check",
+    method: "GET",
+    path: "/users/:userId/roles/:roleId",
+    version: "v1",
+    handler: adapt2((ctx) => controller.checkRole(toControllerRequest2(ctx))),
+    options: {
+      mode: "private",
+      publicRoute: false,
+      privateRoute: true,
+      authenticationRequired: true,
+      authorizationRequired: true,
+      tags: ["users", "roles"],
+      middleware: []
+    }
+  });
+  builder.register({
+    name: "users-roles-remove",
+    method: "DELETE",
+    path: "/users/:userId/roles/:roleId",
+    version: "v1",
+    handler: adapt2((ctx) => controller.removeRole(toControllerRequest2(ctx))),
+    options: {
+      mode: "private",
+      publicRoute: false,
+      privateRoute: true,
+      authenticationRequired: true,
+      authorizationRequired: true,
+      tags: ["users", "roles"],
+      middleware: []
+    }
+  });
+  return builder.build();
+}
+
+// ../backend/src/modules/roles/controller.ts
+var RolesController = class {
+  roleService = ServiceFactory.createRoleService();
+  createApiContext(request2) {
+    return {
+      timestamp: request2.context?.metadata?.timestamp ?? (/* @__PURE__ */ new Date()).toISOString(),
+      requestId: request2.context?.metadata?.requestId,
+      version: request2.context?.metadata?.version ?? "v1",
+      locale: request2.context?.metadata?.locale
+    };
+  }
+  mapToDto(entity) {
+    return {
+      id: entity.id,
+      name: entity.name,
+      displayName: entity.displayName ?? null,
+      description: entity.description ?? null,
+      isSystem: typeof entity.isSystem === "boolean" ? entity.isSystem : null,
+      createdAt: entity.createdAt ? new Date(entity.createdAt).toISOString() : (/* @__PURE__ */ new Date()).toISOString(),
+      updatedAt: entity.updatedAt ? new Date(entity.updatedAt).toISOString() : (/* @__PURE__ */ new Date()).toISOString(),
+      deletedAt: entity.deletedAt ? new Date(entity.deletedAt).toISOString() : null
+    };
+  }
+  async list(request2) {
+    const ctx = this.createApiContext(request2);
+    const q = request2.query ?? {};
+    const page = Number(q.page ?? 1);
+    const limit = Number(q.limit ?? 25);
+    const rawSort = q.sort ?? void 0;
+    const rawOrder = q.order ?? void 0;
+    const allowedSorts = ["id", "name", "createdAt", "updatedAt", "displayName"];
+    const sort = rawSort && allowedSorts.includes(rawSort) ? rawSort : void 0;
+    const order = rawOrder === "desc" ? "desc" : "asc";
+    const search = q.search;
+    let filters = {};
+    if (q.filters && typeof q.filters === "string") {
+      try {
+        filters = JSON.parse(q.filters) ?? {};
+      } catch {
+      }
+    } else if (typeof q.filters === "object") {
+      filters = q.filters;
+    }
+    if (search && search.trim()) {
+      const s = search.trim();
+      const orCond = [
+        { name: { contains: s } },
+        { displayName: { contains: s } },
+        { description: { contains: s } }
+      ];
+      if (filters && Object.keys(filters).length > 0) {
+        filters = { AND: [filters, { OR: orCond }] };
+      } else {
+        filters = { OR: orCond };
+      }
+    }
+    const options = { page, limit, sort, order, filters };
+    try {
+      if (process.env.NODE_ENV !== "production") {
+        console.debug("[RolesController] paginate options:", JSON.stringify(options));
+      }
+      const resultAny = await this.roleService.paginate(options);
+      const data = (resultAny.data ?? []).map((e) => this.mapToDto(e));
+      return paginated(data, resultAny.page ?? page, resultAny.limit ?? limit, resultAny.total ?? 0, ctx);
+    } catch (err) {
+      return { statusCode: HTTP_STATUS.INTERNAL_SERVER_ERROR, body: { success: false, error: { code: "internal_error", message: err?.message ?? "internal_error" }, meta: ctx } };
+    }
+  }
+  async get(request2) {
+    const ctx = this.createApiContext(request2);
+    const id = request2.params?.id;
+    if (!id) return { statusCode: HTTP_STATUS.BAD_REQUEST, body: { success: false, error: { code: "bad_request", message: "id_required" }, meta: ctx } };
+    try {
+      const result = await this.roleService.findById(id);
+      if (!result) return { statusCode: HTTP_STATUS.NOT_FOUND, body: { success: false, error: { code: "not_found", message: "role_not_found" }, meta: ctx } };
+      return success(this.mapToDto(result), ctx);
+    } catch (err) {
+      return { statusCode: HTTP_STATUS.INTERNAL_SERVER_ERROR, body: { success: false, error: { code: "internal_error", message: err?.message ?? "internal_error" }, meta: ctx } };
+    }
+  }
+  async create(request2) {
+    const ctx = this.createApiContext(request2);
+    const body = request2.body;
+    if (!body || typeof body !== "object" || typeof body.name !== "string" || !body.name) {
+      return { statusCode: HTTP_STATUS.BAD_REQUEST, body: { success: false, error: { code: "bad_request", message: "name_required" }, meta: ctx } };
+    }
+    try {
+      const payload = {
+        name: body.name
+      };
+      if (body.description !== void 0) payload.description = body.description;
+      const createdRole = await this.roleService.create(payload);
+      return created(this.mapToDto(createdRole), ctx);
+    } catch (err) {
+      if (err instanceof ValidationException) {
+        return { statusCode: HTTP_STATUS.UNPROCESSABLE_ENTITY, body: { success: false, error: { code: "validation_error", message: err.message }, meta: ctx } };
+      }
+      return { statusCode: HTTP_STATUS.INTERNAL_SERVER_ERROR, body: { success: false, error: { code: "internal_error", message: err?.message ?? "internal_error" }, meta: ctx } };
+    }
+  }
+  async update(request2) {
+    const ctx = this.createApiContext(request2);
+    const id = request2.params?.id;
+    const body = request2.body;
+    if (!id) return { statusCode: HTTP_STATUS.BAD_REQUEST, body: { success: false, error: { code: "bad_request", message: "id_required" }, meta: ctx } };
+    if (!body || typeof body !== "object") return { statusCode: HTTP_STATUS.BAD_REQUEST, body: { success: false, error: { code: "bad_request", message: "data_required" }, meta: ctx } };
+    try {
+      const payload = {};
+      if (body.description !== void 0) payload.description = body.description;
+      const updated = await this.roleService.update(id, payload);
+      return success(this.mapToDto(updated), ctx);
+    } catch (err) {
+      if (err instanceof ValidationException) {
+        return { statusCode: HTTP_STATUS.UNPROCESSABLE_ENTITY, body: { success: false, error: { code: "validation_error", message: err.message }, meta: ctx } };
+      }
+      return { statusCode: HTTP_STATUS.INTERNAL_SERVER_ERROR, body: { success: false, error: { code: "internal_error", message: err?.message ?? "internal_error" }, meta: ctx } };
+    }
+  }
+  async remove(request2) {
+    const ctx = this.createApiContext(request2);
+    const id = request2.params?.id;
+    if (!id) return { statusCode: HTTP_STATUS.BAD_REQUEST, body: { success: false, error: { code: "bad_request", message: "id_required" }, meta: ctx } };
+    try {
+      await this.roleService.delete(id);
+      return noContent(ctx);
+    } catch (err) {
+      return { statusCode: HTTP_STATUS.INTERNAL_SERVER_ERROR, body: { success: false, error: { code: "internal_error", message: err?.message ?? "internal_error" }, meta: ctx } };
+    }
+  }
+  async restore(request2) {
+    const ctx = this.createApiContext(request2);
+    const id = request2.params?.id;
+    if (!id) return { statusCode: HTTP_STATUS.BAD_REQUEST, body: { success: false, error: { code: "bad_request", message: "id_required" }, meta: ctx } };
+    try {
+      const restored = await this.roleService.restore(id);
+      return success(this.mapToDto(restored), ctx);
+    } catch (err) {
+      return { statusCode: HTTP_STATUS.INTERNAL_SERVER_ERROR, body: { success: false, error: { code: "internal_error", message: err?.message ?? "internal_error" }, meta: ctx } };
+    }
+  }
+  mapPermissionEntity(entity) {
+    const permission = entity?.permission ?? null;
+    return {
+      id: entity?.id ?? "",
+      roleId: entity?.roleId ?? "",
+      permissionId: entity?.permissionId ?? "",
+      createdAt: entity?.createdAt ? new Date(entity.createdAt).toISOString() : (/* @__PURE__ */ new Date()).toISOString(),
+      permission: permission ? {
+        id: permission.id,
+        name: typeof permission.name === "string" && permission.name ? permission.name : `${permission.resource}_${permission.action}`,
+        resource: permission.resource,
+        action: permission.action,
+        description: permission.description ?? null
+      } : null
+    };
+  }
+  async listPermissions(request2) {
+    const ctx = this.createApiContext(request2);
+    const roleId = request2.params?.roleId;
+    if (!roleId) return { statusCode: HTTP_STATUS.BAD_REQUEST, body: { success: false, error: { code: "bad_request", message: "role_id_required" }, meta: ctx } };
+    try {
+      const result = await this.roleService.listPermissions(roleId);
+      const dto = {
+        role: this.mapToDto(result.role),
+        permissions: (result.permissions ?? []).map((e) => this.mapPermissionEntity(e))
+      };
+      return success(dto, ctx);
+    } catch (err) {
+      if (err instanceof NotFoundException) return { statusCode: HTTP_STATUS.NOT_FOUND, body: { success: false, error: { code: "not_found", message: err.message }, meta: ctx } };
+      return { statusCode: HTTP_STATUS.INTERNAL_SERVER_ERROR, body: { success: false, error: { code: "internal_error", message: err?.message ?? "internal_error" }, meta: ctx } };
+    }
+  }
+  async assignPermission(request2) {
+    const ctx = this.createApiContext(request2);
+    const roleId = request2.params?.roleId;
+    const body = request2.body;
+    if (!roleId) return { statusCode: HTTP_STATUS.BAD_REQUEST, body: { success: false, error: { code: "bad_request", message: "role_id_required" }, meta: ctx } };
+    if (!body || typeof body !== "object" || typeof body.permissionId !== "string" || !body.permissionId) {
+      return { statusCode: HTTP_STATUS.BAD_REQUEST, body: { success: false, error: { code: "bad_request", message: "permission_id_required" }, meta: ctx } };
+    }
+    try {
+      const result = await this.roleService.assignPermission(roleId, body.permissionId);
+      return created(this.mapPermissionEntity(result), ctx);
+    } catch (err) {
+      if (err instanceof NotFoundException) return { statusCode: HTTP_STATUS.NOT_FOUND, body: { success: false, error: { code: "not_found", message: err.message }, meta: ctx } };
+      if (err instanceof ConflictException) return { statusCode: HTTP_STATUS.CONFLICT, body: { success: false, error: { code: "conflict", message: err.message }, meta: ctx } };
+      return { statusCode: HTTP_STATUS.INTERNAL_SERVER_ERROR, body: { success: false, error: { code: "internal_error", message: err?.message ?? "internal_error" }, meta: ctx } };
+    }
+  }
+  async removePermission(request2) {
+    const ctx = this.createApiContext(request2);
+    const roleId = request2.params?.roleId;
+    const permissionId = request2.params?.permissionId;
+    if (!roleId) return { statusCode: HTTP_STATUS.BAD_REQUEST, body: { success: false, error: { code: "bad_request", message: "role_id_required" }, meta: ctx } };
+    if (!permissionId) return { statusCode: HTTP_STATUS.BAD_REQUEST, body: { success: false, error: { code: "bad_request", message: "permission_id_required" }, meta: ctx } };
+    try {
+      await this.roleService.removePermission(roleId, permissionId);
+      return noContent(ctx);
+    } catch (err) {
+      if (err instanceof NotFoundException) return { statusCode: HTTP_STATUS.NOT_FOUND, body: { success: false, error: { code: "not_found", message: err.message }, meta: ctx } };
+      return { statusCode: HTTP_STATUS.INTERNAL_SERVER_ERROR, body: { success: false, error: { code: "internal_error", message: err?.message ?? "internal_error" }, meta: ctx } };
+    }
+  }
+  async checkPermission(request2) {
+    const ctx = this.createApiContext(request2);
+    const roleId = request2.params?.roleId;
+    const permissionId = request2.params?.permissionId;
+    if (!roleId) return { statusCode: HTTP_STATUS.BAD_REQUEST, body: { success: false, error: { code: "bad_request", message: "role_id_required" }, meta: ctx } };
+    if (!permissionId) return { statusCode: HTTP_STATUS.BAD_REQUEST, body: { success: false, error: { code: "bad_request", message: "permission_id_required" }, meta: ctx } };
+    try {
+      const exists = await this.roleService.checkPermission(roleId, permissionId);
+      return success({ assigned: exists }, ctx);
+    } catch (err) {
+      if (err instanceof NotFoundException) return { statusCode: HTTP_STATUS.NOT_FOUND, body: { success: false, error: { code: "not_found", message: err.message }, meta: ctx } };
+      return { statusCode: HTTP_STATUS.INTERNAL_SERVER_ERROR, body: { success: false, error: { code: "internal_error", message: err?.message ?? "internal_error" }, meta: ctx } };
+    }
+  }
+};
+var controller_default2 = RolesController;
+
+// ../backend/src/modules/roles/routes.ts
+function toControllerRequest3(ctx) {
+  return {
+    body: ctx.body ?? void 0,
+    headers: ctx.headers,
+    query: ctx.query,
+    params: ctx.params,
+    context: {
+      metadata: {
+        timestamp: (/* @__PURE__ */ new Date()).toISOString(),
+        version: ctx.version ?? "v1"
+      }
+    }
+  };
+}
+function adapt3(handler2) {
+  return (context) => handler2(context);
+}
+function createRoleRoutes(controller = new controller_default2()) {
+  const builder = new RouterBuilder();
+  builder.register({
+    name: "roles-list",
+    method: "GET",
+    path: "/roles",
+    version: "v1",
+    handler: adapt3((ctx) => controller.list(toControllerRequest3(ctx))),
+    options: {
+      mode: "private",
+      publicRoute: false,
+      privateRoute: true,
+      authenticationRequired: true,
+      authorizationRequired: true,
+      requiredPermissions: ["roles:read"],
+      tags: ["roles"],
+      middleware: []
+    }
+  });
+  builder.register({
+    name: "roles-get",
+    method: "GET",
+    path: "/roles/:id",
+    version: "v1",
+    handler: adapt3((ctx) => controller.get(toControllerRequest3(ctx))),
+    options: {
+      mode: "private",
+      publicRoute: false,
+      privateRoute: true,
+      authenticationRequired: true,
+      authorizationRequired: true,
+      requiredPermissions: ["roles:read"],
+      tags: ["roles"],
+      middleware: []
+    }
+  });
+  builder.register({
+    name: "roles-create",
+    method: "POST",
+    path: "/roles",
+    version: "v1",
+    handler: adapt3((ctx) => controller.create(toControllerRequest3(ctx))),
+    options: {
+      mode: "private",
+      publicRoute: false,
+      privateRoute: true,
+      authenticationRequired: true,
+      authorizationRequired: true,
+      requiredPermissions: ["roles:create"],
+      tags: ["roles"],
+      middleware: []
+    }
+  });
+  builder.register({
+    name: "roles-update",
+    method: "PUT",
+    path: "/roles/:id",
+    version: "v1",
+    handler: adapt3((ctx) => controller.update(toControllerRequest3(ctx))),
+    options: {
+      mode: "private",
+      publicRoute: false,
+      privateRoute: true,
+      authenticationRequired: true,
+      authorizationRequired: true,
+      requiredPermissions: ["roles:update"],
+      tags: ["roles"],
+      middleware: []
+    }
+  });
+  builder.register({
+    name: "roles-delete",
+    method: "DELETE",
+    path: "/roles/:id",
+    version: "v1",
+    handler: adapt3((ctx) => controller.remove(toControllerRequest3(ctx))),
+    options: {
+      mode: "private",
+      publicRoute: false,
+      privateRoute: true,
+      authenticationRequired: true,
+      authorizationRequired: true,
+      requiredPermissions: ["roles:delete"],
+      tags: ["roles"],
+      middleware: []
+    }
+  });
+  builder.register({
+    name: "roles-restore",
+    method: "PATCH",
+    path: "/roles/:id/restore",
+    version: "v1",
+    handler: adapt3((ctx) => controller.restore(toControllerRequest3(ctx))),
+    options: {
+      mode: "private",
+      publicRoute: false,
+      privateRoute: true,
+      authenticationRequired: true,
+      authorizationRequired: true,
+      requiredPermissions: ["roles:update"],
+      tags: ["roles"],
+      middleware: []
+    }
+  });
+  builder.register({
+    name: "roles-permissions-list",
+    method: "GET",
+    path: "/roles/:roleId/permissions",
+    version: "v1",
+    handler: adapt3((ctx) => controller.listPermissions(toControllerRequest3(ctx))),
+    options: {
+      mode: "private",
+      publicRoute: false,
+      privateRoute: true,
+      authenticationRequired: true,
+      authorizationRequired: false,
+      tags: ["roles"],
+      middleware: []
+    }
+  });
+  builder.register({
+    name: "roles-permissions-assign",
+    method: "POST",
+    path: "/roles/:roleId/permissions",
+    version: "v1",
+    handler: adapt3((ctx) => controller.assignPermission(toControllerRequest3(ctx))),
+    options: {
+      mode: "private",
+      publicRoute: false,
+      privateRoute: true,
+      authenticationRequired: true,
+      authorizationRequired: false,
+      tags: ["roles"],
+      middleware: []
+    }
+  });
+  builder.register({
+    name: "roles-permissions-get",
+    method: "GET",
+    path: "/roles/:roleId/permissions/:permissionId",
+    version: "v1",
+    handler: adapt3((ctx) => controller.checkPermission(toControllerRequest3(ctx))),
+    options: {
+      mode: "private",
+      publicRoute: false,
+      privateRoute: true,
+      authenticationRequired: true,
+      authorizationRequired: false,
+      tags: ["roles"],
+      middleware: []
+    }
+  });
+  builder.register({
+    name: "roles-permissions-remove",
+    method: "DELETE",
+    path: "/roles/:roleId/permissions/:permissionId",
+    version: "v1",
+    handler: adapt3((ctx) => controller.removePermission(toControllerRequest3(ctx))),
+    options: {
+      mode: "private",
+      publicRoute: false,
+      privateRoute: true,
+      authenticationRequired: true,
+      authorizationRequired: false,
+      tags: ["roles"],
+      middleware: []
+    }
+  });
+  return builder.build();
+}
+
+// ../backend/src/modules/permissions/controller.ts
+var PERMISSION_ACTIONS = ["CREATE", "READ", "UPDATE", "DELETE", "LIST", "EXECUTE"];
+var PermissionsController = class {
+  permissionService = ServiceFactory.createPermissionService();
+  createApiContext(request2) {
+    return {
+      timestamp: request2.context?.metadata?.timestamp ?? (/* @__PURE__ */ new Date()).toISOString(),
+      requestId: request2.context?.metadata?.requestId,
+      version: request2.context?.metadata?.version ?? "v1",
+      locale: request2.context?.metadata?.locale
+    };
+  }
+  mapToDto(entity) {
+    return {
+      id: entity.id,
+      name: typeof entity.name === "string" && entity.name ? entity.name : `${entity.resource}_${entity.action}`,
+      resource: entity.resource,
+      action: entity.action,
+      description: entity.description ?? null,
+      createdAt: entity.createdAt ? new Date(entity.createdAt).toISOString() : (/* @__PURE__ */ new Date()).toISOString(),
+      updatedAt: entity.updatedAt ? new Date(entity.updatedAt).toISOString() : (/* @__PURE__ */ new Date()).toISOString(),
+      deletedAt: entity.deletedAt ? new Date(entity.deletedAt).toISOString() : null
+    };
+  }
+  async list(request2) {
+    const ctx = this.createApiContext(request2);
+    const q = request2.query ?? {};
+    const page = Number(q.page ?? 1);
+    const limit = Number(q.limit ?? 25);
+    const rawSort = q.sort ?? void 0;
+    const rawOrder = q.order ?? void 0;
+    const allowedSorts = ["id", "resource", "action", "createdAt", "updatedAt"];
+    const sort = rawSort && allowedSorts.includes(rawSort) ? rawSort : void 0;
+    const order = rawOrder === "desc" ? "desc" : "asc";
+    const search = q.search;
+    let filters = {};
+    if (q.filters && typeof q.filters === "string") {
+      try {
+        filters = JSON.parse(q.filters) ?? {};
+      } catch {
+      }
+    } else if (typeof q.filters === "object") {
+      filters = q.filters;
+    }
+    if (search && search.trim()) {
+      const s = search.trim();
+      const orCond = [
+        { resource: { contains: s } },
+        { description: { contains: s } }
+      ];
+      if (filters && Object.keys(filters).length > 0) {
+        filters = { AND: [filters, { OR: orCond }] };
+      } else {
+        filters = { OR: orCond };
+      }
+    }
+    const options = { page, limit, sort, order, filters };
+    try {
+      const resultAny = await this.permissionService.paginate(options);
+      const data = (resultAny.data ?? []).map((e) => this.mapToDto(e));
+      return paginated(data, resultAny.page ?? page, resultAny.limit ?? limit, resultAny.total ?? 0, ctx);
+    } catch (err) {
+      return { statusCode: HTTP_STATUS.INTERNAL_SERVER_ERROR, body: { success: false, error: { code: "internal_error", message: err?.message ?? "internal_error" }, meta: ctx } };
+    }
+  }
+  async get(request2) {
+    const ctx = this.createApiContext(request2);
+    const id = request2.params?.id;
+    if (!id) return { statusCode: HTTP_STATUS.BAD_REQUEST, body: { success: false, error: { code: "bad_request", message: "id_required" }, meta: ctx } };
+    try {
+      const result = await this.permissionService.findById(id);
+      if (!result) return { statusCode: HTTP_STATUS.NOT_FOUND, body: { success: false, error: { code: "not_found", message: "permission_not_found" }, meta: ctx } };
+      return success(this.mapToDto(result), ctx);
+    } catch (err) {
+      return { statusCode: HTTP_STATUS.INTERNAL_SERVER_ERROR, body: { success: false, error: { code: "internal_error", message: err?.message ?? "internal_error" }, meta: ctx } };
+    }
+  }
+  async create(request2) {
+    const ctx = this.createApiContext(request2);
+    const body = request2.body;
+    if (!body || typeof body !== "object" || typeof body.resource !== "string" || !body.resource) {
+      return { statusCode: HTTP_STATUS.BAD_REQUEST, body: { success: false, error: { code: "bad_request", message: "resource_required" }, meta: ctx } };
+    }
+    if (typeof body.action !== "string" || !PERMISSION_ACTIONS.includes(body.action)) {
+      return { statusCode: HTTP_STATUS.UNPROCESSABLE_ENTITY, body: { success: false, error: { code: "validation_error", message: "action_invalid" }, meta: ctx } };
+    }
+    try {
+      const payload = {
+        resource: body.resource,
+        action: body.action
+      };
+      if (body.description !== void 0) payload.description = body.description;
+      const createdPermission = await this.permissionService.create(payload);
+      return created(this.mapToDto(createdPermission), ctx);
+    } catch (err) {
+      if (err instanceof ValidationException) {
+        return { statusCode: HTTP_STATUS.UNPROCESSABLE_ENTITY, body: { success: false, error: { code: "validation_error", message: err.message }, meta: ctx } };
+      }
+      return { statusCode: HTTP_STATUS.INTERNAL_SERVER_ERROR, body: { success: false, error: { code: "internal_error", message: err?.message ?? "internal_error" }, meta: ctx } };
+    }
+  }
+  async update(request2) {
+    const ctx = this.createApiContext(request2);
+    const id = request2.params?.id;
+    const body = request2.body;
+    if (!id) return { statusCode: HTTP_STATUS.BAD_REQUEST, body: { success: false, error: { code: "bad_request", message: "id_required" }, meta: ctx } };
+    if (!body || typeof body !== "object") return { statusCode: HTTP_STATUS.BAD_REQUEST, body: { success: false, error: { code: "bad_request", message: "data_required" }, meta: ctx } };
+    if (body.action !== void 0 && (typeof body.action !== "string" || !PERMISSION_ACTIONS.includes(body.action))) {
+      return { statusCode: HTTP_STATUS.UNPROCESSABLE_ENTITY, body: { success: false, error: { code: "validation_error", message: "action_invalid" }, meta: ctx } };
+    }
+    try {
+      const payload = {};
+      if (body.resource !== void 0) payload.resource = body.resource;
+      if (body.action !== void 0) payload.action = body.action;
+      if (body.description !== void 0) payload.description = body.description;
+      const updated = await this.permissionService.update(id, payload);
+      return success(this.mapToDto(updated), ctx);
+    } catch (err) {
+      if (err instanceof ValidationException) {
+        return { statusCode: HTTP_STATUS.UNPROCESSABLE_ENTITY, body: { success: false, error: { code: "validation_error", message: err.message }, meta: ctx } };
+      }
+      return { statusCode: HTTP_STATUS.INTERNAL_SERVER_ERROR, body: { success: false, error: { code: "internal_error", message: err?.message ?? "internal_error" }, meta: ctx } };
+    }
+  }
+  async remove(request2) {
+    const ctx = this.createApiContext(request2);
+    const id = request2.params?.id;
+    if (!id) return { statusCode: HTTP_STATUS.BAD_REQUEST, body: { success: false, error: { code: "bad_request", message: "id_required" }, meta: ctx } };
+    try {
+      await this.permissionService.delete(id);
+      return noContent(ctx);
+    } catch (err) {
+      return { statusCode: HTTP_STATUS.INTERNAL_SERVER_ERROR, body: { success: false, error: { code: "internal_error", message: err?.message ?? "internal_error" }, meta: ctx } };
+    }
+  }
+  async restore(request2) {
+    const ctx = this.createApiContext(request2);
+    const id = request2.params?.id;
+    if (!id) return { statusCode: HTTP_STATUS.BAD_REQUEST, body: { success: false, error: { code: "bad_request", message: "id_required" }, meta: ctx } };
+    try {
+      const restored = await this.permissionService.restore(id);
+      return success(this.mapToDto(restored), ctx);
+    } catch (err) {
+      return { statusCode: HTTP_STATUS.INTERNAL_SERVER_ERROR, body: { success: false, error: { code: "internal_error", message: err?.message ?? "internal_error" }, meta: ctx } };
+    }
+  }
+};
+var controller_default3 = PermissionsController;
+
+// ../backend/src/modules/permissions/routes.ts
+function toControllerRequest4(ctx) {
+  return {
+    body: ctx.body ?? void 0,
+    headers: ctx.headers,
+    query: ctx.query,
+    params: ctx.params,
+    context: {
+      metadata: {
+        timestamp: (/* @__PURE__ */ new Date()).toISOString(),
+        version: ctx.version ?? "v1"
+      }
+    }
+  };
+}
+function adapt4(handler2) {
+  return (context) => handler2(context);
+}
+function createPermissionRoutes(controller = new controller_default3()) {
+  const builder = new RouterBuilder();
+  builder.register({
+    name: "permissions-list",
+    method: "GET",
+    path: "/permissions",
+    version: "v1",
+    handler: adapt4((ctx) => controller.list(toControllerRequest4(ctx))),
+    options: {
+      mode: "private",
+      publicRoute: false,
+      privateRoute: true,
+      authenticationRequired: true,
+      authorizationRequired: true,
+      requiredPermissions: ["permissions:read"],
+      tags: ["permissions"],
+      middleware: []
+    }
+  });
+  builder.register({
+    name: "permissions-get",
+    method: "GET",
+    path: "/permissions/:id",
+    version: "v1",
+    handler: adapt4((ctx) => controller.get(toControllerRequest4(ctx))),
+    options: {
+      mode: "private",
+      publicRoute: false,
+      privateRoute: true,
+      authenticationRequired: true,
+      authorizationRequired: true,
+      requiredPermissions: ["permissions:read"],
+      tags: ["permissions"],
+      middleware: []
+    }
+  });
+  builder.register({
+    name: "permissions-create",
+    method: "POST",
+    path: "/permissions",
+    version: "v1",
+    handler: adapt4((ctx) => controller.create(toControllerRequest4(ctx))),
+    options: {
+      mode: "private",
+      publicRoute: false,
+      privateRoute: true,
+      authenticationRequired: true,
+      authorizationRequired: true,
+      requiredPermissions: ["permissions:create"],
+      tags: ["permissions"],
+      middleware: []
+    }
+  });
+  builder.register({
+    name: "permissions-update",
+    method: "PUT",
+    path: "/permissions/:id",
+    version: "v1",
+    handler: adapt4((ctx) => controller.update(toControllerRequest4(ctx))),
+    options: {
+      mode: "private",
+      publicRoute: false,
+      privateRoute: true,
+      authenticationRequired: true,
+      authorizationRequired: true,
+      requiredPermissions: ["permissions:update"],
+      tags: ["permissions"],
+      middleware: []
+    }
+  });
+  builder.register({
+    name: "permissions-delete",
+    method: "DELETE",
+    path: "/permissions/:id",
+    version: "v1",
+    handler: adapt4((ctx) => controller.remove(toControllerRequest4(ctx))),
+    options: {
+      mode: "private",
+      publicRoute: false,
+      privateRoute: true,
+      authenticationRequired: true,
+      authorizationRequired: true,
+      requiredPermissions: ["permissions:delete"],
+      tags: ["permissions"],
+      middleware: []
+    }
+  });
+  builder.register({
+    name: "permissions-restore",
+    method: "PATCH",
+    path: "/permissions/:id/restore",
+    version: "v1",
+    handler: adapt4((ctx) => controller.restore(toControllerRequest4(ctx))),
+    options: {
+      mode: "private",
+      publicRoute: false,
+      privateRoute: true,
+      authenticationRequired: true,
+      authorizationRequired: true,
+      requiredPermissions: ["permissions:update"],
+      tags: ["permissions"],
+      middleware: []
+    }
+  });
+  return builder.build();
+}
 
 // ../backend/src/modules/products/controller.ts
-init_api();
-init_exceptions();
-init_service_factory();
-init_validation();
 var ProductsController = class {
   productService = ServiceFactory.createProductService();
   context(request2) {
@@ -6908,10 +6351,10 @@ var ProductsController = class {
     return parsed;
   }
 };
-var controller_default = ProductsController;
+var controller_default4 = ProductsController;
 
 // ../backend/src/modules/products/routes.ts
-function toControllerRequest2(ctx) {
+function toControllerRequest5(ctx) {
   return {
     body: ctx.body,
     headers: ctx.headers,
@@ -6920,13 +6363,13 @@ function toControllerRequest2(ctx) {
     context: { metadata: { timestamp: (/* @__PURE__ */ new Date()).toISOString(), version: "v1" } }
   };
 }
-function adapt2(handler2) {
+function adapt5(handler2) {
   return (context) => handler2(context);
 }
-function createProductRoutes(controller = new controller_default()) {
+function createProductRoutes(controller = new controller_default4()) {
   const builder = new RouterBuilder();
   const register = (definition) => {
-    builder.register({ ...definition, handler: adapt2(definition.handler) });
+    builder.register({ ...definition, handler: adapt5(definition.handler) });
   };
   const privateOptions = (permission) => ({
     mode: "private",
@@ -6938,23 +6381,16 @@ function createProductRoutes(controller = new controller_default()) {
     tags: ["products"],
     middleware: []
   });
-  register({ name: "products-list", method: "GET", path: "/products", version: "v1", handler: (ctx) => controller.list(toControllerRequest2(ctx)), options: privateOptions("products:read") });
-  register({ name: "products-get", method: "GET", path: "/products/:id", version: "v1", handler: (ctx) => controller.get(toControllerRequest2(ctx)), options: privateOptions("products:read") });
-  register({ name: "products-create", method: "POST", path: "/products", version: "v1", handler: (ctx) => controller.create(toControllerRequest2(ctx)), options: privateOptions("products:create") });
-  register({ name: "products-update", method: "PUT", path: "/products/:id", version: "v1", handler: (ctx) => controller.update(toControllerRequest2(ctx)), options: privateOptions("products:update") });
-  register({ name: "products-delete", method: "DELETE", path: "/products/:id", version: "v1", handler: (ctx) => controller.remove(toControllerRequest2(ctx)), options: privateOptions("products:delete") });
-  register({ name: "products-restore", method: "PATCH", path: "/products/:id/restore", version: "v1", handler: (ctx) => controller.restore(toControllerRequest2(ctx)), options: privateOptions("products:update") });
+  register({ name: "products-list", method: "GET", path: "/products", version: "v1", handler: (ctx) => controller.list(toControllerRequest5(ctx)), options: privateOptions("products:read") });
+  register({ name: "products-get", method: "GET", path: "/products/:id", version: "v1", handler: (ctx) => controller.get(toControllerRequest5(ctx)), options: privateOptions("products:read") });
+  register({ name: "products-create", method: "POST", path: "/products", version: "v1", handler: (ctx) => controller.create(toControllerRequest5(ctx)), options: privateOptions("products:create") });
+  register({ name: "products-update", method: "PUT", path: "/products/:id", version: "v1", handler: (ctx) => controller.update(toControllerRequest5(ctx)), options: privateOptions("products:update") });
+  register({ name: "products-delete", method: "DELETE", path: "/products/:id", version: "v1", handler: (ctx) => controller.remove(toControllerRequest5(ctx)), options: privateOptions("products:delete") });
+  register({ name: "products-restore", method: "PATCH", path: "/products/:id/restore", version: "v1", handler: (ctx) => controller.restore(toControllerRequest5(ctx)), options: privateOptions("products:update") });
   return builder.build();
 }
 
-// ../backend/src/modules/customers/routes.ts
-init_routes();
-
 // ../backend/src/modules/customers/controller.ts
-init_api();
-init_exceptions();
-init_service_factory();
-init_validation();
 var CustomersController = class {
   service = ServiceFactory.createCustomerService();
   context(request2) {
@@ -7161,13 +6597,13 @@ var CustomersController = class {
     return { statusCode: HTTP_STATUS.INTERNAL_SERVER_ERROR, body: { success: false, error: { code: "internal_error", message: "internal_error" }, meta: ctx } };
   }
 };
-var controller_default2 = CustomersController;
+var controller_default5 = CustomersController;
 
 // ../backend/src/modules/customers/routes.ts
 function request(ctx) {
   return { body: ctx.body, headers: ctx.headers, query: ctx.query, params: ctx.params, context: { user: ctx.user, metadata: { timestamp: (/* @__PURE__ */ new Date()).toISOString(), version: "v1" } } };
 }
-function createCustomerRoutes(controller = new controller_default2()) {
+function createCustomerRoutes(controller = new controller_default5()) {
   const builder = new RouterBuilder();
   const options = (permission) => ({
     mode: "private",
@@ -7192,14 +6628,7 @@ function createCustomerRoutes(controller = new controller_default2()) {
   return builder.build();
 }
 
-// ../backend/src/modules/cart/routes.ts
-init_routes();
-
 // ../backend/src/modules/cart/controller.ts
-init_api();
-init_exceptions();
-init_errors3();
-init_service_factory();
 var CartController = class {
   service = ServiceFactory.createCartService();
   context(request2) {
@@ -7282,10 +6711,10 @@ var CartController = class {
     };
   }
 };
-var controller_default3 = CartController;
+var controller_default6 = CartController;
 
 // ../backend/src/modules/cart/routes.ts
-function toControllerRequest3(ctx) {
+function toControllerRequest6(ctx) {
   return {
     body: ctx.body,
     headers: ctx.headers,
@@ -7297,13 +6726,13 @@ function toControllerRequest3(ctx) {
     }
   };
 }
-function adapt3(handler2) {
+function adapt6(handler2) {
   return (context) => handler2(context);
 }
-function createCartRoutes(controller = new controller_default3()) {
+function createCartRoutes(controller = new controller_default6()) {
   const builder = new RouterBuilder();
   const register = (definition) => {
-    builder.register({ ...definition, handler: adapt3(definition.handler) });
+    builder.register({ ...definition, handler: adapt6(definition.handler) });
   };
   const privateOptions = (permission) => ({
     mode: "private",
@@ -7315,23 +6744,16 @@ function createCartRoutes(controller = new controller_default3()) {
     tags: ["carts"],
     middleware: []
   });
-  register({ name: "cart-get", method: "GET", path: "/cart", version: "v1", handler: (ctx) => controller.getCart(toControllerRequest3(ctx)), options: privateOptions("carts:read") });
-  register({ name: "cart-items-add", method: "POST", path: "/cart/items", version: "v1", handler: (ctx) => controller.addItem(toControllerRequest3(ctx)), options: privateOptions("carts:create") });
-  register({ name: "cart-items-update", method: "PUT", path: "/cart/items/:id", version: "v1", handler: (ctx) => controller.updateItem(toControllerRequest3(ctx)), options: privateOptions("carts:update") });
-  register({ name: "cart-items-remove", method: "DELETE", path: "/cart/items/:id", version: "v1", handler: (ctx) => controller.removeItem(toControllerRequest3(ctx)), options: privateOptions("carts:delete") });
-  register({ name: "cart-clear", method: "DELETE", path: "/cart", version: "v1", handler: (ctx) => controller.clearCart(toControllerRequest3(ctx)), options: privateOptions("carts:delete") });
+  register({ name: "cart-get", method: "GET", path: "/cart", version: "v1", handler: (ctx) => controller.getCart(toControllerRequest6(ctx)), options: privateOptions("carts:read") });
+  register({ name: "cart-items-add", method: "POST", path: "/cart/items", version: "v1", handler: (ctx) => controller.addItem(toControllerRequest6(ctx)), options: privateOptions("carts:create") });
+  register({ name: "cart-items-update", method: "PUT", path: "/cart/items/:id", version: "v1", handler: (ctx) => controller.updateItem(toControllerRequest6(ctx)), options: privateOptions("carts:update") });
+  register({ name: "cart-items-remove", method: "DELETE", path: "/cart/items/:id", version: "v1", handler: (ctx) => controller.removeItem(toControllerRequest6(ctx)), options: privateOptions("carts:delete") });
+  register({ name: "cart-clear", method: "DELETE", path: "/cart", version: "v1", handler: (ctx) => controller.clearCart(toControllerRequest6(ctx)), options: privateOptions("carts:delete") });
   return builder.build();
 }
 
-// ../backend/src/modules/orders/routes.ts
-init_routes();
-
 // ../backend/src/modules/orders/controller.ts
-init_api();
 init_errors();
-init_validation();
-init_order_repository();
-init_cart_repository();
 var OrderController = class {
   orderRepo = new OrderRepository();
   cartRepo = new cart_repository_default();
@@ -7499,7 +6921,7 @@ var OrderController = class {
 };
 
 // ../backend/src/modules/orders/routes.ts
-function toControllerRequest4(ctx) {
+function toControllerRequest7(ctx) {
   return {
     body: ctx.body ?? void 0,
     headers: ctx.headers,
@@ -7514,7 +6936,7 @@ function toControllerRequest4(ctx) {
     }
   };
 }
-function adapt4(handler2) {
+function adapt7(handler2) {
   return (context) => handler2(context);
 }
 function createOrderRoutes(controller = new OrderController()) {
@@ -7524,7 +6946,7 @@ function createOrderRoutes(controller = new OrderController()) {
     method: "POST",
     path: "/orders",
     version: "v1",
-    handler: adapt4((ctx) => controller.createOrder(toControllerRequest4(ctx))),
+    handler: adapt7((ctx) => controller.createOrder(toControllerRequest7(ctx))),
     options: {
       mode: "private",
       publicRoute: false,
@@ -7540,7 +6962,7 @@ function createOrderRoutes(controller = new OrderController()) {
     method: "GET",
     path: "/orders",
     version: "v1",
-    handler: adapt4((ctx) => controller.listOrders(toControllerRequest4(ctx))),
+    handler: adapt7((ctx) => controller.listOrders(toControllerRequest7(ctx))),
     options: {
       mode: "private",
       publicRoute: false,
@@ -7556,7 +6978,7 @@ function createOrderRoutes(controller = new OrderController()) {
     method: "GET",
     path: "/orders/:id",
     version: "v1",
-    handler: adapt4((ctx) => controller.getOrderById(toControllerRequest4(ctx))),
+    handler: adapt7((ctx) => controller.getOrderById(toControllerRequest7(ctx))),
     options: {
       mode: "private",
       publicRoute: false,
@@ -7572,7 +6994,7 @@ function createOrderRoutes(controller = new OrderController()) {
     method: "PATCH",
     path: "/orders/:id/status",
     version: "v1",
-    handler: adapt4((ctx) => controller.updateStatus(toControllerRequest4(ctx))),
+    handler: adapt7((ctx) => controller.updateStatus(toControllerRequest7(ctx))),
     options: {
       mode: "private",
       publicRoute: false,
@@ -7588,7 +7010,7 @@ function createOrderRoutes(controller = new OrderController()) {
     method: "POST",
     path: "/orders/:id/cancel",
     version: "v1",
-    handler: adapt4((ctx) => controller.cancelOrder(toControllerRequest4(ctx))),
+    handler: adapt7((ctx) => controller.cancelOrder(toControllerRequest7(ctx))),
     options: {
       mode: "private",
       publicRoute: false,
@@ -7602,14 +7024,8 @@ function createOrderRoutes(controller = new OrderController()) {
   return builder.build();
 }
 
-// ../backend/src/modules/inventory/routes.ts
-init_routes();
-
 // ../backend/src/modules/inventory/controller.ts
-init_api();
 init_errors();
-init_validation();
-init_inventory_repository();
 var InventoryController = class {
   inventoryRepo = new InventoryRepository();
   async listInventory(request2) {
@@ -7714,7 +7130,7 @@ var InventoryController = class {
 };
 
 // ../backend/src/modules/inventory/routes.ts
-function toControllerRequest5(ctx) {
+function toControllerRequest8(ctx) {
   return {
     body: ctx.body ?? void 0,
     headers: ctx.headers,
@@ -7729,7 +7145,7 @@ function toControllerRequest5(ctx) {
     }
   };
 }
-function adapt5(handler2) {
+function adapt8(handler2) {
   return (context) => handler2(context);
 }
 function createInventoryRoutes(controller = new InventoryController()) {
@@ -7739,7 +7155,7 @@ function createInventoryRoutes(controller = new InventoryController()) {
     method: "GET",
     path: "/inventory",
     version: "v1",
-    handler: adapt5((ctx) => controller.listInventory(toControllerRequest5(ctx))),
+    handler: adapt8((ctx) => controller.listInventory(toControllerRequest8(ctx))),
     options: {
       mode: "private",
       publicRoute: false,
@@ -7755,7 +7171,7 @@ function createInventoryRoutes(controller = new InventoryController()) {
     method: "POST",
     path: "/inventory/adjust",
     version: "v1",
-    handler: adapt5((ctx) => controller.adjustStock(toControllerRequest5(ctx))),
+    handler: adapt8((ctx) => controller.adjustStock(toControllerRequest8(ctx))),
     options: {
       mode: "private",
       publicRoute: false,
@@ -7771,7 +7187,7 @@ function createInventoryRoutes(controller = new InventoryController()) {
     method: "GET",
     path: "/inventory/movements",
     version: "v1",
-    handler: adapt5((ctx) => controller.listMovements(toControllerRequest5(ctx))),
+    handler: adapt8((ctx) => controller.listMovements(toControllerRequest8(ctx))),
     options: {
       mode: "private",
       publicRoute: false,
@@ -7785,16 +7201,8 @@ function createInventoryRoutes(controller = new InventoryController()) {
   return builder.build();
 }
 
-// ../backend/src/modules/payments/routes.ts
-init_routes();
-
 // ../backend/src/modules/payments/controller.ts
-init_api();
 init_errors();
-init_validation();
-init_exceptions();
-init_payment_repository();
-init_cart_repository();
 var PaymentController = class {
   paymentRepo = new PaymentRepository();
   cartRepo = new cart_repository_default();
@@ -7924,7 +7332,7 @@ var PaymentController = class {
 };
 
 // ../backend/src/modules/payments/routes.ts
-function toControllerRequest6(ctx) {
+function toControllerRequest9(ctx) {
   return {
     body: ctx.body ?? void 0,
     headers: ctx.headers,
@@ -7939,7 +7347,7 @@ function toControllerRequest6(ctx) {
     }
   };
 }
-function adapt6(handler2) {
+function adapt9(handler2) {
   return (context) => handler2(context);
 }
 function createPaymentRoutes(controller = new PaymentController()) {
@@ -7949,7 +7357,7 @@ function createPaymentRoutes(controller = new PaymentController()) {
     method: "POST",
     path: "/payments/create",
     version: "v1",
-    handler: adapt6((ctx) => controller.createPayment(toControllerRequest6(ctx))),
+    handler: adapt9((ctx) => controller.createPayment(toControllerRequest9(ctx))),
     options: {
       mode: "private",
       publicRoute: false,
@@ -7965,7 +7373,7 @@ function createPaymentRoutes(controller = new PaymentController()) {
     method: "GET",
     path: "/payments/order/:orderId",
     version: "v1",
-    handler: adapt6((ctx) => controller.getPaymentForOrder(toControllerRequest6(ctx))),
+    handler: adapt9((ctx) => controller.getPaymentForOrder(toControllerRequest9(ctx))),
     options: {
       mode: "private",
       publicRoute: false,
@@ -7981,7 +7389,7 @@ function createPaymentRoutes(controller = new PaymentController()) {
     method: "POST",
     path: "/payments/verify",
     version: "v1",
-    handler: adapt6((ctx) => controller.verifyPayment(toControllerRequest6(ctx))),
+    handler: adapt9((ctx) => controller.verifyPayment(toControllerRequest9(ctx))),
     options: {
       mode: "private",
       publicRoute: false,
@@ -7995,17 +7403,10 @@ function createPaymentRoutes(controller = new PaymentController()) {
   return builder.build();
 }
 
-// ../backend/src/modules/settings/routes.ts
-init_routes();
-
 // ../backend/src/modules/settings/controller.ts
-init_api();
 init_errors();
-init_validation();
 
 // ../backend/src/repositories/settings-repository.ts
-init_base_repository();
-init_validation();
 var DEFAULT_SETTINGS = {
   store_name: "\u0642\u0637\u0648\u0641 \u0627\u0644\u0637\u0628\u064A\u0639\u0629 (Qutoof Nature Store)",
   store_description: "\u0645\u062A\u062C\u0631 \u0627\u0644\u062A\u0645\u0648\u0631 \u0648\u0627\u0644\u0641\u0648\u0627\u0643\u0647 \u0648\u0627\u0644\u0645\u0648\u0627\u062F \u0627\u0644\u063A\u0630\u0627\u0626\u064A\u0629 \u0627\u0644\u0637\u0627\u0632\u062C\u0629",
@@ -8157,7 +7558,7 @@ var SettingsController = class {
 };
 
 // ../backend/src/modules/settings/routes.ts
-function toControllerRequest7(ctx) {
+function toControllerRequest10(ctx) {
   return {
     body: ctx.body ?? void 0,
     headers: ctx.headers,
@@ -8172,7 +7573,7 @@ function toControllerRequest7(ctx) {
     }
   };
 }
-function adapt7(handler2) {
+function adapt10(handler2) {
   return (context) => handler2(context);
 }
 function createSettingsRoutes(controller = new SettingsController()) {
@@ -8182,7 +7583,7 @@ function createSettingsRoutes(controller = new SettingsController()) {
     method: "GET",
     path: "/settings/public",
     version: "v1",
-    handler: adapt7((ctx) => controller.getPublicSettings(toControllerRequest7(ctx))),
+    handler: adapt10((ctx) => controller.getPublicSettings(toControllerRequest10(ctx))),
     options: {
       mode: "public",
       publicRoute: true,
@@ -8198,7 +7599,7 @@ function createSettingsRoutes(controller = new SettingsController()) {
     method: "GET",
     path: "/admin/settings",
     version: "v1",
-    handler: adapt7((ctx) => controller.getAdminSettings(toControllerRequest7(ctx))),
+    handler: adapt10((ctx) => controller.getAdminSettings(toControllerRequest10(ctx))),
     options: {
       mode: "private",
       publicRoute: false,
@@ -8214,7 +7615,7 @@ function createSettingsRoutes(controller = new SettingsController()) {
     method: "PUT",
     path: "/admin/settings",
     version: "v1",
-    handler: adapt7((ctx) => controller.updateAdminSettings(toControllerRequest7(ctx))),
+    handler: adapt10((ctx) => controller.updateAdminSettings(toControllerRequest10(ctx))),
     options: {
       mode: "private",
       publicRoute: false,
@@ -8228,14 +7629,8 @@ function createSettingsRoutes(controller = new SettingsController()) {
   return builder.build();
 }
 
-// ../backend/src/modules/notifications/routes.ts
-init_routes();
-
 // ../backend/src/modules/notifications/controller.ts
-init_api();
 init_errors();
-init_validation();
-init_notification_repository();
 var NotificationsController = class {
   notificationRepo = new NotificationRepository();
   async listUserNotifications(request2) {
@@ -8321,7 +7716,7 @@ var NotificationsController = class {
 };
 
 // ../backend/src/modules/notifications/routes.ts
-function toControllerRequest8(ctx) {
+function toControllerRequest11(ctx) {
   return {
     body: ctx.body ?? void 0,
     headers: ctx.headers,
@@ -8336,7 +7731,7 @@ function toControllerRequest8(ctx) {
     }
   };
 }
-function adapt8(handler2) {
+function adapt11(handler2) {
   return (context) => handler2(context);
 }
 function createNotificationRoutes(controller = new NotificationsController()) {
@@ -8346,7 +7741,7 @@ function createNotificationRoutes(controller = new NotificationsController()) {
     method: "GET",
     path: "/notifications",
     version: "v1",
-    handler: adapt8((ctx) => controller.listUserNotifications(toControllerRequest8(ctx))),
+    handler: adapt11((ctx) => controller.listUserNotifications(toControllerRequest11(ctx))),
     options: {
       mode: "private",
       publicRoute: false,
@@ -8362,7 +7757,7 @@ function createNotificationRoutes(controller = new NotificationsController()) {
     method: "POST",
     path: "/notifications/:id/read",
     version: "v1",
-    handler: adapt8((ctx) => controller.markAsRead(toControllerRequest8(ctx))),
+    handler: adapt11((ctx) => controller.markAsRead(toControllerRequest11(ctx))),
     options: {
       mode: "private",
       publicRoute: false,
@@ -8378,7 +7773,7 @@ function createNotificationRoutes(controller = new NotificationsController()) {
     method: "POST",
     path: "/notifications/read-all",
     version: "v1",
-    handler: adapt8((ctx) => controller.markAllAsRead(toControllerRequest8(ctx))),
+    handler: adapt11((ctx) => controller.markAllAsRead(toControllerRequest11(ctx))),
     options: {
       mode: "private",
       publicRoute: false,
@@ -8392,20 +7787,10 @@ function createNotificationRoutes(controller = new NotificationsController()) {
   return builder.build();
 }
 
-// ../backend/src/modules/support/routes.ts
-init_routes();
-
 // ../backend/src/modules/support/controller.ts
-init_api();
 init_errors();
-init_validation();
-init_exceptions();
 
 // ../backend/src/repositories/support-repository.ts
-init_base_repository();
-init_exceptions();
-init_validation();
-init_notification_repository();
 var TICKETS_STORE = /* @__PURE__ */ new Map();
 var SupportRepository = class extends base_repository_default {
   settingsRepo = new settings_repository_default();
@@ -8522,7 +7907,6 @@ var SupportRepository = class extends base_repository_default {
 var support_repository_default = SupportRepository;
 
 // ../backend/src/modules/support/controller.ts
-init_cart_repository();
 var SupportController = class {
   supportRepo = new SupportRepository();
   cartRepo = new cart_repository_default();
@@ -8693,7 +8077,7 @@ var SupportController = class {
 };
 
 // ../backend/src/modules/support/routes.ts
-function toControllerRequest9(ctx) {
+function toControllerRequest12(ctx) {
   return {
     body: ctx.body ?? void 0,
     headers: ctx.headers,
@@ -8708,7 +8092,7 @@ function toControllerRequest9(ctx) {
     }
   };
 }
-function adapt9(handler2) {
+function adapt12(handler2) {
   return (context) => handler2(context);
 }
 function createSupportRoutes(controller = new SupportController()) {
@@ -8718,7 +8102,7 @@ function createSupportRoutes(controller = new SupportController()) {
     method: "GET",
     path: "/support/contacts",
     version: "v1",
-    handler: adapt9((ctx) => controller.getSupportContacts(toControllerRequest9(ctx))),
+    handler: adapt12((ctx) => controller.getSupportContacts(toControllerRequest12(ctx))),
     options: {
       mode: "public",
       publicRoute: true,
@@ -8734,7 +8118,7 @@ function createSupportRoutes(controller = new SupportController()) {
     method: "POST",
     path: "/support/tickets",
     version: "v1",
-    handler: adapt9((ctx) => controller.createTicket(toControllerRequest9(ctx))),
+    handler: adapt12((ctx) => controller.createTicket(toControllerRequest12(ctx))),
     options: {
       mode: "private",
       publicRoute: false,
@@ -8750,7 +8134,7 @@ function createSupportRoutes(controller = new SupportController()) {
     method: "GET",
     path: "/support/tickets",
     version: "v1",
-    handler: adapt9((ctx) => controller.listTickets(toControllerRequest9(ctx))),
+    handler: adapt12((ctx) => controller.listTickets(toControllerRequest12(ctx))),
     options: {
       mode: "private",
       publicRoute: false,
@@ -8766,7 +8150,7 @@ function createSupportRoutes(controller = new SupportController()) {
     method: "GET",
     path: "/support/tickets/:id",
     version: "v1",
-    handler: adapt9((ctx) => controller.getTicketById(toControllerRequest9(ctx))),
+    handler: adapt12((ctx) => controller.getTicketById(toControllerRequest12(ctx))),
     options: {
       mode: "private",
       publicRoute: false,
@@ -8782,7 +8166,7 @@ function createSupportRoutes(controller = new SupportController()) {
     method: "POST",
     path: "/support/tickets/:id/reply",
     version: "v1",
-    handler: adapt9((ctx) => controller.replyTicket(toControllerRequest9(ctx))),
+    handler: adapt12((ctx) => controller.replyTicket(toControllerRequest12(ctx))),
     options: {
       mode: "private",
       publicRoute: false,
@@ -8798,7 +8182,7 @@ function createSupportRoutes(controller = new SupportController()) {
     method: "PATCH",
     path: "/support/tickets/:id/status",
     version: "v1",
-    handler: adapt9((ctx) => controller.updateTicketStatus(toControllerRequest9(ctx))),
+    handler: adapt12((ctx) => controller.updateTicketStatus(toControllerRequest12(ctx))),
     options: {
       mode: "private",
       publicRoute: false,
@@ -8812,16 +8196,10 @@ function createSupportRoutes(controller = new SupportController()) {
   return builder.build();
 }
 
-// ../backend/src/modules/reports/routes.ts
-init_routes();
-
 // ../backend/src/modules/reports/controller.ts
-init_api();
 init_errors();
-init_validation();
 
 // ../backend/src/repositories/reports-repository.ts
-init_base_repository();
 var ReportsRepository = class extends base_repository_default {
   supportRepo = new support_repository_default();
   constructor() {
@@ -9133,7 +8511,7 @@ var ReportsController = class {
 };
 
 // ../backend/src/modules/reports/routes.ts
-function toControllerRequest10(ctx) {
+function toControllerRequest13(ctx) {
   return {
     body: ctx.body ?? void 0,
     headers: ctx.headers,
@@ -9148,7 +8526,7 @@ function toControllerRequest10(ctx) {
     }
   };
 }
-function adapt10(handler2) {
+function adapt13(handler2) {
   return (context) => handler2(context);
 }
 function createReportsRoutes(controller = new ReportsController()) {
@@ -9158,7 +8536,7 @@ function createReportsRoutes(controller = new ReportsController()) {
     method: "GET",
     path: "/reports/dashboard",
     version: "v1",
-    handler: adapt10((ctx) => controller.getDashboardKpis(toControllerRequest10(ctx))),
+    handler: adapt13((ctx) => controller.getDashboardKpis(toControllerRequest13(ctx))),
     options: {
       mode: "private",
       publicRoute: false,
@@ -9174,7 +8552,7 @@ function createReportsRoutes(controller = new ReportsController()) {
     method: "GET",
     path: "/reports/sales",
     version: "v1",
-    handler: adapt10((ctx) => controller.getSalesReport(toControllerRequest10(ctx))),
+    handler: adapt13((ctx) => controller.getSalesReport(toControllerRequest13(ctx))),
     options: {
       mode: "private",
       publicRoute: false,
@@ -9190,7 +8568,7 @@ function createReportsRoutes(controller = new ReportsController()) {
     method: "GET",
     path: "/reports/products",
     version: "v1",
-    handler: adapt10((ctx) => controller.getProductAnalytics(toControllerRequest10(ctx))),
+    handler: adapt13((ctx) => controller.getProductAnalytics(toControllerRequest13(ctx))),
     options: {
       mode: "private",
       publicRoute: false,
@@ -9206,7 +8584,7 @@ function createReportsRoutes(controller = new ReportsController()) {
     method: "GET",
     path: "/reports/inventory",
     version: "v1",
-    handler: adapt10((ctx) => controller.getInventoryAnalytics(toControllerRequest10(ctx))),
+    handler: adapt13((ctx) => controller.getInventoryAnalytics(toControllerRequest13(ctx))),
     options: {
       mode: "private",
       publicRoute: false,
@@ -9222,7 +8600,7 @@ function createReportsRoutes(controller = new ReportsController()) {
     method: "GET",
     path: "/reports/customers",
     version: "v1",
-    handler: adapt10((ctx) => controller.getCustomerAnalytics(toControllerRequest10(ctx))),
+    handler: adapt13((ctx) => controller.getCustomerAnalytics(toControllerRequest13(ctx))),
     options: {
       mode: "private",
       publicRoute: false,
@@ -9238,7 +8616,7 @@ function createReportsRoutes(controller = new ReportsController()) {
     method: "GET",
     path: "/reports/payments",
     version: "v1",
-    handler: adapt10((ctx) => controller.getPaymentAnalytics(toControllerRequest10(ctx))),
+    handler: adapt13((ctx) => controller.getPaymentAnalytics(toControllerRequest13(ctx))),
     options: {
       mode: "private",
       publicRoute: false,
@@ -9252,14 +8630,8 @@ function createReportsRoutes(controller = new ReportsController()) {
   return builder.build();
 }
 
-// ../backend/src/modules/audit/routes.ts
-init_routes();
-
 // ../backend/src/modules/audit/controller.ts
-init_api();
 init_errors();
-init_validation();
-init_audit_repository();
 var AuditController = class {
   auditRepo = new AuditRepository();
   async listAuditLogs(request2) {
@@ -9322,7 +8694,7 @@ var AuditController = class {
 };
 
 // ../backend/src/modules/audit/routes.ts
-function toControllerRequest11(ctx) {
+function toControllerRequest14(ctx) {
   return {
     body: ctx.body ?? void 0,
     headers: ctx.headers,
@@ -9337,7 +8709,7 @@ function toControllerRequest11(ctx) {
     }
   };
 }
-function adapt11(handler2) {
+function adapt14(handler2) {
   return (context) => handler2(context);
 }
 function createAuditRoutes(controller = new AuditController()) {
@@ -9347,7 +8719,7 @@ function createAuditRoutes(controller = new AuditController()) {
     method: "GET",
     path: "/audit/logs",
     version: "v1",
-    handler: adapt11((ctx) => controller.listAuditLogs(toControllerRequest11(ctx))),
+    handler: adapt14((ctx) => controller.listAuditLogs(toControllerRequest14(ctx))),
     options: {
       mode: "private",
       publicRoute: false,
@@ -9362,6 +8734,7 @@ function createAuditRoutes(controller = new AuditController()) {
 }
 
 // ../backend/src/system/server.ts
+init_errors();
 async function readBody(request2) {
   const chunks = [];
   for await (const chunk of request2) {
@@ -9385,7 +8758,7 @@ function createSystemRequestHandler() {
   const resolver = new RouteResolver();
   const protection = new RouteProtectionFactory();
   const authService = AuthController.createAuthService();
-  const routes = [...createSystemRoutes(), ...createAuthRoutes(), ...(init_routes2(), __toCommonJS(routes_exports)).createUserRoutes(), ...(init_routes3(), __toCommonJS(routes_exports2)).createRoleRoutes(), ...(init_routes4(), __toCommonJS(routes_exports3)).createPermissionRoutes(), ...createProductRoutes(), ...createCustomerRoutes(), ...createCartRoutes(), ...createOrderRoutes(), ...createInventoryRoutes(), ...createPaymentRoutes(), ...createSettingsRoutes(), ...createNotificationRoutes(), ...createSupportRoutes(), ...createReportsRoutes(), ...createAuditRoutes()];
+  const routes = [...createSystemRoutes(), ...createAuthRoutes(), ...createUserRoutes(), ...createRoleRoutes(), ...createPermissionRoutes(), ...createProductRoutes(), ...createCustomerRoutes(), ...createCartRoutes(), ...createOrderRoutes(), ...createInventoryRoutes(), ...createPaymentRoutes(), ...createSettingsRoutes(), ...createNotificationRoutes(), ...createSupportRoutes(), ...createReportsRoutes(), ...createAuditRoutes()];
   for (const route of routes) {
     registry.register(route);
   }
@@ -9489,10 +8862,7 @@ function createSystemRequestHandler() {
       response.end(JSON.stringify(apiResponse.body));
     } catch (error) {
       try {
-        const errors = (init_errors(), __toCommonJS(errors_exports));
-        const UnauthorizedError3 = errors.UnauthorizedError;
-        const InvalidTokenError2 = errors.InvalidTokenError;
-        if (error instanceof UnauthorizedError3 || error instanceof InvalidTokenError2 || error?.code === "invalid_token" || error?.message && /invalid|token|signature|expired/i.test(error.message)) {
+        if (error instanceof UnauthorizedError || error instanceof InvalidTokenError || error?.code === "invalid_token" || error?.message && /invalid|token|signature|expired/i.test(error.message)) {
           response.writeHead(401, { "Content-Type": "application/json" });
           response.end(JSON.stringify({ success: false, error: { code: "unauthorized", message: error instanceof Error ? error.message : "unauthorized" } }));
           return;
