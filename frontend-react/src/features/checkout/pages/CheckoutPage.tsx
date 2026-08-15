@@ -4,9 +4,12 @@ import { MapPin, Clock, Tag, ShoppingBag, AlertCircle, CheckCircle2, ArrowRight 
 import { createOrder } from '@/services/orderClient';
 import { getCart, type Cart } from '@/services/cartClient';
 import { SupportTeamCards } from '@/components/support/SupportTeamCards';
+import { formatPrice } from '@/lib/formatters';
+import { useI18n } from '@/i18n/useI18n';
 
 export function CheckoutPage() {
   const navigate = useNavigate();
+  const { locale } = useI18n();
   const [cart, setCart] = useState<Cart | null>(null);
   const [paymentMethod, setPaymentMethod] = useState<'CASH_ON_DELIVERY' | 'CARD'>('CASH_ON_DELIVERY');
   const [loading, setLoading] = useState(true);
@@ -192,9 +195,9 @@ export function CheckoutPage() {
                 <div key={item.id} className="pt-2 flex justify-between">
                   <div>
                     <span className="font-semibold text-[var(--gs-foreground)]">{item.product?.name || item.productId}</span>
-                    <span className="text-[var(--gs-foreground-muted)] block">الكمية: {item.quantity} × {item.unitPrice.toFixed(2)} ر.س</span>
+                    <span className="text-[var(--gs-foreground-muted)] block">الكمية: {item.quantity} × {formatPrice(item.unitPrice, locale)}</span>
                   </div>
-                  <strong className="text-emerald-600">{item.totalPrice.toFixed(2)} ر.س</strong>
+                  <strong className="text-emerald-600">{formatPrice(item.totalPrice, locale)}</strong>
                 </div>
               ))}
             </div>
@@ -202,15 +205,15 @@ export function CheckoutPage() {
             <div className="border-t border-[var(--gs-border)] pt-3 space-y-1 text-xs">
               <div className="flex justify-between text-[var(--gs-foreground-secondary)]">
                 <span>المجموع الفرعي:</span>
-                <strong className="text-[var(--gs-foreground)]">{(cart?.subtotal ?? 0).toFixed(2)} ر.س</strong>
+                <strong className="text-[var(--gs-foreground)]">{formatPrice(cart?.subtotal, locale)}</strong>
               </div>
               <div className="flex justify-between text-[var(--gs-foreground-secondary)]">
                 <span>رسوم التوصيل والضريبة:</span>
-                <strong className="text-[var(--gs-foreground)]">0.00 ر.س</strong>
+                <strong className="text-[var(--gs-foreground)]">{formatPrice(0, locale)}</strong>
               </div>
               <div className="flex justify-between text-sm font-bold text-emerald-600 pt-2 border-t border-[var(--gs-border-subtle)]">
                 <span>الإجمالي النهائي:</span>
-                <span>{(cart?.grandTotal ?? 0).toFixed(2)} ر.س</span>
+                <span>{formatPrice(cart?.grandTotal, locale)}</span>
               </div>
             </div>
 

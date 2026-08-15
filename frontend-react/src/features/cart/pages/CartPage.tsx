@@ -2,9 +2,12 @@ import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ShoppingCart, Trash2, Plus, Minus, ArrowRight, ShoppingBag, CheckCircle2 } from 'lucide-react';
 import { getCart, updateCartItem, removeCartItem, clearCart as clearCartApi, type Cart, type CartItem } from '@/services/cartClient';
+import { formatPrice } from '@/lib/formatters';
+import { useI18n } from '@/i18n/useI18n';
 
 export function CartPage() {
   const navigate = useNavigate();
+  const { locale } = useI18n();
   const [cart, setCart] = useState<Cart | null>(null);
   const [loading, setLoading] = useState(true);
   const [updatingItemId, setUpdatingItemId] = useState<string | null>(null);
@@ -179,7 +182,7 @@ export function CartPage() {
                         {item.product?.name || `منتج رقم ${item.productId}`}
                       </h3>
                       <span className="text-xs text-[var(--gs-foreground-secondary)]">
-                        سعر الوحدة: {item.unitPrice.toFixed(2)} ر.س
+                        سعر الوحدة: {formatPrice(item.unitPrice, locale)}
                       </span>
                     </div>
                   </div>
@@ -208,7 +211,7 @@ export function CartPage() {
                     </div>
 
                     <div className="text-left">
-                      <div className="text-sm font-bold text-emerald-600">{item.totalPrice.toFixed(2)} ر.س</div>
+                      <div className="text-sm font-bold text-emerald-600">{formatPrice(item.totalPrice, locale)}</div>
                     </div>
 
                     <button
@@ -235,15 +238,15 @@ export function CartPage() {
             <div className="space-y-2 text-xs text-[var(--gs-foreground-secondary)]">
               <div className="flex items-center justify-between">
                 <span>المجموع الفرعي:</span>
-                <strong className="text-[var(--gs-foreground)]">{(cart?.subtotal ?? 0).toFixed(2)} ر.س</strong>
+                <strong className="text-[var(--gs-foreground)]">{formatPrice(cart?.subtotal, locale)}</strong>
               </div>
               <div className="flex items-center justify-between">
                 <span>الضريبة المضافة:</span>
-                <strong className="text-[var(--gs-foreground)]">{(cart?.taxTotal ?? 0).toFixed(2)} ر.س</strong>
+                <strong className="text-[var(--gs-foreground)]">{formatPrice(cart?.taxTotal, locale)}</strong>
               </div>
               <div className="border-t border-[var(--gs-border-subtle)] pt-2 flex items-center justify-between text-sm font-bold text-emerald-600">
                 <span>الإجمالي الكلي:</span>
-                <span>{(cart?.grandTotal ?? 0).toFixed(2)} ر.س</span>
+                <span>{formatPrice(cart?.grandTotal, locale)}</span>
               </div>
             </div>
 

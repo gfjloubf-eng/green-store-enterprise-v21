@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom';
-import { Info, Phone, Settings, LifeBuoy, Users, ShieldCheck, ArrowRight, Home, Mail, MapPin, Clock } from 'lucide-react';
+import { Info, Phone, LifeBuoy, Users, ShieldCheck, ArrowRight, Home, Mail, MapPin, Clock } from 'lucide-react';
 import { SupportTeamCards } from '@/components/support/SupportTeamCards';
 import { FAQSection } from '@/components/support/FAQSection';
 
@@ -77,22 +77,10 @@ export function ContactPage() {
   );
 }
 
+import FeatureSettingsPage from '@/features/settings/pages/SettingsPage';
+
 export function SettingsPage() {
-  return (
-    <div className="flex flex-col gap-6 pb-8" dir="rtl">
-      <div className="gsd-card rounded-3xl p-8 border border-[var(--gs-border)] bg-[var(--gs-surface)] space-y-4">
-        <div className="flex items-center gap-3">
-          <div className="p-3 rounded-2xl bg-teal-500/10 text-teal-600">
-            <Settings className="h-6 w-6" />
-          </div>
-          <div>
-            <h1 className="text-xl font-bold [color:var(--gs-foreground)]">إعدادات النظام (Settings)</h1>
-            <p className="text-xs [color:var(--gs-foreground-secondary)]">واجهة الإعدادات العامة للمتجر والنظام.</p>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
+  return <FeatureSettingsPage />;
 }
 
 export function HelpPage() {

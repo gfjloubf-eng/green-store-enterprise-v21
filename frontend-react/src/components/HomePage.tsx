@@ -19,6 +19,8 @@ import { ProductService } from '@/features/products/services/productService';
 import type { ProductDTO } from '@/features/products/domain/productDTO';
 import { placeholderImage } from '@/assets/images/products/productImages';
 import { buildWhatsAppUrl } from '@/config/whatsapp';
+import { formatPrice } from '@/lib/formatters';
+import { useI18n } from '@/i18n/useI18n';
 import { useProductSearch } from '@/features/products/hooks/useProductService';
 import { useLocalStorageState } from '@/hooks/useLocalStorageState';
 import {
@@ -505,6 +507,7 @@ function ProductCard({
   onFavoriteToggle: () => void;
   isFavorited: boolean;
 }) {
+  const { locale } = useI18n();
   const badges = getProductBadges(product);
 
   return (
@@ -550,7 +553,7 @@ function ProductCard({
           <span>{product.unit.abbreviation}</span>
         </div>
         <div className="flex items-center justify-between">
-          <div className="text-sm font-semibold [color:var(--gs-primary)]">{product.sellingPrice.toFixed(2)} ر.س</div>
+          <div className="text-sm font-semibold [color:var(--gs-primary)]">{formatPrice(product.sellingPrice, locale)}</div>
           <div className="inline-flex items-center gap-1 text-xs [color:var(--gs-foreground-secondary)]">
             <Star className="h-3.5 w-3.5 [color:var(--gs-primary)]" />
             {getProductRating(product).toFixed(1)}

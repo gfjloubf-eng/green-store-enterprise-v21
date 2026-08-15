@@ -1,11 +1,13 @@
 import { useState, useEffect } from 'react';
-import { Settings as SettingsIcon, Store, PhoneCall, DollarSign, ShieldAlert, Save, CheckCircle2, AlertCircle } from 'lucide-react';
+import { Settings as SettingsIcon, Store, PhoneCall, DollarSign, ShieldAlert, Globe, Save, CheckCircle2, AlertCircle, Check } from 'lucide-react';
 import { getAdminSettings, updateAdminSettings } from '@/services/settingsClient';
 import { useAuth } from '@/hooks/useAuth';
+import { useRTL } from '@/hooks/useRTL';
 
 export function SettingsPage() {
   const { user } = useAuth();
-  const [activeTab, setActiveTab] = useState<'STORE' | 'CONTACT' | 'BUSINESS' | 'SYSTEM'>('STORE');
+  const { isRTL, isLTR, setDirection } = useRTL();
+  const [activeTab, setActiveTab] = useState<'STORE' | 'CONTACT' | 'BUSINESS' | 'SYSTEM' | 'PREFERENCES'>('STORE');
   const [settings, setSettings] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -52,7 +54,7 @@ export function SettingsPage() {
   }
 
   return (
-    <div className="flex flex-col gap-6 pb-12" dir="rtl">
+    <div className="flex flex-col gap-6 pb-12" dir={isRTL ? 'rtl' : 'ltr'}>
       {/* Page Header */}
       <div>
         <h1 className="text-2xl font-bold [color:var(--gs-foreground)] flex items-center gap-3">
@@ -84,6 +86,7 @@ export function SettingsPage() {
           { id: 'STORE', label: 'بيانات المتجر العامة', icon: Store },
           { id: 'CONTACT', label: 'بيانات التواصل والدعم', icon: PhoneCall },
           { id: 'BUSINESS', label: 'الضريبة والعملة والرسوم', icon: DollarSign },
+          { id: 'PREFERENCES', label: 'اللغة والاتجاه (Language & Region)', icon: Globe },
           { id: 'SYSTEM', label: 'حالة النظام والوضع العام', icon: ShieldAlert },
         ].map((tab) => {
           const Icon = tab.icon;
@@ -188,14 +191,14 @@ export function SettingsPage() {
         {activeTab === 'BUSINESS' && (
           <div className="grid gap-4 sm:grid-cols-3 max-w-2xl text-xs">
             <div className="space-y-1">
-              <label className="font-bold text-[var(--gs-foreground)] block">العملة الرسمية (Currency) *</label>
+              <label className="font-bold text-[var(--gs-foreground)] block">العملة الرسمية للمتجر (Store Currency) *</label>
               <input
                 type="text"
                 required
                 disabled={!canEdit}
-                value={settings.currency ?? 'SAR'}
+                value={settings.currency ?? 'YER'}
                 onChange={(e) => handleChange('currency', e.target.value)}
-                className="gsd-input w-full p-3 rounded-2xl border border-[var(--gs-border)] bg-[var(--gs-background)] font-bold text-center"
+                className="gsd-input w-full p-3 rounded-2xl border border-[var(--gs-border)] bg-[var(--gs-background)] font-bold text-center text-emerald-600"
               />
             </div>
 
@@ -214,7 +217,7 @@ export function SettingsPage() {
             </div>
 
             <div className="space-y-1">
-              <label className="font-bold text-[var(--gs-foreground)] block">رسوم التوصيل الافتراضية (ر.س)</label>
+              <label className="font-bold text-[var(--gs-foreground)] block">رسوم التوصيل الافتراضية</label>
               <input
                 type="number"
                 min="0"
@@ -223,6 +226,59 @@ export function SettingsPage() {
                 onChange={(e) => handleChange('shipping_fee_default', e.target.value)}
                 className="gsd-input w-full p-3 rounded-2xl border border-[var(--gs-border)] bg-[var(--gs-background)] text-center font-bold"
               />
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'PREFERENCES' && (
+          <div className="space-y-6 max-w-xl text-xs">
+            {/* Language & Layout Direction */}
+            <div className="space-y-3">
+              <label className="font-bold text-[var(--gs-foreground)] block">لغة الواجهة واغتراب الاتجاه (Language & Layout Direction)</label>
+              <div className="grid grid-cols-2 gap-3">
+                <button
+                  type="button"
+                  onClick={() => setDirection('rtl')}
+                  className={`p-4 rounded-2xl border flex flex-col items-center justify-center gap-2 transition ${
+                    isRTL
+                      ? 'border-emerald-600 bg-emerald-500/10 text-emerald-600 font-bold shadow-sm'
+                      : 'border-[var(--gs-border)] bg-[var(--gs-background)] text-[var(--gs-foreground-secondary)] hover:bg-[var(--gs-muted)]'
+                  }`}
+                >
+                  <div className="flex items-center gap-2">
+                    <span className="text-base font-bold">العربية</span>
+                    {isRTL && <Check className="h-4 w-4 text-emerald-600" />}
+                  </div>
+                  <span className="text-[10px] text-[var(--gs-foreground-muted)]">اليمين إلى اليسار (RTL)</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setDirection('ltr')}
+                  className={`p-4 rounded-2xl border flex flex-col items-center justify-center gap-2 transition ${
+                    isLTR
+                      ? 'border-emerald-600 bg-emerald-500/10 text-emerald-600 font-bold shadow-sm'
+                      : 'border-[var(--gs-border)] bg-[var(--gs-background)] text-[var(--gs-foreground-secondary)] hover:bg-[var(--gs-muted)]'
+                  }`}
+                >
+                  <div className="flex items-center gap-2">
+                    <span className="text-base font-bold">English</span>
+                    {isLTR && <Check className="h-4 w-4 text-emerald-600" />}
+                  </div>
+                  <span className="text-[10px] text-[var(--gs-foreground-muted)]">Left-to-Right (LTR)</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Currency Display Info */}
+            <div className="p-4 rounded-2xl border border-[var(--gs-border)] bg-[var(--gs-background)] space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="font-bold text-[var(--gs-foreground)]">العملة الرسمية للمتجر (Official Currency)</span>
+                <span className="px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-600 font-bold text-xs font-mono">YER — الريال اليمني</span>
+              </div>
+              <p className="text-[11px] text-[var(--gs-foreground-secondary)]">
+                العملة المعتمدة لجميع أسعار المنتجات والفواتير في قطوف هي الريال اليمني (YER). يتم تطبيق التنسيق تلقائياً في كافة أجزاء النظام.
+              </p>
             </div>
           </div>
         )}

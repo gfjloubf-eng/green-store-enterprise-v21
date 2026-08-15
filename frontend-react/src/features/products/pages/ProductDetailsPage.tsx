@@ -18,6 +18,7 @@ import {
   Sparkles,
   Star,
 } from 'lucide-react';
+import { formatPrice } from '@/lib/formatters';
 import { useI18n } from '@/i18n/useI18n';
 import { BreadcrumbEngine } from '@/components/layout/BreadcrumbEngine';
 import { placeholderImage } from '@/assets/images/products/productImages';
@@ -43,7 +44,7 @@ const RECENTLY_VIEWED_KEY = 'qutoof-nature.recentlyViewed';
 export function ProductDetailsPage() {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const state = useProductDetail(id);
   const product = getData(state);
   const isLoading = isState(state, 'loading');
@@ -233,7 +234,7 @@ export function ProductDetailsPage() {
 
                 <div className="rounded-2xl bg-[var(--gs-muted)] p-4 text-right">
                   <div className="text-sm [color:var(--gs-foreground-muted)]">السعر الحالي</div>
-                  <div className="mt-1 text-2xl font-semibold [color:var(--gs-primary)]">{product.sellingPrice.toFixed(2)} ر.س</div>
+                  <div className="mt-1 text-2xl font-semibold [color:var(--gs-primary)]">{formatPrice(product.sellingPrice, locale)}</div>
                 </div>
 
                 <div className="grid gap-3 sm:grid-cols-2">

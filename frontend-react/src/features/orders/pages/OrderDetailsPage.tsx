@@ -4,6 +4,8 @@ import { Package, ArrowRight, Calendar, User, AlertCircle, CheckCircle2, XCircle
 import { getOrderById, updateOrderStatus, cancelOrder, type Order } from '@/services/orderClient';
 import { useAuth } from '@/hooks/useAuth';
 import { SupportTeamCards } from '@/components/support/SupportTeamCards';
+import { formatPrice } from '@/lib/formatters';
+import { useI18n } from '@/i18n/useI18n';
 
 const STATUS_BADGES: Record<string, { label: string; bg: string; text: string }> = {
   PENDING: { label: 'قيد الانتظار', bg: 'bg-amber-500/10 border-amber-500/20', text: 'text-amber-600' },
@@ -31,6 +33,7 @@ export function OrderDetailsPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { locale } = useI18n();
 
   const [order, setOrder] = useState<Order | null>(null);
   const [loading, setLoading] = useState(true);
@@ -218,8 +221,8 @@ export function OrderDetailsPage() {
                       <td className="py-3 px-3 font-semibold text-[var(--gs-foreground)]">{item.name}</td>
                       <td className="py-3 px-3 font-mono text-[var(--gs-foreground-muted)]">{item.sku || '—'}</td>
                       <td className="py-3 px-3 text-center font-bold">{item.quantity}</td>
-                      <td className="py-3 px-3">{item.unitPrice.toFixed(2)} ر.س</td>
-                      <td className="py-3 px-3 text-left font-bold text-emerald-600">{item.total.toFixed(2)} ر.س</td>
+                      <td className="py-3 px-3">{formatPrice(item.unitPrice, locale, order.currency)}</td>
+                      <td className="py-3 px-3 text-left font-bold text-emerald-600">{formatPrice(item.total, locale, order.currency)}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -263,19 +266,19 @@ export function OrderDetailsPage() {
             <div className="space-y-2 text-xs text-[var(--gs-foreground-secondary)]">
               <div className="flex justify-between">
                 <span>المجموع الفرعي:</span>
-                <strong className="text-[var(--gs-foreground)]">{order.subtotal.toFixed(2)} {order.currency}</strong>
+                <strong className="text-[var(--gs-foreground)]">{formatPrice(order.subtotal, locale, order.currency)}</strong>
               </div>
               <div className="flex justify-between">
                 <span>رسوم التوصيل:</span>
-                <strong className="text-[var(--gs-foreground)]">{order.shipping.toFixed(2)} {order.currency}</strong>
+                <strong className="text-[var(--gs-foreground)]">{formatPrice(order.shipping, locale, order.currency)}</strong>
               </div>
               <div className="flex justify-between">
                 <span>الضريبة:</span>
-                <strong className="text-[var(--gs-foreground)]">{order.tax.toFixed(2)} {order.currency}</strong>
+                <strong className="text-[var(--gs-foreground)]">{formatPrice(order.tax, locale, order.currency)}</strong>
               </div>
               <div className="border-t border-[var(--gs-border)] pt-2 flex justify-between text-sm font-bold text-emerald-600">
                 <span>المجموع الإجمالي:</span>
-                <span>{order.total.toFixed(2)} {order.currency}</span>
+                <span>{formatPrice(order.total, locale, order.currency)}</span>
               </div>
             </div>
           </div>

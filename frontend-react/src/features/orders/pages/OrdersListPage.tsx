@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { Package, Search, Calendar, ChevronLeft, ChevronRight, Eye, AlertCircle, ShoppingBag } from 'lucide-react';
 import { getOrders, type Order } from '@/services/orderClient';
 import { useAuth } from '@/hooks/useAuth';
+import { formatPrice } from '@/lib/formatters';
+import { useI18n } from '@/i18n/useI18n';
 
 const STATUS_BADGES: Record<string, { label: string; bg: string; text: string }> = {
   PENDING: { label: 'قيد الانتظار', bg: 'bg-amber-500/10 border-amber-500/20', text: 'text-amber-600' },
@@ -18,6 +20,7 @@ const STATUS_BADGES: Record<string, { label: string; bg: string; text: string }>
 export function OrdersListPage() {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { locale } = useI18n();
 
   const [orders, setOrders] = useState<Order[]>([]);
   const [total, setTotal] = useState(0);
@@ -184,7 +187,7 @@ export function OrdersListPage() {
                 <div className="flex items-center justify-between md:justify-end gap-6 border-t md:border-t-0 border-[var(--gs-border-subtle)] pt-3 md:pt-0">
                   <div className="text-right md:text-left">
                     <span className="text-[11px] text-[var(--gs-foreground-muted)] block">الإجمالي الكلي</span>
-                    <strong className="text-base font-bold text-emerald-600">{ord.total.toFixed(2)} ر.س</strong>
+                    <strong className="text-base font-bold text-emerald-600">{formatPrice(ord.total, locale)}</strong>
                   </div>
 
                   <button

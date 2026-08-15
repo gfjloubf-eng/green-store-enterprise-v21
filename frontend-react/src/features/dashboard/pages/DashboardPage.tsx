@@ -15,11 +15,14 @@ import {
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { getCart, type Cart } from '@/services/cartClient';
+import { formatPrice } from '@/lib/formatters';
+import { useI18n } from '@/i18n/useI18n';
 import { ProductService } from '@/features/products/services/productService';
 
 export function DashboardPage() {
   const navigate = useNavigate();
   const { user, hasPermission, hasRole } = useAuth();
+  const { locale } = useI18n();
   const [cart, setCart] = useState<Cart | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -149,7 +152,7 @@ export function DashboardPage() {
             <div className="gsd-card rounded-2xl p-5 border border-[var(--gs-border)] bg-[var(--gs-surface)]">
               <div className="flex items-center justify-between mb-3">
                 <h3 className="text-sm font-semibold [color:var(--gs-foreground)]">ملخص السلة الحالية</h3>
-                <span className="text-xs font-bold text-emerald-600">{cart.grandTotal.toFixed(2)} ر.س</span>
+                <span className="text-xs font-bold text-emerald-600">{formatPrice(cart.grandTotal, locale)}</span>
               </div>
               <p className="text-xs [color:var(--gs-foreground-secondary)] mb-4">
                 لديك {cart.items.length} عنصر في سلة الشراء. يمكنك استكمال الطلب أو تعديل الكميات.

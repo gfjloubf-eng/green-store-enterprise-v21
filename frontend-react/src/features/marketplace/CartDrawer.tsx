@@ -1,8 +1,11 @@
 import { useEffect, useState, useRef } from 'react';
 import { useCart } from './useCart';
+import { formatPrice } from '@/lib/formatters';
+import { useI18n } from '@/i18n/useI18n';
 
 export default function CartDrawer() {
   const { items, totals, set, clear } = useCart();
+  const { locale } = useI18n();
   const [open, setOpen] = useState(false);
   const panelRef = useRef<HTMLDivElement | null>(null);
 
@@ -58,7 +61,7 @@ export default function CartDrawer() {
                   <div className="text-sm text-muted">{it.product.category?.name}</div>
                 </div>
                 <div className="flex flex-col items-end">
-                  <div className="font-semibold">{(it.product.sellingPrice * it.quantity).toFixed(2)} ر.س</div>
+                  <div className="font-semibold">{formatPrice(it.product.sellingPrice * it.quantity, locale)}</div>
                   <div className="flex items-center gap-2 mt-2">
                     <button onClick={() => set(it.product.id, it.quantity - 1)} className="w-8 h-8 bg-gray-100 rounded">−</button>
                     <div className="w-10 text-center">{it.quantity}</div>
@@ -73,20 +76,20 @@ export default function CartDrawer() {
         <div className="border-t pt-3 mt-3">
           <div className="flex justify-between mb-2">
             <div className="text-sm text-muted">المجموع</div>
-            <div className="font-semibold">{totals.subtotal.toFixed(2)} ر.س</div>
+            <div className="font-semibold">{formatPrice(totals.subtotal, locale)}</div>
           </div>
           <div className="flex justify-between mb-2">
             <div className="text-sm text-muted">تخفيض</div>
-            <div className="font-semibold text-green-600">-{totals.discount.toFixed(2)} ر.س</div>
+            <div className="font-semibold text-green-600">-{formatPrice(totals.discount, locale)}</div>
           </div>
           <div className="flex justify-between mb-4">
             <div className="text-sm text-muted">تقديري التوصيل</div>
-            <div className="font-semibold">{totals.delivery.toFixed(2)} ر.س</div>
+            <div className="font-semibold">{formatPrice(totals.delivery, locale)}</div>
           </div>
 
           <div className="flex justify-between items-center mb-3">
             <div className="text-sm text-muted">المجموع النهائي</div>
-            <div className="text-lg font-bold">{totals.total.toFixed(2)} ر.س</div>
+            <div className="text-lg font-bold">{formatPrice(totals.total, locale)}</div>
           </div>
 
           <div className="space-y-2">

@@ -154,8 +154,18 @@ export function Topbar({ onMenuClick, mobileOpen = false, className }: TopbarPro
       </div>
 
 
-      {/* Mobile action controls (Theme toggle & Search) */}
+      {/* Mobile action controls (Theme toggle & Language toggle) */}
       <div className="ml-auto flex items-center gap-1 lg:hidden">
+        <button
+          type="button"
+          onClick={toggleDirection}
+          className="rounded-xl p-2.5 [color:var(--gs-foreground-secondary)] hover:[background:var(--gs-muted)] hover:[color:var(--gs-foreground)] transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center"
+          aria-label={t('direction.toggle')}
+          title={isRTL ? t('direction.ltr') : t('direction.rtl')}
+        >
+          <Languages className="h-5 w-5 text-emerald-600" />
+        </button>
+
         <button
           type="button"
           onClick={toggleTheme}

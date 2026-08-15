@@ -8,6 +8,8 @@ import { placeholderImage } from '@/assets/images/products/productImages';
 import { getProductRating } from '../utils/productTags';
 import type { ProductDTO } from '@/features/products/domain/productDTO';
 import { StoreService } from '../services/storeService';
+import { formatPrice } from '@/lib/formatters';
+import { useI18n } from '@/i18n/useI18n';
 
 const reviews = [
   {
@@ -33,6 +35,7 @@ const reviews = [
 export function StoreProfilePage() {
   const navigate = useNavigate();
   const { storeId } = useParams<{ storeId: string }>();
+  const { locale } = useI18n();
   const store = StoreService.getById(storeId ?? '');
 
   const availableProducts = useMemo(() => {
@@ -213,7 +216,7 @@ export function StoreProfilePage() {
                 <div className="text-sm font-semibold [color:var(--gs-foreground)]">{product.name}</div>
                 <div className="mt-1 text-xs [color:var(--gs-foreground-secondary)]">{product.category.name}</div>
                 <div className="mt-2 flex items-center justify-between gap-2 text-sm font-semibold [color:var(--gs-primary)]">
-                  <span>{product.sellingPrice.toFixed(2)} ر.س</span>
+                  <span>{formatPrice(product.sellingPrice, locale)}</span>
                   <span className="rounded-full bg-emerald-50 px-2 py-1 text-[10px] font-semibold text-emerald-700">
                     {product.stock > 0 ? 'متوفر' : 'غير متوفر'}
                   </span>
@@ -340,6 +343,7 @@ function SectionPanel({ title, description, children }: { title: string; descrip
 }
 
 function ProductTile({ product, onClick }: { product: ProductDTO; onClick: () => void }) {
+  const { locale } = useI18n();
   return (
     <button
       type="button"
@@ -351,7 +355,7 @@ function ProductTile({ product, onClick }: { product: ProductDTO; onClick: () =>
         <div className="text-sm font-semibold [color:var(--gs-foreground)]">{product.name}</div>
         <div className="mt-1 text-xs [color:var(--gs-foreground-secondary)]">{product.category.name}</div>
         <div className="mt-2 flex items-center justify-between gap-2 text-sm font-semibold [color:var(--gs-primary)]">
-          <span>{product.sellingPrice.toFixed(2)} ر.س</span>
+          <span>{formatPrice(product.sellingPrice, locale)}</span>
           <span className="rounded-full bg-emerald-50 px-2 py-1 text-[10px] font-semibold text-emerald-700">{getProductRating(product).toFixed(1)}</span>
         </div>
       </div>

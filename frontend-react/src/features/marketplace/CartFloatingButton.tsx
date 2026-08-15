@@ -1,7 +1,10 @@
 import { useCart } from './useCart';
+import { formatPrice } from '@/lib/formatters';
+import { useI18n } from '@/i18n/useI18n';
 
 export default function CartFloatingButton() {
   const { items, totals } = useCart();
+  const { locale } = useI18n();
   const itemCount = items.reduce((s, i) => s + i.quantity, 0);
 
   return (
@@ -17,7 +20,7 @@ export default function CartFloatingButton() {
       >
         <div className="flex flex-col text-left leading-none">
           <span className="text-sm font-semibold">{itemCount} items</span>
-          <span className="text-xs opacity-90">{totals.total.toFixed(2)} ر.س</span>
+          <span className="text-xs opacity-90">{formatPrice(totals.total, locale)}</span>
         </div>
         <div className="bg-white/10 rounded-full w-11 h-11 flex items-center justify-center">
           <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
