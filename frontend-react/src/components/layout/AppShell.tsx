@@ -15,6 +15,8 @@ import { Footer } from './Footer';
 /* ─── AppShell ─────────────────────────────────────────────── */
 
 import { FloatingSupport } from '@/components/support/FloatingSupport';
+import CartFloatingButton from '@/features/marketplace/CartFloatingButton';
+import CartDrawer from '@/features/marketplace/CartDrawer';
 
 export function AppShell() {
   const [expanded, setExpanded] = useState(true);
@@ -61,6 +63,10 @@ export function AppShell() {
         {/* Footer */}
         <Footer />
       </div>
+
+      {/* Global Cart UI */}
+      <CartFloatingButton />
+      <CartDrawer />
 
       {/* Global Floating Support Widget */}
       <FloatingSupport />
