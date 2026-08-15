@@ -4958,7 +4958,7 @@ var init_routes4 = __esm({
   }
 });
 
-// api/index.ts
+// api-src/index.ts
 var index_exports = {};
 __export(index_exports, {
   default: () => apiHandler
@@ -9516,7 +9516,7 @@ if (require.main === module) {
   startSystemServer();
 }
 
-// api/index.ts
+// api-src/index.ts
 var handler = createSystemRequestHandler();
 async function apiHandler(req, res) {
   return handler(req, res);
