@@ -41,7 +41,7 @@ async function readBody(request: IncomingMessage): Promise<unknown> {
   }
 }
 
-export function startSystemServer(port: number = Number(process.env.PORT ?? 3000)) {
+export function createSystemRequestHandler() {
   const registry = new RouteRegistry();
   const resolver = new RouteResolver();
   const protection = new RouteProtectionFactory();
@@ -52,7 +52,7 @@ export function startSystemServer(port: number = Number(process.env.PORT ?? 3000
     registry.register(route);
   }
 
-  const server = createServer(async (request: IncomingMessage, response: ServerResponse) => {
+  return async (request: IncomingMessage, response: ServerResponse) => {
     try {
       const origin = (request.headers.origin as string) || '*';
       response.setHeader('Access-Control-Allow-Origin', origin);
@@ -72,9 +72,10 @@ export function startSystemServer(port: number = Number(process.env.PORT ?? 3000
       }
 
       const url = new URL(request.url ?? '/', `http://${request.headers.host ?? 'localhost'}`);
+      const targetPath = url.searchParams.get('path') || url.pathname;
       const resolved = resolver.resolve(registry, {
         method: (request.method ?? 'GET') as RouteMethod,
-        path: url.pathname,
+        path: targetPath,
         version: 'v1',
       });
 
@@ -89,7 +90,9 @@ export function startSystemServer(port: number = Number(process.env.PORT ?? 3000
       const headers = request.headers as Record<string, string | string[] | undefined>;
       const query: Record<string, string | string[] | undefined> = {};
       for (const [key, value] of url.searchParams.entries()) {
-        query[key] = value;
+        if (key !== 'path') {
+          query[key] = value;
+        }
       }
 
       const params = (route.runtimeParams as Record<string, string> | undefined) ?? {};
@@ -178,7 +181,12 @@ export function startSystemServer(port: number = Number(process.env.PORT ?? 3000
       response.writeHead(500, { 'Content-Type': 'application/json' });
       response.end(JSON.stringify({ success: false, error: { code: 'internal_error', message: error instanceof Error ? error.message : 'internal_error' } }));
     }
-  });
+  };
+}
+
+export function startSystemServer(port: number = Number(process.env.PORT ?? 3000)) {
+  const handler = createSystemRequestHandler();
+  const server = createServer(handler);
 
   server.listen(port, () => {
     console.log(`System backend listening on http://127.0.0.1:${port}`);

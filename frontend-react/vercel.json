@@ -3,7 +3,13 @@
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
   "rewrites": [
-    { "source": "/(.*)", "destination": "/index.html" }
+    { "source": "/auth/(.*)", "destination": "/api/index?path=/auth/$1" },
+    { "source": "/settings/(.*)", "destination": "/api/index?path=/settings/$1" },
+    { "source": "/support/(.*)", "destination": "/api/index?path=/support/$1" },
+    { "source": "/cart/(.*)", "destination": "/api/index?path=/cart/$1" },
+    { "source": "/orders/(.*)", "destination": "/api/index?path=/orders/$1" },
+    { "source": "/products/(.*)", "destination": "/api/index?path=/products/$1" },
+    { "source": "/api/(.*)", "destination": "/api/index?path=/$1" },
+    { "source": "/((?!assets/|favicon.svg|index.html).*)", "destination": "/index.html" }
   ]
 }
-
