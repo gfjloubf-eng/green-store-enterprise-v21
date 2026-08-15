@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom';
-import { Bell, Moon, Sun, Menu, X, Languages, Search, LogOut, ShoppingCart, LogIn } from 'lucide-react';
+import { Bell, Moon, Sun, Menu, X, Languages, LogOut, ShoppingCart, LogIn } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useTheme } from '@/hooks/useTheme';
 import { useRTL } from '@/hooks/useRTL';
@@ -94,15 +94,16 @@ export function Topbar({ onMenuClick, mobileOpen = false, className }: TopbarPro
           {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
         </button>
 
-        {/* RTL toggle */}
+        {/* Language & Direction toggle with clear badge */}
         <button
           type="button"
           onClick={toggleDirection}
-          className="rounded-lg p-2 [color:var(--gs-foreground-secondary)] hover:[background:var(--gs-muted)] hover:[color:var(--gs-foreground)] transition-colors"
+          className="rounded-lg px-2.5 py-1.5 [color:var(--gs-foreground-secondary)] hover:[background:var(--gs-muted)] hover:[color:var(--gs-foreground)] transition-colors flex items-center gap-1.5 text-xs"
           aria-label={t('direction.toggle')}
           title={isRTL ? t('direction.ltr') : t('direction.rtl')}
         >
-          <Languages className="h-4 w-4" />
+          <Languages className="h-4 w-4 text-emerald-600" />
+          <span className="text-[11px] font-bold text-emerald-600 uppercase">{isRTL ? 'EN' : 'عربي'}</span>
         </button>
 
         {/* Notification placeholder */}
@@ -154,16 +155,17 @@ export function Topbar({ onMenuClick, mobileOpen = false, className }: TopbarPro
       </div>
 
 
-      {/* Mobile action controls (Theme toggle & Language toggle) */}
-      <div className="ml-auto flex items-center gap-1 lg:hidden">
+      {/* Mobile action controls (Language toggle, Theme toggle & User Avatar / Login) */}
+      <div className="ml-auto flex items-center gap-1.5 lg:hidden z-10">
         <button
           type="button"
           onClick={toggleDirection}
-          className="rounded-xl p-2.5 [color:var(--gs-foreground-secondary)] hover:[background:var(--gs-muted)] hover:[color:var(--gs-foreground)] transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center"
+          className="rounded-xl px-2 py-2 [color:var(--gs-foreground-secondary)] hover:[background:var(--gs-muted)] hover:[color:var(--gs-foreground)] transition-colors min-h-[44px] flex items-center gap-1 text-xs"
           aria-label={t('direction.toggle')}
           title={isRTL ? t('direction.ltr') : t('direction.rtl')}
         >
-          <Languages className="h-5 w-5 text-emerald-600" />
+          <Languages className="h-4.5 w-4.5 text-emerald-600" />
+          <span className="text-[11px] font-bold text-emerald-600 uppercase">{isRTL ? 'EN' : 'عربي'}</span>
         </button>
 
         <button
@@ -176,14 +178,26 @@ export function Topbar({ onMenuClick, mobileOpen = false, className }: TopbarPro
           {isDark ? <Sun className="h-5 w-5 text-amber-400" /> : <Moon className="h-5 w-5 text-indigo-500" />}
         </button>
 
-        <button
-          type="button"
-          className="rounded-xl p-2.5 [color:var(--gs-foreground-secondary)] hover:[background:var(--gs-muted)] hover:[color:var(--gs-foreground)] transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center"
-          aria-label={t('common.search')}
-          title={t('common.search')}
-        >
-          <Search className="h-5 w-5" />
-        </button>
+        {user ? (
+          <button
+            type="button"
+            onClick={() => navigate('/profile')}
+            className="flex h-9 w-9 items-center justify-center rounded-full text-xs font-bold [background:var(--gs-primary-soft)] [color:var(--gs-primary)] border border-emerald-500/30 shrink-0"
+            aria-label={user.name}
+            title={user.name}
+          >
+            {initials}
+          </button>
+        ) : (
+          <button
+            type="button"
+            onClick={() => navigate('/login')}
+            className="gsd-btn gsd-btn--primary gsd-btn--xs rounded-xl px-2.5 py-1.5 text-xs font-semibold flex items-center gap-1 min-h-[38px]"
+          >
+            <LogIn className="h-3.5 w-3.5" />
+            <span>دخول</span>
+          </button>
+        )}
       </div>
     </header>
   );

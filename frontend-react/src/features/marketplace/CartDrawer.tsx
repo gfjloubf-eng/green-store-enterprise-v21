@@ -36,7 +36,7 @@ export default function CartDrawer() {
       />
       <aside
         ref={panelRef}
-        className="ml-auto w-[80%] max-w-[320px] bg-white dark:bg-slate-900 rounded-l-2xl shadow-2xl p-4 flex flex-col"
+        className="ml-auto w-[80%] max-w-[320px] bg-[var(--gs-surface)] text-[var(--gs-foreground)] border border-[var(--gs-border)] rounded-l-2xl shadow-2xl p-4 flex flex-col"
         style={{ transition: 'transform 250ms ease' }}
       >
         <div className="flex items-center justify-between mb-3">

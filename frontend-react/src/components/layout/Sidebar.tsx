@@ -119,8 +119,17 @@ export function Sidebar({
   const sidebarRef = useRef<HTMLElement>(null);
   const { t } = useI18n();
   const { isRTL } = useRTL();
-  const { isAuthenticated, hasPermission, hasRole } = useAuth();
+  const { user, logout, isAuthenticated, hasPermission, hasRole } = useAuth();
   const showMobileExpanded = expanded || mobileOpen;
+
+  const initials = user?.name
+    ? user.name
+        .split(' ')
+        .map((n) => n[0])
+        .join('')
+        .toUpperCase()
+        .slice(0, 2)
+    : 'U';
 
   const isItemVisible = useCallback((item: NavItem): boolean => {
     if (item.authRequired && !isAuthenticated) return false;
@@ -166,6 +175,43 @@ export function Sidebar({
           )}
         </button>
       </div>
+
+      {/* Mobile Drawer User Profile Header */}
+      {mobileOpen && (
+        <div className="p-3 border-b [border-color:var(--gs-border)] bg-[var(--gs-muted)]/50">
+          {user ? (
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2 min-w-0 cursor-pointer" onClick={() => handleNavigate('/profile')}>
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-xs font-bold [background:var(--gs-primary-soft)] [color:var(--gs-primary)] border border-emerald-500/30">
+                  {initials}
+                </div>
+                <div className="flex flex-col min-w-0">
+                  <span className="text-xs font-bold truncate [color:var(--gs-foreground)]">{user.name}</span>
+                  <span className="text-[10px] text-emerald-600 font-semibold uppercase">{user.role ?? 'User'}</span>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={logout}
+                className="p-2 rounded-xl text-red-500 hover:bg-red-500/10 transition-colors text-xs font-medium shrink-0"
+                title="تسجيل الخروج"
+              >
+                خروج
+              </button>
+            </div>
+          ) : (
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => handleNavigate('/login')}
+                className="gsd-btn gsd-btn--primary gsd-btn--sm w-full rounded-xl text-xs py-2 font-bold"
+              >
+                تسجيل الدخول
+              </button>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Navigation items */}
       <nav className="flex-1 overflow-y-auto p-3 scrollbar-none">
@@ -293,7 +339,7 @@ export function Sidebar({
             data-state={expanded ? 'expanded' : 'collapsed'}
             data-mobile-open="true"
             className={cn(
-              'relative flex h-full flex-col overflow-hidden rounded-3xl border border-white/10 bg-[var(--gs-background)] shadow-2xl transition-transform duration-250 ease-standard',
+              'relative flex h-full flex-col overflow-hidden rounded-3xl border border-[var(--gs-border)] bg-[var(--gs-background)] shadow-2xl transition-transform duration-250 ease-standard',
               'w-[80%] max-w-[300px]',
               isRTL ? 'ml-auto' : ''
             )}
