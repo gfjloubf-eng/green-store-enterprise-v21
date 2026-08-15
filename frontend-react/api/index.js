@@ -1,9 +1,11 @@
-var __create = Object.create;
 var __defProp = Object.defineProperty;
-var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
 var __getOwnPropNames = Object.getOwnPropertyNames;
-var __getProtoOf = Object.getPrototypeOf;
-var __hasOwnProp = Object.prototype.hasOwnProperty;
+var __require = /* @__PURE__ */ ((x) => typeof require !== "undefined" ? require : typeof Proxy !== "undefined" ? new Proxy(x, {
+  get: (a, b) => (typeof require !== "undefined" ? require : a)[b]
+}) : x)(function(x) {
+  if (typeof require !== "undefined") return require.apply(this, arguments);
+  throw Error('Dynamic require of "' + x + '" is not supported');
+});
 var __esm = (fn, res, err) => function __init() {
   if (err) throw err[0];
   try {
@@ -16,23 +18,6 @@ var __export = (target, all) => {
   for (var name in all)
     __defProp(target, name, { get: all[name], enumerable: true });
 };
-var __copyProps = (to, from, except, desc) => {
-  if (from && typeof from === "object" || typeof from === "function") {
-    for (let key of __getOwnPropNames(from))
-      if (!__hasOwnProp.call(to, key) && key !== except)
-        __defProp(to, key, { get: () => from[key], enumerable: !(desc = __getOwnPropDesc(from, key)) || desc.enumerable });
-  }
-  return to;
-};
-var __toESM = (mod, isNodeMode, target) => (target = mod != null ? __create(__getProtoOf(mod)) : {}, __copyProps(
-  // If the importer is in node compatibility mode or this is not an ESM
-  // file that has been converted to a CommonJS file using a Babel-
-  // compatible transform (i.e. "__esModule" has not been set), then set
-  // "default" to the CommonJS "module.exports" for node compatibility.
-  isNodeMode || !mod || !mod.__esModule ? __defProp(target, "default", { value: mod, enumerable: true }) : target,
-  mod
-));
-var __toCommonJS = (mod) => __copyProps(__defProp({}, "__esModule", { value: true }), mod);
 
 // ../backend/src/common/security/errors.ts
 var AuthError, UnauthorizedError, InvalidTokenError, RateLimitError, AccountLockedError;
@@ -75,17 +60,21 @@ var init_errors = __esm({
 });
 
 // ../backend/src/repositories/prisma-service.ts
+import fs from "node:fs";
+import path from "node:path";
+import { PrismaClient } from "@prisma/client";
+import { PrismaPg } from "@prisma/adapter-pg";
 function loadEnvFile() {
   if (process.env.DATABASE_URL) return;
   const candidates = [
-    import_node_path.default.resolve(__dirname, "../../../.env.local"),
-    import_node_path.default.resolve(__dirname, "../../../.env"),
-    import_node_path.default.resolve(__dirname, "../../.env.local"),
-    import_node_path.default.resolve(__dirname, "../../.env")
+    path.resolve(__dirname, "../../../.env.local"),
+    path.resolve(__dirname, "../../../.env"),
+    path.resolve(__dirname, "../../.env.local"),
+    path.resolve(__dirname, "../../.env")
   ];
   for (const candidate of candidates) {
-    if (!import_node_fs.default.existsSync(candidate)) continue;
-    const content = import_node_fs.default.readFileSync(candidate, "utf8");
+    if (!fs.existsSync(candidate)) continue;
+    const content = fs.readFileSync(candidate, "utf8");
     for (const line of content.split(/\r?\n/)) {
       const trimmed = line.trim();
       if (!trimmed || trimmed.startsWith("#")) continue;
@@ -101,21 +90,17 @@ function loadEnvFile() {
     }
   }
 }
-var import_node_fs, import_node_path, import_client, import_adapter_pg, prismaClient, PrismaService, prisma_service_default;
+var prismaClient, PrismaService, prisma_service_default;
 var init_prisma_service = __esm({
   "../backend/src/repositories/prisma-service.ts"() {
     "use strict";
-    import_node_fs = __toESM(require("node:fs"));
-    import_node_path = __toESM(require("node:path"));
-    import_client = require("@prisma/client");
-    import_adapter_pg = require("@prisma/adapter-pg");
     prismaClient = (() => {
       loadEnvFile();
       if (!process.env.NODE_TLS_REJECT_UNAUTHORIZED && process.env.DATABASE_URL?.includes("sslmode=require")) {
         process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
       }
-      const adapter = new import_adapter_pg.PrismaPg({ connectionString: process.env.DATABASE_URL });
-      const createClient = () => new import_client.PrismaClient({ log: ["error"], adapter });
+      const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL });
+      const createClient = () => new PrismaClient({ log: ["error"], adapter });
       if (process.env.NODE_ENV !== "production") {
         if (!global.__prismaClient) {
           global.__prismaClient = createClient();
@@ -141,21 +126,23 @@ var init_prisma_service = __esm({
 });
 
 // ../backend/src/services/auth-constants.ts
+import fs2 from "node:fs";
+import path2 from "node:path";
 function loadEnvFile2() {
   if (process.env.JWT_SECRET) return;
   const candidates = [
-    import_node_path2.default.resolve(__dirname, "../../.env.local"),
-    import_node_path2.default.resolve(__dirname, "../../.env"),
-    import_node_path2.default.resolve(__dirname, "../.env.local"),
-    import_node_path2.default.resolve(__dirname, "../.env"),
-    import_node_path2.default.resolve(process.cwd(), ".env.local"),
-    import_node_path2.default.resolve(process.cwd(), ".env"),
-    import_node_path2.default.resolve(process.cwd(), "backend/.env.local"),
-    import_node_path2.default.resolve(process.cwd(), "backend/.env")
+    path2.resolve(__dirname, "../../.env.local"),
+    path2.resolve(__dirname, "../../.env"),
+    path2.resolve(__dirname, "../.env.local"),
+    path2.resolve(__dirname, "../.env"),
+    path2.resolve(process.cwd(), ".env.local"),
+    path2.resolve(process.cwd(), ".env"),
+    path2.resolve(process.cwd(), "backend/.env.local"),
+    path2.resolve(process.cwd(), "backend/.env")
   ];
   for (const candidate of candidates) {
-    if (!import_node_fs2.default.existsSync(candidate)) continue;
-    const content = import_node_fs2.default.readFileSync(candidate, "utf8");
+    if (!fs2.existsSync(candidate)) continue;
+    const content = fs2.readFileSync(candidate, "utf8");
     for (const line of content.split(/\r?\n/)) {
       const trimmed = line.trim();
       if (!trimmed || trimmed.startsWith("#")) continue;
@@ -171,12 +158,10 @@ function loadEnvFile2() {
     }
   }
 }
-var import_node_fs2, import_node_path2, ACCESS_TOKEN_EXP_SECONDS, REFRESH_TOKEN_EXP_SECONDS, JWT_SECRET, TOKEN_ISSUER;
+var ACCESS_TOKEN_EXP_SECONDS, REFRESH_TOKEN_EXP_SECONDS, JWT_SECRET, TOKEN_ISSUER;
 var init_auth_constants = __esm({
   "../backend/src/services/auth-constants.ts"() {
     "use strict";
-    import_node_fs2 = __toESM(require("node:fs"));
-    import_node_path2 = __toESM(require("node:path"));
     loadEnvFile2();
     ACCESS_TOKEN_EXP_SECONDS = Number(process.env.ACCESS_TOKEN_EXP_SECONDS ?? 900);
     REFRESH_TOKEN_EXP_SECONDS = Number(process.env.REFRESH_TOKEN_EXP_SECONDS ?? 60 * 60 * 24 * 30);
@@ -186,20 +171,20 @@ var init_auth_constants = __esm({
 });
 
 // ../backend/src/services/auth-token-service.ts
+import { createHmac, randomBytes, timingSafeEqual } from "crypto";
 function base64url(input) {
   const b = typeof input === "string" ? Buffer.from(input) : input;
   return b.toString("base64").replace(/=/g, "").replace(/\+/g, "-").replace(/\//g, "_");
 }
 function sign(payload) {
-  const hmac = (0, import_crypto.createHmac)("sha256", JWT_SECRET);
+  const hmac = createHmac("sha256", JWT_SECRET);
   hmac.update(payload);
   return base64url(hmac.digest());
 }
-var import_crypto, TokenService, auth_token_service_default;
+var TokenService, auth_token_service_default;
 var init_auth_token_service = __esm({
   "../backend/src/services/auth-token-service.ts"() {
     "use strict";
-    import_crypto = require("crypto");
     init_auth_constants();
     TokenService = class {
       issuer = TOKEN_ISSUER;
@@ -221,7 +206,7 @@ var init_auth_token_service = __esm({
         const header = { alg: "HS256", typ: "JWT" };
         const iat = Math.floor(Date.now() / 1e3);
         const exp = iat + expiresInSec;
-        const id = jti ?? (0, import_crypto.randomBytes)(16).toString("hex");
+        const id = jti ?? randomBytes(16).toString("hex");
         const payload = { iss: this.issuer, sub: subject, iat, exp, jti: id, ...extra, typ: "refresh" };
         const encoded = `${base64url(JSON.stringify(header))}.${base64url(JSON.stringify(payload))}`;
         const signature = sign(encoded);
@@ -236,7 +221,7 @@ var init_auth_token_service = __esm({
           const expected = sign(signed);
           const expectedBuffer = Buffer.from(expected, "base64url");
           const signatureBuffer = Buffer.from(signature, "base64url");
-          if (signatureBuffer.length !== expectedBuffer.length || !(0, import_crypto.timingSafeEqual)(signatureBuffer, expectedBuffer)) {
+          if (signatureBuffer.length !== expectedBuffer.length || !timingSafeEqual(signatureBuffer, expectedBuffer)) {
             return { valid: false, error: "invalid signature" };
           }
           const payloadJson = Buffer.from(encodedPayload, "base64").toString("utf8");
@@ -255,26 +240,26 @@ var init_auth_token_service = __esm({
 });
 
 // ../backend/src/services/auth-hash-service.ts
-var import_argon2, HashService, auth_hash_service_default;
+import argon2 from "argon2";
+var HashService, auth_hash_service_default;
 var init_auth_hash_service = __esm({
   "../backend/src/services/auth-hash-service.ts"() {
     "use strict";
-    import_argon2 = __toESM(require("argon2"));
     HashService = class {
       // Argon2id recommended parameters (tune per environment)
       options = {
-        type: import_argon2.default.argon2id,
+        type: argon2.argon2id,
         memoryCost: 2 ** 16,
         // 64 MB
         timeCost: 3,
         parallelism: 1
       };
       async hash(password) {
-        return import_argon2.default.hash(password, this.options);
+        return argon2.hash(password, this.options);
       }
       async verify(password, stored) {
         try {
-          return await import_argon2.default.verify(stored, password);
+          return await argon2.verify(stored, password);
         } catch (err) {
           return false;
         }
@@ -394,28 +379,28 @@ __export(refresh_token_repository_exports, {
   RefreshTokenRepository: () => RefreshTokenRepository,
   default: () => refresh_token_repository_default
 });
-var import_crypto2, RefreshTokenRepository, refresh_token_repository_default;
+import crypto from "crypto";
+var RefreshTokenRepository, refresh_token_repository_default;
 var init_refresh_token_repository = __esm({
   "../backend/src/repositories/refresh-token-repository.ts"() {
     "use strict";
     init_prisma_service();
-    import_crypto2 = __toESM(require("crypto"));
     RefreshTokenRepository = class {
       client = prisma_service_default.getClient();
       async create(userId, token, expiresAt) {
-        const tokenHash = import_crypto2.default.createHash("sha256").update(token).digest("hex");
+        const tokenHash = crypto.createHash("sha256").update(token).digest("hex");
         return this.client.refreshToken.create({ data: { userId, tokenHash, expiresAt } });
       }
       async revokeByHash(token) {
-        const tokenHash = import_crypto2.default.createHash("sha256").update(token).digest("hex");
+        const tokenHash = crypto.createHash("sha256").update(token).digest("hex");
         return this.client.refreshToken.updateMany({ where: { tokenHash }, data: { revoked: true } });
       }
       async findByHash(token) {
-        const tokenHash = import_crypto2.default.createHash("sha256").update(token).digest("hex");
+        const tokenHash = crypto.createHash("sha256").update(token).digest("hex");
         return this.client.refreshToken.findFirst({ where: { tokenHash } });
       }
       async rotate(oldToken, newToken, expiresAt) {
-        const oldHash = import_crypto2.default.createHash("sha256").update(oldToken).digest("hex");
+        const oldHash = crypto.createHash("sha256").update(oldToken).digest("hex");
         const old = await this.client.refreshToken.findFirst({ where: { tokenHash: oldHash } });
         if (!old) return null;
         await this.client.refreshToken.updateMany({ where: { tokenHash: oldHash }, data: { revoked: true } });
@@ -427,20 +412,20 @@ var init_refresh_token_repository = __esm({
 });
 
 // ../backend/src/repositories/password-reset-repository.ts
-var import_crypto4, PasswordResetRepository, password_reset_repository_default;
+import crypto3 from "crypto";
+var PasswordResetRepository, password_reset_repository_default;
 var init_password_reset_repository = __esm({
   "../backend/src/repositories/password-reset-repository.ts"() {
     "use strict";
     init_prisma_service();
-    import_crypto4 = __toESM(require("crypto"));
     PasswordResetRepository = class {
       client = prisma_service_default.getClient();
       async create(userId, token, expiresAt) {
-        const tokenHash = import_crypto4.default.createHash("sha256").update(token).digest("hex");
+        const tokenHash = crypto3.createHash("sha256").update(token).digest("hex");
         return this.client.passwordReset.create({ data: { userId, tokenHash, expiresAt } });
       }
       async findValidByToken(token) {
-        const tokenHash = import_crypto4.default.createHash("sha256").update(token).digest("hex");
+        const tokenHash = crypto3.createHash("sha256").update(token).digest("hex");
         return this.client.passwordReset.findFirst({ where: { tokenHash, used: false, expiresAt: { gt: /* @__PURE__ */ new Date() } } });
       }
       async markUsed(id) {
@@ -507,20 +492,20 @@ var init_auth_reset_service = __esm({
 });
 
 // ../backend/src/repositories/email-verification-repository.ts
-var import_crypto5, EmailVerificationRepository, email_verification_repository_default;
+import crypto4 from "crypto";
+var EmailVerificationRepository, email_verification_repository_default;
 var init_email_verification_repository = __esm({
   "../backend/src/repositories/email-verification-repository.ts"() {
     "use strict";
     init_prisma_service();
-    import_crypto5 = __toESM(require("crypto"));
     EmailVerificationRepository = class {
       client = prisma_service_default.getClient();
       async create(userId, token, expiresAt) {
-        const tokenHash = import_crypto5.default.createHash("sha256").update(token).digest("hex");
+        const tokenHash = crypto4.createHash("sha256").update(token).digest("hex");
         return this.client.emailVerification.create({ data: { userId, tokenHash, expiresAt } });
       }
       async verify(token) {
-        const tokenHash = import_crypto5.default.createHash("sha256").update(token).digest("hex");
+        const tokenHash = crypto4.createHash("sha256").update(token).digest("hex");
         const rec = await this.client.emailVerification.findFirst({ where: { tokenHash, verified: false, expiresAt: { gt: /* @__PURE__ */ new Date() } } });
         if (!rec) return null;
         await this.client.emailVerification.update({ where: { id: rec.id }, data: { verified: true } });
@@ -573,15 +558,8 @@ var init_auth_email_verification_service = __esm({
   }
 });
 
-// api-src/index.ts
-var index_exports = {};
-__export(index_exports, {
-  default: () => apiHandler
-});
-module.exports = __toCommonJS(index_exports);
-
 // ../backend/src/system/server.ts
-var import_node_http = require("node:http");
+import { createServer } from "node:http";
 
 // ../backend/src/api/status.ts
 var HTTP_STATUS = {
@@ -1116,8 +1094,8 @@ var auth_audit_service_default = new AuthAuditService();
 // ../backend/src/services/auth-service.ts
 init_rate_limiter();
 init_prisma_service();
-var import_crypto3 = __toESM(require("crypto"));
 init_errors();
+import crypto2 from "crypto";
 var AuthService = class {
   constructor(userLookup) {
     this.userLookup = userLookup;
@@ -1299,7 +1277,7 @@ var AuthService = class {
     if (!v.valid || !v.payload) return;
     const jti = v.payload?.jti;
     const sub = v.payload?.sub;
-    const tokenHash = import_crypto3.default.createHash("sha256").update(refreshToken).digest("hex");
+    const tokenHash = crypto2.createHash("sha256").update(refreshToken).digest("hex");
     await token_blacklist_repository_default.addBlacklistByHash(sub ?? null, tokenHash, "logout");
     if (jti) await auth_session_service_default.revokeSession(jti);
     await (await Promise.resolve().then(() => (init_refresh_token_repository(), refresh_token_repository_exports))).default.revokeByHash(refreshToken);
@@ -1313,7 +1291,7 @@ var AuthService = class {
   async refresh(refreshToken, meta) {
     const ip = meta?.ip;
     const ua = meta?.userAgent;
-    const incomingHash = import_crypto3.default.createHash("sha256").update(refreshToken).digest("hex");
+    const incomingHash = crypto2.createHash("sha256").update(refreshToken).digest("hex");
     const blacklisted = await token_blacklist_repository_default.isBlacklistedByHash(incomingHash);
     if (blacklisted) throw new UnauthorizedError("token_revoked");
     const v = auth_token_service_default.verify(refreshToken);
@@ -4139,9 +4117,9 @@ var logger = new NoopLogger();
 init_prisma_service();
 
 // ../backend/src/repositories/prisma-error-mapper.ts
-var import_client2 = require("@prisma/client");
+import { Prisma } from "@prisma/client";
 function mapPrismaError(err) {
-  if (err instanceof import_client2.Prisma.PrismaClientKnownRequestError) {
+  if (err instanceof Prisma.PrismaClientKnownRequestError) {
     switch (err.code) {
       case "P2002":
         throw new ConflictException(err.message);
@@ -8876,13 +8854,13 @@ function createSystemRequestHandler() {
 }
 function startSystemServer(port = Number(process.env.PORT ?? 3e3)) {
   const handler2 = createSystemRequestHandler();
-  const server = (0, import_node_http.createServer)(handler2);
+  const server = createServer(handler2);
   server.listen(port, () => {
     console.log(`System backend listening on http://127.0.0.1:${port}`);
   });
   return server;
 }
-if (require.main === module) {
+if (__require.main === module) {
   startSystemServer();
 }
 
@@ -8891,3 +8869,6 @@ var handler = createSystemRequestHandler();
 async function apiHandler(req, res) {
   return handler(req, res);
 }
+export {
+  apiHandler as default
+};
