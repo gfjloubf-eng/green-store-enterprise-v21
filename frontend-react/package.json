@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "npx esbuild api-src/index.ts --bundle --platform=node --target=node20 --format=esm --outfile=api/index.js --external:@prisma/client --external:@prisma/adapter-pg --external:argon2 --external:pg && tsc -b && vite build",
+    "build": "npx esbuild api-src/index.ts --bundle --platform=node --target=node20 --format=cjs \"--footer:js=module.exports = apiHandler; module.exports.default = apiHandler;\" --outfile=api/index.js --external:@prisma/client --external:@prisma/adapter-pg --external:argon2 --external:pg && tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview"
   },
