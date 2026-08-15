@@ -63,35 +63,35 @@
   /* ────────────────────────────────────────────────
      Color: Surface & Background — Dark Mode (Deep Forest)
      ──────────────────────────────────────────────── */
-  --gs-background: #0D1B14;
-  --gs-surface: #162B20;
-  --gs-surface-elevated: #1E3827;
-  --gs-card: #162B20;
-  --gs-card-hover: #1E3827;
+  --gs-background: #08120C;
+  --gs-surface: #122218;
+  --gs-surface-elevated: #192D21;
+  --gs-card: #122218;
+  --gs-card-hover: #192D21;
 
-  --gs-border: #2D4A38;
-  --gs-border-hover: #3D5F48;
-  --gs-border-subtle: #1F3629;
-  --gs-divider: #2D4A38;
+  --gs-border: #223D2D;
+  --gs-border-hover: #2E523D;
+  --gs-border-subtle: #172B1F;
+  --gs-divider: #223D2D;
 
-  --gs-overlay: rgba(0, 0, 0, 0.25);
-  --gs-overlay-blur: rgba(0, 0, 0, 0.20);
+  --gs-overlay: rgba(0, 0, 0, 0.4);
+  --gs-overlay-blur: rgba(0, 0, 0, 0.25);
 
   /* ────────────────────────────────────────────────
      Color: Text — Dark Mode
      ──────────────────────────────────────────────── */
-  --gs-foreground: #F0FDF4;
-  --gs-foreground-secondary: #A7C4B3;
-  --gs-foreground-muted: #6B8F7A;
-  --gs-foreground-disabled: #4A6B56;
-  --gs-foreground-inverse: #0D1B14;
+  --gs-foreground: #F2FAF5;
+  --gs-foreground-secondary: #A3C5B3;
+  --gs-foreground-muted: #648775;
+  --gs-foreground-disabled: #436352;
+  --gs-foreground-inverse: #08120C;
 
   /* ────────────────────────────────────────────────
      Color: Muted / Neutral backgrounds
      ──────────────────────────────────────────────── */
-  --gs-muted: #1F3629;
-  --gs-muted-hover: #2D4A38;
-  --gs-muted-foreground: #6B8F7A;
+  --gs-muted: #172B1F;
+  --gs-muted-hover: #223D2D;
+  --gs-muted-foreground: #648775;
 
   /* ────────────────────────────────────────────────
      Typography — Font Families
@@ -234,50 +234,50 @@
 }
 
 /* ============================================================
-   Light Mode Overrides — Fresh & Clean
+   Light Mode Overrides — Bright, Fresh & Clean
    ============================================================ */
 [data-theme='light'] {
   /* Surface & Background */
-  --gs-background: #F0F7F4;
+  --gs-background: #F4F6F5;
   --gs-surface: #FFFFFF;
   --gs-surface-elevated: #FFFFFF;
   --gs-card: #FFFFFF;
-  --gs-card-hover: #F8FCF9;
+  --gs-card-hover: #FAFCFA;
 
-  --gs-border: #DCE8E0;
-  --gs-border-hover: #BCCDC2;
-  --gs-border-subtle: #E8F0EB;
-  --gs-divider: #DCE8E0;
+  --gs-border: #D1E0D7;
+  --gs-border-hover: #A5C2B2;
+  --gs-border-subtle: #E6EFEA;
+  --gs-divider: #D1E0D7;
 
-  --gs-overlay: rgba(0, 0, 0, 0.3);
-  --gs-overlay-blur: rgba(0, 0, 0, 0.15);
+  --gs-overlay: rgba(9, 23, 16, 0.35);
+  --gs-overlay-blur: rgba(9, 23, 16, 0.15);
 
-  /* Text */
-  --gs-foreground: #0D1B14;
-  --gs-foreground-secondary: #3D5F48;
-  --gs-foreground-muted: #6B8F7A;
-  --gs-foreground-disabled: #9CB0A3;
-  --gs-foreground-inverse: #F0FDF4;
+  /* Text — High Contrast Readability */
+  --gs-foreground: #091710;
+  --gs-foreground-secondary: #2E4B3B;
+  --gs-foreground-muted: #5C7C6C;
+  --gs-foreground-disabled: #98B3A4;
+  --gs-foreground-inverse: #FFFFFF;
 
   /* Muted */
-  --gs-muted: #E8F0EB;
-  --gs-muted-hover: #DCE8E0;
-  --gs-muted-foreground: #6B8F7A;
+  --gs-muted: #E6EFEA;
+  --gs-muted-hover: #D1E0D7;
+  --gs-muted-foreground: #5C7C6C;
 
   /* Primary soft */
-  --gs-primary-soft: rgba(5, 150, 105, 0.08);
-  --gs-primary-soft-hover: rgba(5, 150, 105, 0.14);
+  --gs-primary-soft: rgba(5, 150, 105, 0.09);
+  --gs-primary-soft-hover: rgba(5, 150, 105, 0.16);
 
-  /* Shadows — Lighter for light mode */
-  --gs-shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.04);
-  --gs-shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.06);
-  --gs-shadow-md: 0 4px 6px rgba(0, 0, 0, 0.06);
-  --gs-shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.08);
-  --gs-shadow-xl: 0 20px 25px rgba(0, 0, 0, 0.1);
-  --gs-shadow-2xl: 0 25px 50px rgba(0, 0, 0, 0.15);
-  --gs-shadow-card: 0 1px 3px rgba(0, 0, 0, 0.06);
-  --gs-shadow-dropdown: 0 4px 16px rgba(0, 0, 0, 0.1);
-  --gs-shadow-modal: 0 12px 48px rgba(0, 0, 0, 0.18);
+  /* Shadows — Defined elevation for white cards on light canvas */
+  --gs-shadow-xs: 0 1px 2px rgba(9, 23, 16, 0.05);
+  --gs-shadow-sm: 0 1px 3px rgba(9, 23, 16, 0.08);
+  --gs-shadow-md: 0 4px 8px rgba(9, 23, 16, 0.08);
+  --gs-shadow-lg: 0 10px 20px rgba(9, 23, 16, 0.1);
+  --gs-shadow-xl: 0 20px 30px rgba(9, 23, 16, 0.12);
+  --gs-shadow-2xl: 0 25px 50px rgba(9, 23, 16, 0.18);
+  --gs-shadow-card: 0 1px 4px rgba(9, 23, 16, 0.07);
+  --gs-shadow-dropdown: 0 6px 20px rgba(9, 23, 16, 0.12);
+  --gs-shadow-modal: 0 16px 48px rgba(9, 23, 16, 0.22);
 }
 
 /* ============================================================
