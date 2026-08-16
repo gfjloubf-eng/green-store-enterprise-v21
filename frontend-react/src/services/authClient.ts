@@ -281,8 +281,15 @@ export async function fetchWithAuth(input: RequestInfo, init?: RequestInit, retr
   if (!refreshPromise) {
     refreshPromise = (async () => {
       try {
+        const isSessionOnly =
+          typeof window !== 'undefined' &&
+          !window.localStorage.getItem('gs_access_token') &&
+          !window.localStorage.getItem('gs_refresh_token') &&
+          (!!window.sessionStorage.getItem('gs_access_token') || !!window.sessionStorage.getItem('gs_refresh_token'));
+        const rememberTarget = !isSessionOnly;
+
         const newTokens = await refresh(refreshToken);
-        setStoredTokens(newTokens, true);
+        setStoredTokens(newTokens, rememberTarget);
       } catch (err: any) {
         // Do NOT invalidate session on temporary network errors or server downtime
         const isNetworkError =

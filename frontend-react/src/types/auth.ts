@@ -21,7 +21,7 @@ export interface AuthContextValue {
   status: AuthStatus;
   isAuthenticated: boolean;
   isLoading: boolean;
-  login: (email: string, password: string) => Promise<void>;
+  login: (email: string, password: string, remember?: boolean) => Promise<void>;
   register: (req: { name: string; email: string; password: string; confirmPassword?: string; phone?: string }) => Promise<void>;
   refreshUser: () => Promise<void>;
   logout: () => void;

@@ -26,7 +26,7 @@ export default function LoginPage() {
 
     setLoading(true);
     try {
-      await auth.login(identifier, password);
+      await auth.login(identifier, password, remember);
       navigate('/');
     } catch (err: any) {
       if (err?.status === 401 || err?.message === 'invalid_credentials' || err?.code === 'unauthorized') {

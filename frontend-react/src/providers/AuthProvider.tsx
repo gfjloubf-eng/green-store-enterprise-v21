@@ -196,7 +196,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       status,
       isAuthenticated: status === 'authenticated',
       isLoading: status === 'loading',
-      login: (email: string, password: string) => login(email, password, true),
+      login: (email: string, password: string, remember = true) => login(email, password, remember),
       register,
       refreshUser,
       logout,
