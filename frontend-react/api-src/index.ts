@@ -3,6 +3,10 @@ import { createSystemRequestHandler } from '../../backend/src/system/server';
 
 const handler = createSystemRequestHandler();
 
-export default async function apiHandler(req: IncomingMessage, res: ServerResponse) {
+function apiHandler(req: IncomingMessage, res: ServerResponse) {
   return handler(req, res);
 }
+
+module.exports = apiHandler;
+module.exports.default = apiHandler;
+
