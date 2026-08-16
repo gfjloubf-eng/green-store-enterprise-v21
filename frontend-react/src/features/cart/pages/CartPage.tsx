@@ -5,6 +5,8 @@ import { getCart, updateCartItem, removeCartItem, clearCart as clearCartApi, typ
 import { formatPrice } from '@/lib/formatters';
 import { useI18n } from '@/i18n/useI18n';
 import { StoreService } from '@/features/marketplace/services/storeService';
+import { WhatsAppOrderAction } from '@/components/ui/WhatsAppOrderAction';
+import { buildCartWhatsAppMessage } from '@/config/whatsapp';
 
 export function CartPage() {
   const navigate = useNavigate();
@@ -269,9 +271,29 @@ export function CartPage() {
               onClick={() => navigate('/checkout')}
               className="gsd-btn gsd-btn--primary gsd-btn--lg w-full rounded-2xl inline-flex items-center justify-center gap-2 mt-4 text-xs font-bold py-3 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              متابعة الطلب
+              متابعة الطلب الإلكتوني
               <ArrowRight className="h-4 w-4" />
             </button>
+
+            {/* Dual WhatsApp Quick Cart Order */}
+            <div className="pt-3 border-t border-[var(--gs-border-subtle)] space-y-2">
+              <span className="text-[11px] font-bold text-[var(--gs-foreground-secondary)] block">أو طلب سريع عبر واتساب:</span>
+              <WhatsAppOrderAction
+                getMessage={(_target) =>
+                  buildCartWhatsAppMessage(
+                    items.map((i) => ({
+                      name: i.product?.name || `منتج رقم ${i.productId}`,
+                      price: i.unitPrice,
+                      quantity: i.quantity,
+                      unitName: (i.product as any)?.unit?.name || 'وحدة',
+                    })),
+                    cart?.grandTotal || 0
+                  )
+                }
+                variant="dropdown"
+                buttonText="طلب السلة عبر واتساب 📲"
+              />
+            </div>
           </div>
         </div>
       )}

@@ -29,14 +29,48 @@ export function SupportCenterPage() {
   const isStaffOrAdmin = user?.role === 'ADMIN' || user?.role === 'MANAGER' || user?.role === 'EMPLOYEE';
 
   useEffect(() => {
-    Promise.all([getSupportContacts(), getTickets()])
-      .then(([cRes, tRes]) => {
-        setContacts(cRes);
-        setTickets(tRes);
-      })
-      .catch((err) => setError(err?.message || 'تعذر تحميل بيانات مركز الدعم الفني'))
-      .finally(() => setLoading(false));
-  }, []);
+    let mounted = true;
+
+    async function loadSupportData() {
+      // 1. Fetch support contacts (or use fallback)
+      try {
+        const cRes = await getSupportContacts().catch(() => ({
+          supportPhone: '712275038',
+          contactEmail: 'support@qutoof.sa',
+          address: 'المملكة العربية السعودية - قطوف الطبيعة',
+        }));
+        if (mounted && cRes) setContacts(cRes);
+      } catch {
+        if (mounted) {
+          setContacts({
+            supportPhone: '712275038',
+            contactEmail: 'support@qutoof.sa',
+            address: 'المملكة العربية السعودية - قطوف الطبيعة',
+          });
+        }
+      }
+
+      // 2. Fetch user support tickets if logged in
+      if (user) {
+        try {
+          const tRes = await getTickets().catch(() => []);
+          if (mounted) setTickets(tRes || []);
+        } catch {
+          if (mounted) setTickets([]);
+        }
+      } else {
+        if (mounted) setTickets([]);
+      }
+
+      if (mounted) setLoading(false);
+    }
+
+    loadSupportData();
+
+    return () => {
+      mounted = false;
+    };
+  }, [user]);
 
   const handleCreateTicket = async (e: React.FormEvent) => {
     e.preventDefault();

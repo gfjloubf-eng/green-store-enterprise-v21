@@ -1,20 +1,113 @@
 /* ============================================================
-    WhatsApp Configuration
-    Centralized customer contact configuration for the marketplace.
-    ============================================================ */
+   GSDS v1.3 — WhatsApp Centralized Dual Ordering Configuration
+   Green Store Enterprise v2 — Real Produce Intelligence Phase
+   ============================================================
+   Centralized source of truth for store WhatsApp numbers & messages.
+   Supports dual ordering channels:
+   1. Store Official Number (المتجر الرسمي)
+   2. Saqr Anwar Support Number (صقر أنور - متابعة الطلبات)
+   ============================================================ */
 
-export const WHATSAPP_CONFIG = {
-  managerNumber: '712275038',
-  countryCode: '+967',
-} as const;
+export type WhatsAppTarget = 'store' | 'saqr';
 
-export const WHATSAPP_NUMBER = `${WHATSAPP_CONFIG.countryCode}${WHATSAPP_CONFIG.managerNumber}`;
-
-export function buildWhatsAppUrl(message: string): string {
-  const encodedMessage = encodeURIComponent(message);
-  return `https://wa.me/${WHATSAPP_CONFIG.managerNumber}?text=${encodedMessage}`;
+export interface WhatsAppContactInfo {
+  id: WhatsAppTarget;
+  name: string;
+  shortName: string;
+  phone: string;
+  fullNumber: string;
+  role: string;
 }
 
-export function buildWhatsAppContactLabel(): string {
-  return `${WHATSAPP_CONFIG.countryCode} ${WHATSAPP_CONFIG.managerNumber.slice(0, 3)} ${WHATSAPP_CONFIG.managerNumber.slice(3, 6)} ${WHATSAPP_CONFIG.managerNumber.slice(6)}`;
+export const WHATSAPP_CONTACTS: Record<WhatsAppTarget, WhatsAppContactInfo> = {
+  store: {
+    id: 'store',
+    name: 'المتجر الرسمي (قطوف الطبيعة)',
+    shortName: 'المتجر الرسمي',
+    phone: '712275038',
+    fullNumber: '967712275038',
+    role: 'خدمة العملاء والطلب المباشر',
+  },
+  saqr: {
+    id: 'saqr',
+    name: 'صقر أنور (متابعة الطلبات والدعم)',
+    shortName: 'صقر أنور',
+    phone: '777803161',
+    fullNumber: '967777803161',
+    role: 'متابعة الطلبات وتنسيق التوصيل',
+  },
+} as const;
+
+export const WHATSAPP_CONFIG = {
+  countryCode: '+967',
+  defaultTarget: 'store' as WhatsAppTarget,
+  contacts: WHATSAPP_CONTACTS,
+} as const;
+
+export const WHATSAPP_NUMBER = `+967${WHATSAPP_CONTACTS.store.phone}`;
+
+/**
+ * Builds a direct wa.me link for a given target and message
+ */
+export function buildWhatsAppTargetUrl(target: WhatsAppTarget = 'store', message: string): string {
+  const contact = WHATSAPP_CONTACTS[target] || WHATSAPP_CONTACTS.store;
+  const encodedMessage = encodeURIComponent(message);
+  return `https://wa.me/${contact.fullNumber}?text=${encodedMessage}`;
+}
+
+/**
+ * Legacy compatibility wrapper for buildWhatsAppUrl
+ */
+export function buildWhatsAppUrl(message: string): string {
+  return buildWhatsAppTargetUrl('store', message);
+}
+
+/**
+ * Formats a single product order message for WhatsApp
+ */
+export function buildSingleProductWhatsAppMessage(
+  product: { name: string; sellingPrice: number; unit?: { name: string; abbreviation?: string } },
+  quantity: number,
+  notes?: string
+): string {
+  const unitName = product.unit?.name || product.unit?.abbreviation || 'وحدة';
+  const total = (product.sellingPrice * quantity).toFixed(2);
+
+  let msg = `السلام عليكم ورحمة الله وبركاته،\nأرغب في طلب المنتج التالي من قطوف الطبيعة:\n\n`;
+  msg += `📍 المنتج: ${product.name}\n`;
+  msg += `📦 الكمية: ${quantity} (${unitName})\n`;
+  msg += `💰 السعر: ${product.sellingPrice} ر.س / ${unitName}\n`;
+  msg += `💵 الإجمالي: ${total} ر.س\n`;
+
+  if (notes && notes.trim()) {
+    msg += `📝 ملاحظات: ${notes.trim()}\n`;
+  }
+
+  msg += `\nأتمنى التواصل معي لتأكيد الطلب وترتيب التوصيل. شكراً لكم!`;
+  return msg;
+}
+
+/**
+ * Formats a cart itemized order message for WhatsApp
+ */
+export function buildCartWhatsAppMessage(
+  items: Array<{ name: string; price: number; quantity: number; unitName?: string }>,
+  grandTotal: number
+): string {
+  let msg = `السلام عليكم ورحمة الله وبركاته،\nأرغب في طلب المنتجات التالية من قطوف الطبيعة:\n\n`;
+
+  items.forEach((item, index) => {
+    const itemTotal = (item.price * item.quantity).toFixed(2);
+    const unit = item.unitName ? ` ${item.unitName}` : '';
+    msg += `${index + 1}. ${item.name} — ${item.quantity}${unit} (الإجمالي: ${itemTotal} ر.س)\n`;
+  });
+
+  msg += `\n💳 إجمالي الطلب: ${grandTotal.toFixed(2)} ر.س\n`;
+  msg += `\nأتمنى التواصل معي لتأكيد الطلب. شكراً لكم!`;
+  return msg;
+}
+
+export function buildWhatsAppContactLabel(target: WhatsAppTarget = 'store'): string {
+  const contact = WHATSAPP_CONTACTS[target];
+  return `${WHATSAPP_CONFIG.countryCode} ${contact.phone.slice(0, 3)} ${contact.phone.slice(3, 6)} ${contact.phone.slice(6)}`;
 }

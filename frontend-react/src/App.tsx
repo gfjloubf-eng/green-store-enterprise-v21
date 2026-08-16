@@ -85,6 +85,8 @@ export default function App() {
           <Route path="settings" element={<SettingsPage />} />
           <Route path="about" element={<AboutPage />} />
           <Route path="contact" element={<ContactPage />} />
+          <Route path="help" element={<HelpPage />} />
+          <Route path="support" element={<SupportCenterPage />} />
 
           {/* Customer / Authenticated Protected Routes */}
           <Route element={<ProtectedRoute />}>
@@ -94,19 +96,6 @@ export default function App() {
             <Route path="profile" element={<ProfilePage />} />
             <Route path="checkout" element={<CheckoutPage />} />
           </Route>
-
-          {/* Help & Support Routes */}
-          {import.meta.env.DEV ? (
-            <>
-              <Route path="help" element={<HelpPage />} />
-              <Route path="support" element={<SupportCenterPage />} />
-            </>
-          ) : (
-            <Route element={<ProtectedRoute />}>
-              <Route path="help" element={<HelpPage />} />
-              <Route path="support" element={<SupportCenterPage />} />
-            </Route>
-          )}
 
           {/* Admin Management Routes */}
           {import.meta.env.DEV ? (

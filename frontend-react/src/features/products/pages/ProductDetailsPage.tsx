@@ -1,6 +1,6 @@
 /* ============================================================
-   GSDS v1.2 — ProductDetailsPage (Real Produce Intelligence)
-   Green Store Enterprise v2 — Premium Catalog & Produce Intelligence
+   GSDS v1.3 — ProductDetailsPage (Real Store Content + Dual WhatsApp)
+   Green Store Enterprise v2 — Real Produce Intelligence Phase
    ============================================================ */
 
 import { useEffect, useMemo, useState } from 'react';
@@ -13,23 +13,26 @@ import {
   Heart,
   Info,
   Leaf,
-  MessageCircle,
   ShoppingBag,
   Sparkles,
   Star,
-  Store,
+  Store as StoreIcon,
   Calendar,
   MapPin,
   Utensils,
   Snowflake,
   AlertTriangle,
   Users,
+  Tag,
 } from 'lucide-react';
 import { formatPrice } from '@/lib/formatters';
 import { useI18n } from '@/i18n/useI18n';
 import { BreadcrumbEngine } from '@/components/layout/BreadcrumbEngine';
 import { placeholderImage } from '@/assets/images/products/productImages';
-import { buildWhatsAppUrl, WHATSAPP_NUMBER } from '@/config/whatsapp';
+import {
+  buildSingleProductWhatsAppMessage,
+  type WhatsAppTarget,
+} from '@/config/whatsapp';
 import { addItemToCart } from '@/services/cartClient';
 import { useCart } from '@/features/marketplace/useCart';
 import { StoreService } from '@/features/marketplace/services/storeService';
@@ -37,12 +40,10 @@ import { ProductService } from '../services/productService';
 import { useProductDetail } from '../hooks/useProductService';
 import { getData, getErrorMessage, isState } from '../state/productState';
 import { useLocalStorageState } from '@/hooks/useLocalStorageState';
-import {
-  getProductBadges,
-  getProductRating,
-} from '@/features/marketplace/utils/productTags';
+import { getProductBadges, getProductRating } from '@/features/marketplace/utils/productTags';
 import { getProduceIntelligence } from '../domain/produceIntelligence';
 import { EducationalImageCard } from '@/components/ui/EducationalImageCard';
+import { WhatsAppOrderAction } from '@/components/ui/WhatsAppOrderAction';
 
 const FAVORITES_KEY = 'qutoof-nature.favorites';
 const RECENTLY_VIEWED_KEY = 'qutoof-nature.recentlyViewed';
@@ -58,7 +59,7 @@ export function ProductDetailsPage() {
   const errorMessage = getErrorMessage(state);
 
   const [quantity, setQuantity] = useState(1);
-  const [customerRequest, setCustomerRequest] = useState('أرغب في طلب هذا المنتج اليوم.');
+  const [customerRequest, setCustomerRequest] = useState('أرغب في طلب هذا المنتج من المتجر اليوم.');
   const [selectedImage, setSelectedImage] = useState(product?.image || placeholderImage);
   const { add } = useCart();
   const [added, setAdded] = useState(false);
@@ -66,7 +67,7 @@ export function ProductDetailsPage() {
   const [favorites, setFavorites] = useLocalStorageState<string[]>(FAVORITES_KEY, []);
   const [, setRecentlyViewed] = useLocalStorageState<string[]>(RECENTLY_VIEWED_KEY, []);
 
-  // Produce Intelligence Data
+  // Educational Produce Intelligence Data (Separated from Sellable Product)
   const produceIntel = useMemo(() => {
     return product ? getProduceIntelligence(product) : getProduceIntelligence('');
   }, [product]);
@@ -112,10 +113,6 @@ export function ProductDetailsPage() {
     return StoreService.getAll().find((store) => store.productIds.includes(product.id));
   }, [product]);
 
-  const defaultStoreName =
-    supplyingStore?.name ?? StoreService.getOpen().find((store) => store.status === 'open')?.name ?? 'قطوف الطبيعة';
-  const whatsappMessage = `مرحبًا، أحتاج إلى ${product?.name ?? 'المنتج'} (${product?.sku ?? ''}) من ${defaultStoreName}، الكمية: ${quantity}، الطلب: ${customerRequest}`;
-
   const relatedProducts = useMemo(() => {
     if (!product) return [];
     return ProductService.getAll()
@@ -128,18 +125,24 @@ export function ProductDetailsPage() {
   }, [product]);
 
   const productBadges = product ? getProductBadges(product) : [];
-  const galleryImages = useMemo(
-    () => [
-      product?.image || placeholderImage,
-      produceIntel.educationalImage || placeholderImage,
-      placeholderImage,
-    ],
-    [product, produceIntel],
-  );
+
+  // Helper for generating custom WhatsApp message for Dual Ordering
+  const getWhatsAppMessage = (_target: WhatsAppTarget) => {
+    if (!product) return '';
+    return buildSingleProductWhatsAppMessage(
+      {
+        name: product.name,
+        sellingPrice: product.sellingPrice,
+        unit: { name: product.unit.name, abbreviation: product.unit.abbreviation },
+      },
+      quantity,
+      customerRequest
+    );
+  };
 
   return (
     <div className="flex flex-col gap-6 max-w-7xl mx-auto px-2 sm:px-4 pb-12" dir="rtl">
-      {/* Page Header & Navigation */}
+      {/* Header & Navigation */}
       <div className="flex items-center gap-3">
         <button
           type="button"
@@ -184,41 +187,24 @@ export function ProductDetailsPage() {
             </button>
           </div>
         ) : product ? (
-          <div className="space-y-8">
-            {/* Top Grid: Image Gallery & Commercial Order Controls */}
-            <div className="grid gap-6 lg:grid-cols-[1fr_1.1fr]">
-              {/* Product Photo Showcase */}
+          <div className="space-y-10">
+            {/* PHASE 2: SELLABLE STORE PRODUCT SECTION (Commercial Buy Box) */}
+            <div className="grid gap-6 lg:grid-cols-[1fr_1.1fr] items-start">
+              {/* Product Store Photo */}
               <div className="space-y-4">
                 <div className="gsd-surface rounded-3xl p-4 text-center border border-[var(--gs-border-subtle)] relative overflow-hidden">
+                  <div className="absolute top-3 right-3 z-10 bg-emerald-700 text-white text-[10px] font-bold px-2.5 py-1 rounded-full flex items-center gap-1 shadow-xs">
+                    <Tag className="h-3 w-3" />
+                    منتج تجاري للبيع
+                  </div>
                   <img
                     src={selectedImage}
-                    alt={product.name}
+                    alt={`صورة المنتج التجاري - ${product.name}`}
                     className="mx-auto h-72 sm:h-80 w-full max-w-sm rounded-2xl object-cover transition duration-300 ease-in-out hover:scale-105"
                   />
-                  <div className="mt-4 grid grid-cols-3 gap-2">
-                    {galleryImages.map((image, index) => {
-                      const isActive = selectedImage === image;
-                      return (
-                        <button
-                          key={`${product.id}-thumb-${index}`}
-                          type="button"
-                          onClick={() => setSelectedImage(image)}
-                          className={`overflow-hidden rounded-2xl border-2 transition-all ${
-                            isActive
-                              ? 'border-emerald-600 ring-2 ring-emerald-500/20 opacity-100'
-                              : 'border-[var(--gs-border)] opacity-70 hover:opacity-100'
-                          }`}
-                          aria-label={`عرض الصورة ${index + 1}`}
-                          aria-current={isActive}
-                        >
-                          <img src={image} alt={`${product.name} thumbnail ${index + 1}`} className="h-20 w-full object-cover" />
-                        </button>
-                      );
-                    })}
-                  </div>
                 </div>
 
-                {/* Produce Badges */}
+                {/* Badges */}
                 <div className="flex flex-wrap justify-center gap-2">
                   {productBadges.map((badge) => (
                     <span
@@ -236,7 +222,7 @@ export function ProductDetailsPage() {
                 </div>
               </div>
 
-              {/* Product Purchase & Summary Controls */}
+              {/* Commercial Purchase Controls */}
               <div className="space-y-5">
                 <div className="flex flex-wrap items-start justify-between gap-3">
                   <div>
@@ -255,11 +241,8 @@ export function ProductDetailsPage() {
                           onClick={() => navigate(`/stores/${supplyingStore.id}`)}
                           className="inline-flex items-center gap-2 rounded-2xl border border-emerald-500/30 bg-emerald-50/50 dark:bg-emerald-950/30 px-3.5 py-1.5 text-xs font-semibold text-[var(--gs-foreground)] transition hover:border-emerald-500 shadow-sm"
                         >
-                          <Store className="h-4 w-4 text-emerald-600" />
-                          <span>متجر التوريد: <strong className="font-bold text-emerald-700 dark:text-emerald-400">{supplyingStore.name}</strong></span>
-                          <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${supplyingStore.status === 'open' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'}`}>
-                            {supplyingStore.status === 'open' ? 'مفتوح' : 'مغلق مؤقتاً'}
-                          </span>
+                          <StoreIcon className="h-4 w-4 text-emerald-600" />
+                          <span>المتجر المورّد: <strong className="font-bold text-emerald-700 dark:text-emerald-400">{supplyingStore.name}</strong></span>
                         </button>
                       </div>
                     )}
@@ -283,24 +266,18 @@ export function ProductDetailsPage() {
                     <span className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold ${
                       product.stock > 0 ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/60 dark:text-emerald-300' : 'bg-rose-100 text-rose-800'
                     }`}>
-                      {product.stock > 0 ? `متوفر في المخزون (${product.stock} ${product.unit.abbreviation})` : 'نفد المخزون مؤقتاً'}
+                      {product.stock > 0 ? `متوفر بالمخزون (${product.stock} ${product.unit.abbreviation})` : 'نفد المؤقت'}
                     </span>
                   </div>
                 </div>
 
-                {/* Short Overview / نبذة عن المنتج */}
-                <div className="rounded-2xl bg-[var(--gs-muted)] p-4 text-sm text-[var(--gs-foreground-secondary)] leading-relaxed">
-                  <h3 className="text-xs font-bold text-[var(--gs-foreground)] uppercase tracking-wider mb-1 flex items-center gap-1.5">
-                    <Info className="h-4 w-4 text-emerald-600" />
-                    نبذة عن المنتج
-                  </h3>
-                  {produceIntel.shortDescription}
-                </div>
-
-                {/* Interactive Order Controls */}
-                <div className="gsd-surface rounded-2xl p-4 text-right border border-[var(--gs-border-subtle)] space-y-4">
+                {/* Interactive Order & Dual WhatsApp Box */}
+                <div className="gsd-surface rounded-3xl p-5 text-right border border-[var(--gs-border-subtle)] space-y-4 shadow-xs">
                   <div className="flex items-center justify-between">
-                    <div className="text-sm font-bold text-[var(--gs-foreground)]">تجهيز الطلب</div>
+                    <div className="text-sm font-bold text-[var(--gs-foreground)] flex items-center gap-1.5">
+                      <ShoppingBag className="h-4 w-4 text-emerald-600" />
+                      تجهيز الطلب والشراء
+                    </div>
                     <button
                       type="button"
                       onClick={toggleFavorite}
@@ -340,69 +317,76 @@ export function ProductDetailsPage() {
                       </div>
                     </label>
 
-                    <div className="text-xs font-semibold text-[var(--gs-foreground-secondary)]">
-                      <div className="mb-1.5">طلب سريع عبر واتساب</div>
-                      <div className="rounded-xl border border-[var(--gs-border-subtle)] px-3 py-2.5 text-xs font-bold text-emerald-600 flex items-center justify-between">
-                        <span>مباشرة للمتجر</span>
-                        <span>{WHATSAPP_NUMBER}</span>
-                      </div>
-                    </div>
+                    <label className="block text-xs font-semibold text-[var(--gs-foreground-secondary)]">
+                      <div className="mb-1.5">ملاحظات الطلب (اختياري)</div>
+                      <textarea
+                        value={customerRequest}
+                        onChange={(e) => setCustomerRequest(e.target.value)}
+                        rows={2}
+                        className="w-full rounded-xl border border-[var(--gs-border-subtle)] bg-transparent px-3 py-1.5 text-xs outline-none [color:var(--gs-foreground)]"
+                      />
+                    </label>
                   </div>
 
-                  <label className="block text-xs font-semibold text-[var(--gs-foreground-secondary)]">
-                    <div className="mb-1">ملاحظات الطلب (اختياري)</div>
-                    <textarea
-                      value={customerRequest}
-                      onChange={(e) => setCustomerRequest(e.target.value)}
-                      rows={2}
-                      className="w-full rounded-xl border border-[var(--gs-border-subtle)] bg-transparent px-3 py-2 text-xs outline-none [color:var(--gs-foreground)]"
-                    />
-                  </label>
+                  {/* Primary Action: Add to Cart */}
+                  <button
+                    type="button"
+                    onClick={handleAddToCart}
+                    disabled={adding || !product || product.stock <= 0}
+                    className={`w-full gsd-btn gsd-btn--primary gsd-btn--md inline-flex items-center justify-center gap-2 rounded-2xl h-12 font-bold text-sm shadow-md transition ${
+                      added ? 'bg-emerald-700 text-white' : 'bg-emerald-600 hover:bg-emerald-700 text-white'
+                    }`}
+                  >
+                    {added ? (
+                      <>
+                        <Check className="h-5 w-5" />
+                        تمت إضافة المنتج للسلة بنجاح ✓
+                      </>
+                    ) : (
+                      <>
+                        <ShoppingBag className="h-5 w-5" />
+                        إضافة إلى السلة (إجمالي: {formatPrice(product.sellingPrice * quantity, locale)})
+                      </>
+                    )}
+                  </button>
 
-                  <div className="flex flex-col gap-3 sm:flex-row pt-1">
-                    <button
-                      type="button"
-                      onClick={handleAddToCart}
-                      disabled={adding || !product || product.stock <= 0}
-                      className={`gsd-btn gsd-btn--primary gsd-btn--md inline-flex items-center justify-center gap-2 flex-1 rounded-2xl h-12 font-bold text-sm ${
-                        added ? 'bg-emerald-700 text-white' : 'bg-emerald-600 hover:bg-emerald-700 text-white'
-                      }`}
-                    >
-                      {added ? (
-                        <>
-                          <Check className="h-5 w-5" />
-                          تمت إضافته للسلة بنجاح ✓
-                        </>
-                      ) : (
-                        <>
-                          <ShoppingBag className="h-5 w-5" />
-                          إضافة إلى السلة (إجمالي: {formatPrice(product.sellingPrice * quantity, locale)})
-                        </>
-                      )}
-                    </button>
-                    <a
-                      href={buildWhatsAppUrl(whatsappMessage)}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="gsd-btn gsd-btn--ghost gsd-btn--md inline-flex items-center justify-center gap-2 rounded-2xl h-12 border border-emerald-500/30 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-50/50"
-                    >
-                      <MessageCircle className="h-5 w-5" />
-                      طلب سريع عبر واتساب
-                    </a>
+                  {/* PHASE 3: WHATSAPP DUAL ORDERING ACTION */}
+                  <div className="pt-2 border-t border-[var(--gs-border-subtle)] space-y-2">
+                    <div className="text-[11px] font-bold text-[var(--gs-foreground-secondary)] flex items-center gap-1">
+                      <span>📲 خيار طلب سريع عبر واتساب:</span>
+                    </div>
+                    <WhatsAppOrderAction
+                      getMessage={getWhatsAppMessage}
+                      variant="buttons"
+                    />
                   </div>
                 </div>
               </div>
             </div>
 
-            {/* Produce Intelligence Detailed Presentation Sections */}
-            <div className="space-y-6 pt-4 border-t border-[var(--gs-border-subtle)]">
-              <h3 className="text-xl font-bold text-[var(--gs-foreground)] flex items-center gap-2">
-                <Leaf className="h-6 w-6 text-emerald-600" />
-                الدليل التغذوي والمعلومات الكاملة للمنتج
-              </h3>
+            {/* PHASE 1: EDUCATIONAL INFORMATION SECTION (Separated from Sellable Product) */}
+            <div className="space-y-6 pt-8 border-t-2 border-dashed border-[var(--gs-border)]">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 bg-emerald-950/10 dark:bg-emerald-950/40 p-4 rounded-2xl border border-emerald-500/20">
+                <h3 className="text-xl font-bold text-[var(--gs-foreground)] flex items-center gap-2">
+                  <Leaf className="h-6 w-6 text-emerald-600" />
+                  🌿 تعرف على المنتج (معلومات تثقيفية وتغذوية)
+                </h3>
+                <span className="text-xs font-semibold text-emerald-700 dark:text-emerald-400">
+                  دليل المحتوى التثقيفي العام
+                </span>
+              </div>
+
+              {/* Short Overview */}
+              <div className="rounded-2xl bg-[var(--gs-muted)] p-4 text-sm text-[var(--gs-foreground-secondary)] leading-relaxed">
+                <h4 className="text-xs font-bold text-[var(--gs-foreground)] uppercase tracking-wider mb-1 flex items-center gap-1.5">
+                  <Info className="h-4 w-4 text-emerald-600" />
+                  عن هذا المحصول
+                </h4>
+                {produceIntel.shortDescription}
+              </div>
 
               <div className="grid gap-6 md:grid-cols-2">
-                {/* 🌿 الفوائد العامة (General Benefits) */}
+                {/* 🌿 الفوائد العامة */}
                 <div className="rounded-2xl border border-emerald-500/20 bg-emerald-50/40 dark:bg-emerald-950/20 p-5 space-y-3">
                   <h4 className="text-base font-bold text-emerald-800 dark:text-emerald-300 flex items-center gap-2">
                     <Sparkles className="h-5 w-5 text-emerald-600" />
@@ -418,7 +402,7 @@ export function ProductDetailsPage() {
                   </ul>
                 </div>
 
-                {/* 🥗 العناصر الغذائية البارزة (Nutrition Highlights) */}
+                {/* 🥗 العناصر الغذائية البارزة */}
                 <div className="rounded-2xl border border-emerald-500/20 bg-emerald-50/40 dark:bg-emerald-950/20 p-5 space-y-3">
                   <h4 className="text-base font-bold text-emerald-800 dark:text-emerald-300 flex items-center gap-2">
                     <BadgeCheck className="h-5 w-5 text-emerald-600" />
@@ -436,7 +420,7 @@ export function ProductDetailsPage() {
                   </div>
                 </div>
 
-                {/* 🍽️ الاستخدامات الشائعة والتحضير (Common Uses & Prep) */}
+                {/* 🍽️ الاستخدامات والتحضير */}
                 <div className="rounded-2xl border border-[var(--gs-border-subtle)] bg-[var(--gs-surface)] p-5 space-y-3">
                   <h4 className="text-base font-bold text-[var(--gs-foreground)] flex items-center gap-2">
                     <Utensils className="h-5 w-5 text-emerald-600" />
@@ -455,7 +439,7 @@ export function ProductDetailsPage() {
                   </div>
                 </div>
 
-                {/* ❄️ طريقة الحفظ والتخزين (Storage Guidance) */}
+                {/* ❄️ الحفظ والتخزين */}
                 <div className="rounded-2xl border border-[var(--gs-border-subtle)] bg-[var(--gs-surface)] p-5 space-y-3">
                   <h4 className="text-base font-bold text-[var(--gs-foreground)] flex items-center gap-2">
                     <Snowflake className="h-5 w-5 text-blue-600" />
@@ -467,11 +451,11 @@ export function ProductDetailsPage() {
                 </div>
               </div>
 
-              {/* 👨‍👩‍👧‍👦 لمن يناسب؟ (Suitability Overview) */}
+              {/* 👨‍👩‍👧‍👦 لمن يناسب؟ */}
               <div className="rounded-2xl border border-emerald-500/20 bg-emerald-50/20 dark:bg-emerald-950/10 p-5 space-y-4">
                 <h4 className="text-base font-bold text-[var(--gs-foreground)] flex items-center gap-2">
                   <Users className="h-5 w-5 text-emerald-600" />
-                  👨‍👩‍👧‍👦 لمن يناسب هذا المنتج؟
+                  👨‍👩‍👧‍👦 لمن يناسب هذا المنتج بشكل عام؟
                 </h4>
                 <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4 text-xs">
                   <div className="rounded-xl bg-white dark:bg-emerald-950/40 p-3 border border-emerald-500/10 space-y-1">
@@ -493,12 +477,12 @@ export function ProductDetailsPage() {
                 </div>
               </div>
 
-              {/* ⚠️ ملاحظات وتنبيهات غذائية (Caution Notes) */}
+              {/* ⚠️ التنبيهات الغذائية العامة */}
               {produceIntel.suitability.cautionNotes && produceIntel.suitability.cautionNotes.length > 0 && (
                 <div className="rounded-2xl border border-amber-500/30 bg-amber-50/40 dark:bg-amber-950/20 p-4 space-y-2">
                   <h4 className="text-xs font-bold text-amber-800 dark:text-amber-400 flex items-center gap-2">
                     <AlertTriangle className="h-4 w-4 text-amber-600" />
-                    ⚠️ ملاحظات غذائية عامة
+                    ⚠️ تنبيهات غذائية وملاحظات عامة
                   </h4>
                   <ul className="space-y-1 text-xs text-amber-900/90 dark:text-amber-300">
                     {produceIntel.suitability.cautionNotes.map((note, idx) => (
@@ -511,7 +495,7 @@ export function ProductDetailsPage() {
                 </div>
               )}
 
-              {/* 🌱 الموسم والمنشأ (Season & Origin) */}
+              {/* 🌱 الموسم والمنشأ */}
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="rounded-2xl bg-[var(--gs-surface)] border border-[var(--gs-border-subtle)] p-4 flex items-center gap-3">
                   <Calendar className="h-8 w-8 text-emerald-600 shrink-0" />
@@ -529,22 +513,25 @@ export function ProductDetailsPage() {
                 </div>
               </div>
 
-              {/* Educational Visual Presentation Card */}
+              {/* Educational Illustrative Visual Card (Distinct from Sellable Product Photo) */}
               {produceIntel.educationalImage && (
                 <div className="space-y-2 pt-2">
-                  <div className="text-xs font-bold text-[var(--gs-foreground-secondary)]">صورة توضيحية للمنتج في بيئته الزراعية</div>
+                  <div className="text-xs font-bold text-[var(--gs-foreground-secondary)] flex items-center gap-1.5">
+                    <Leaf className="h-4 w-4 text-emerald-600" />
+                    صورة توضيحية للمحصول في بيئته الزراعية (محتوى تثقيفي)
+                  </div>
                   <EducationalImageCard
                     src={produceIntel.educationalImage}
                     alt={produceIntel.educationalImageAltAr || product.name}
                     caption={`${product.name} — ${produceIntel.origin}`}
                     aspectRatio="video"
-                    className="max-w-2xl mx-auto"
+                    className="max-w-2xl mx-auto shadow-md"
                   />
                 </div>
               )}
             </div>
 
-            {/* Related Products Recommendation */}
+            {/* Related Products */}
             {relatedProducts.length > 0 && (
               <div className="pt-8 border-t border-[var(--gs-border-subtle)] space-y-4">
                 <h3 className="text-lg font-bold text-[var(--gs-foreground)]">منتجات أخرى قد تعجبك</h3>
