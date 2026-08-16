@@ -291,7 +291,7 @@ export function CartPage() {
                   )
                 }
                 variant="dropdown"
-                buttonText="طلب السلة عبر واتساب 📲"
+                buttonText="طلب سريع عبر واتساب"
               />
             </div>
           </div>
