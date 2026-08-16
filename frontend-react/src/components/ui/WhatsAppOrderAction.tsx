@@ -33,7 +33,14 @@ export function WhatsAppOrderAction({
   const handleOrder = (target: WhatsAppTarget) => {
     const message = getMessage(target);
     const url = buildWhatsAppTargetUrl(target, message);
-    window.open(url, '_blank', 'noopener,noreferrer');
+    try {
+      const win = window.open(url, '_blank', 'noopener,noreferrer');
+      if (!win || win.closed || typeof win.closed === 'undefined') {
+        window.location.href = url;
+      }
+    } catch {
+      window.location.href = url;
+    }
     setOpenDropdown(false);
   };
 
