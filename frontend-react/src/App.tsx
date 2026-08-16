@@ -81,6 +81,7 @@ export default function App() {
           <Route index element={<HomePage />} />
           <Route path="products" element={<ProductsListPage />} />
           <Route path="products/:id" element={<ProductDetailsPage />} />
+          <Route path="cart" element={<CartPage />} />
           <Route path="about" element={<AboutPage />} />
           <Route path="contact" element={<ContactPage />} />
 
@@ -90,7 +91,6 @@ export default function App() {
           {/* Customer / Authenticated Protected Routes */}
           <Route element={<ProtectedRoute />}>
             <Route path="dashboard" element={<DashboardPage />} />
-            <Route path="cart" element={<CartPage />} />
             <Route path="orders" element={<OrdersListPage />} />
             <Route path="orders/:id" element={<OrderDetailsPage />} />
             <Route path="profile" element={<ProfilePage />} />
