@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "npx prisma generate --schema ../backend/prisma/schema.prisma && npx esbuild api-src/index.ts --bundle --platform=node --target=node20 --format=cjs --outfile=api/index.cjs --external:@prisma/client --external:@prisma/adapter-pg --external:argon2 --external:pg && npx tsc -b && npx vite build",
+    "build": "npx prisma generate --schema ./prisma/schema.prisma && npx esbuild api-src/index.ts --bundle --platform=node --target=node20 --format=cjs --outfile=api/index.cjs --external:@prisma/client --external:@prisma/adapter-pg --external:argon2 --external:pg && npx tsc -b && npx vite build",
     "lint": "eslint .",
     "preview": "vite preview"
   },
