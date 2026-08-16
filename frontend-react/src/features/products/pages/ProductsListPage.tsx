@@ -24,6 +24,8 @@ import { EditProductDialog } from '../components/dialogs/EditProductDialog';
 import { DeleteConfirmDialog } from '../components/dialogs/DeleteConfirmDialog';
 import { useProductTableData } from '../hooks/useProductService';
 
+import { addItemToCart } from '@/services/cartClient';
+
 /* ─── ProductsListPage ─────────────────────────────────────── */
 
 export function ProductsListPage() {
@@ -33,6 +35,7 @@ export function ProductsListPage() {
   const [createOpen, setCreateOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
+  const [cartSuccess, setCartSuccess] = useState<string | null>(null);
 
   /* ── Service Hook ──────────────────────────────────── */
 
@@ -58,6 +61,20 @@ export function ProductsListPage() {
   }, []);
 
   /* ── Action handlers ────────────────────────────────── */
+
+  const handleAddToCart = useCallback(async (product: ProductSummary) => {
+    try {
+      await addItemToCart(product.id, 1, {
+        name: product.name,
+        sellingPrice: product.sellingPrice,
+        image: product.image,
+      });
+      setCartSuccess(`تمت إضافة "${product.name}" إلى السلة بنجاح!`);
+      setTimeout(() => setCartSuccess(null), 3000);
+    } catch (e) {
+      console.error('Failed to add to cart:', e);
+    }
+  }, []);
 
   const handleView = useCallback(
     (product: ProductSummary) => {
@@ -96,6 +113,15 @@ export function ProductsListPage() {
           {t('products.add')}
         </button>
       </div>
+
+      {cartSuccess && (
+        <div className="rounded-2xl bg-emerald-500/10 border border-emerald-500/20 p-3 text-xs text-emerald-700 font-semibold flex items-center justify-between">
+          <span>{cartSuccess}</span>
+          <button type="button" onClick={() => navigate('/cart')} className="underline font-bold">
+            عرض السلة ➔
+          </button>
+        </div>
+      )}
 
       {/* ── Filters ──────────────────────────────────── */}
       <ProductFiltersBar
@@ -137,6 +163,7 @@ export function ProductsListPage() {
           onView={handleView}
           onEdit={handleEdit}
           onDelete={handleDelete}
+          onAddToCart={handleAddToCart}
         />
       )}
 

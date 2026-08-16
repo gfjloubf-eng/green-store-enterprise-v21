@@ -1,10 +1,12 @@
-import { useNavigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { Bell, Menu, X, LogOut, ShoppingCart, LogIn, Settings } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useI18n } from '@/i18n/useI18n';
 import { useAuth } from '@/hooks/useAuth';
 import { BreadcrumbEngine } from './BreadcrumbEngine';
 import { LogoPlaceholder } from '@/components/ui/LogoPlaceholder';
+import { getCart } from '@/services/cartClient';
 
 /* ─── Props ────────────────────────────────────────────────── */
 
@@ -21,8 +23,21 @@ interface TopbarProps {
 
 export function Topbar({ onMenuClick, mobileOpen = false, className }: TopbarProps) {
   const navigate = useNavigate();
+  const location = useLocation();
   const { t } = useI18n();
   const { user, logout } = useAuth();
+  const [cartCount, setCartCount] = useState(0);
+
+  useEffect(() => {
+    getCart().then((c) => {
+      if (c?.items) {
+        const total = c.items.reduce((acc, item) => acc + item.quantity, 0);
+        setCartCount(total);
+      } else {
+        setCartCount(0);
+      }
+    }).catch(() => setCartCount(0));
+  }, [location.pathname]);
 
   const initials = user?.name
     ? user.name
@@ -68,18 +83,21 @@ export function Topbar({ onMenuClick, mobileOpen = false, className }: TopbarPro
 
       {/* Header Actions (Desktop & Mobile) */}
       <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
-        {/* Cart button (Desktop) */}
-        {user && (
-          <button
-            type="button"
-            onClick={() => navigate('/cart')}
-            className="hidden lg:flex rounded-lg p-2 [color:var(--gs-foreground-secondary)] hover:[background:var(--gs-muted)] hover:[color:var(--gs-foreground)] transition-colors min-h-[40px] min-w-[40px] items-center justify-center"
-            aria-label="السلة / Cart"
-            title="السلة / Cart"
-          >
-            <ShoppingCart className="h-4.5 w-4.5" />
-          </button>
-        )}
+        {/* Cart button (Desktop & Mobile) */}
+        <button
+          type="button"
+          onClick={() => navigate('/cart')}
+          className="relative rounded-xl p-2.5 [color:var(--gs-foreground-secondary)] hover:[background:var(--gs-muted)] hover:[color:var(--gs-foreground)] transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center"
+          aria-label="السلة / Cart"
+          title="السلة / Cart"
+        >
+          <ShoppingCart className="h-5 w-5" />
+          {cartCount > 0 && (
+            <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-emerald-600 text-[10px] font-bold text-white shadow-sm animate-pulse">
+              {cartCount > 99 ? '99+' : cartCount}
+            </span>
+          )}
+        </button>
 
         {/* Notification placeholder (Desktop) */}
         {user && (

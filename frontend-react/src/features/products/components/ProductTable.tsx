@@ -16,6 +16,7 @@ import {
   Eye,
   Pencil,
   Trash2,
+  ShoppingCart,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useI18n, type TranslationKey } from '@/i18n/useI18n';
@@ -40,6 +41,8 @@ interface ProductTableProps {
   onEdit?: (product: ProductSummary) => void;
   /** Called when "Delete" action is triggered */
   onDelete?: (product: ProductSummary) => void;
+  /** Called when "Add to Cart" action is triggered */
+  onAddToCart?: (product: ProductSummary) => void;
   /** Optional class name override */
   className?: string;
 }
@@ -92,6 +95,7 @@ export function ProductTable({
   onView,
   onEdit,
   onDelete,
+  onAddToCart,
   className,
 }: ProductTableProps) {
   const { t } = useI18n();
@@ -260,6 +264,17 @@ export function ProductTable({
                   {/* Actions */}
                   <td className="px-3 py-2.5 whitespace-nowrap">
                     <div className="flex items-center gap-0.5">
+                      {onAddToCart && (
+                        <button
+                          type="button"
+                          onClick={() => onAddToCart(product)}
+                          className="gsd-btn gsd-btn--ghost gsd-btn--sm h-8 w-8 p-0 text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/40"
+                          aria-label={`إضافة للسلة ${product.name}`}
+                          title="إضافة للسلة"
+                        >
+                          <ShoppingCart className="h-4 w-4" />
+                        </button>
+                      )}
                       {onView && (
                         <button
                           type="button"

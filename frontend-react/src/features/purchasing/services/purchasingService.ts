@@ -44,6 +44,7 @@ import { toTableModelList, type PurchaseTableModel } from '../domain/purchaseTab
 import { MOCK_PURCHASES, getMockPurchaseSupplierIds } from '../mock/purchases';
 import { SupplierService } from '@/features/suppliers/services/supplierService';
 import { ProductService } from '@/features/products/services/productService';
+import { InventoryService } from '@/features/inventory/services/inventoryService';
 import type { PurchaseStatus, SupplierRef } from '../types/purchasing';
 
 /* ─── Mock Data Store ──────────────────────────────────────── */
@@ -145,7 +146,30 @@ export const PurchasingService = {
   ): PurchaseDTO {
     const entity = createPurchaseOrderEntity(data);
     store.add(entity);
+
+    // If purchase order is created as received, trigger stock IN with duplicate protection
+    if (entity.status === 'received' && entity.items.length > 0) {
+      this.syncStockForReceived(entity);
+    }
+
     return toDTO(entity);
+  },
+
+  /**
+   * Helper: sync stock IN for a received purchase order
+   */
+  syncStockForReceived(order: PurchaseOrderEntity): void {
+    try {
+      for (const item of order.items) {
+        InventoryService.adjustStock(
+          item.productId,
+          item.quantity,
+          `توريد شراء ${order.code}`,
+        );
+      }
+    } catch (e) {
+      console.error('Failed to update inventory for purchase order:', e);
+    }
   },
 
   /**
@@ -183,9 +207,8 @@ export const PurchasingService = {
   /**
    * Receive goods for a purchase order.
    * Accepts a map of productId -> received quantity.
-   * Updates item.quantityReceived and marks the order as
-   * received / partially_received depending on completion.
-   * Returns the updated DTO, or undefined if not found.
+   * Updates item.quantityReceived, triggers Inventory Stock IN (+newlyReceived),
+   * and protects against duplicate receiving.
    */
   receive(
     id: string,
@@ -195,10 +218,26 @@ export const PurchasingService = {
     if (!existing) return undefined;
 
     const items = existing.items.map((item) => {
-      const received = receivedByProduct[item.productId] ?? item.quantityReceived;
+      const targetReceived = receivedByProduct[item.productId] ?? item.quantity;
+      const currentReceived = item.quantityReceived || 0;
+      const maxPossibleNew = Math.max(0, item.quantity - currentReceived);
+      const newlyReceived = Math.min(maxPossibleNew, Math.max(0, targetReceived - currentReceived));
+
+      if (newlyReceived > 0) {
+        try {
+          InventoryService.adjustStock(
+            item.productId,
+            newlyReceived,
+            `استلام أومر شراء ${existing.code}`,
+          );
+        } catch (e) {
+          console.error('Failed to adjust stock on receive:', e);
+        }
+      }
+
       return {
         ...item,
-        quantityReceived: Math.min(item.quantity, received),
+        quantityReceived: currentReceived + newlyReceived,
       };
     });
 

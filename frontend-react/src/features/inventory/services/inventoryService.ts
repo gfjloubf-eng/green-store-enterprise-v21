@@ -121,9 +121,35 @@ function resolveProductLookup(productId: string): ProductLookup {
 export const InventoryService = {
   /**
    * Get all inventory records as DTOs.
+   * Dynamically includes products from ProductService so all products have inventory state.
    */
   getInventory(): InventoryDTO[] {
-    return toInventoryDTOList(store.getAllEntities());
+    const invEntities = store.getAllEntities();
+    const invProductIds = new Set(invEntities.map((e) => e.productId));
+    const allProducts = ProductService.getAll();
+
+    for (const p of allProducts) {
+      if (!invProductIds.has(p.id)) {
+        const now = new Date().toISOString();
+        const minStock = p.minStock || 10;
+        const maxStock = p.maxStock || 100;
+        invEntities.push({
+          id: `inv-${p.id}`,
+          productId: p.id,
+          quantityOnHand: p.stock,
+          quantityReserved: 0,
+          minStock,
+          maxStock,
+          location: { id: 'loc-1', name: 'Main Warehouse', type: 'warehouse' },
+          status: p.stock === 0 ? 'out_of_stock' : p.stock <= minStock ? 'low_stock' : 'in_stock',
+          lastMovementAt: p.createdAt || now,
+          createdAt: p.createdAt || now,
+          updatedAt: p.updatedAt || now,
+        });
+      }
+    }
+
+    return toInventoryDTOList(invEntities);
   },
 
   /**
@@ -138,7 +164,7 @@ export const InventoryService = {
   /**
    * Adjust stock for a product.
    * delta can be positive (stock in) or negative (stock out).
-   * Creates a movement record and returns the updated DTO.
+   * Syncs back with ProductService and logs a movement record.
    */
   adjustStock(
     productId: string,
@@ -146,19 +172,41 @@ export const InventoryService = {
     reason: string,
     locationId?: string,
   ): InventoryDTO | undefined {
-    const entity = store.getEntityByProductId(productId);
-    if (!entity) return undefined;
+    const now = new Date().toISOString();
+    let entity = store.getEntityByProductId(productId);
+    if (!entity) {
+      const prod = ProductService.getById(productId);
+      if (!prod) return undefined;
+      entity = {
+        id: `inv-${productId}`,
+        productId,
+        quantityOnHand: prod.stock,
+        quantityReserved: 0,
+        minStock: prod.minStock || 10,
+        maxStock: prod.maxStock || 100,
+        location: { id: locationId || 'loc-1', name: locationId || 'Main Warehouse', type: 'warehouse' },
+        status: prod.stock === 0 ? 'out_of_stock' : prod.stock <= (prod.minStock || 10) ? 'low_stock' : 'in_stock',
+        lastMovementAt: now,
+        createdAt: now,
+        updatedAt: now,
+      };
+    }
 
     const newQuantity = Math.max(0, entity.quantityOnHand + delta);
     const updated = updateInventoryEntity(entity, {
       quantityOnHand: newQuantity,
-      lastMovementAt: new Date().toISOString(),
+      lastMovementAt: now,
     });
     store.upsert(updated);
 
+    // Sync back to ProductService
+    ProductService.update(productId, { stock: newQuantity });
+
+    const movementType = delta < 0 ? 'stock_out' : 'stock_in';
+
     const movement: StockMovementEntity = createStockMovementEntity({
       productId,
-      type: 'adjustment',
+      type: movementType as any,
       status: 'completed',
       quantity: delta,
       fromLocation: locationId ? { id: locationId, name: locationId } : undefined,

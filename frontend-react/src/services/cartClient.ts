@@ -23,74 +23,152 @@ export interface Cart {
   grandTotal: number;
 }
 
-export async function getCart(): Promise<Cart | null> {
-  const res = await fetchWithAuth('/cart', { method: 'GET' });
-  if (!res.ok) {
-    if (res.status === 404) return null;
-    const errPayload = await res.json().catch(() => null);
-    const err: any = new Error(errPayload?.error?.message ?? `HTTP ${res.status}`);
-    err.status = res.status;
-    throw err;
+const LOCAL_STORAGE_CART_KEY = 'green_store_local_cart';
+
+function getLocalCart(): Cart {
+  try {
+    const raw = localStorage.getItem(LOCAL_STORAGE_CART_KEY);
+    if (raw) {
+      return JSON.parse(raw);
+    }
+  } catch (e) {
+    console.error('Error reading local cart:', e);
   }
-  const payload = await res.json();
-  return payload?.data ?? null;
+  return {
+    id: 'local-cart',
+    userId: 'guest',
+    items: [],
+    subtotal: 0,
+    taxTotal: 0,
+    grandTotal: 0,
+  };
 }
 
-export async function addItemToCart(productId: string, quantity = 1): Promise<Cart> {
-  const res = await fetchWithAuth('/cart/items', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ productId, quantity }),
-  });
-  if (!res.ok) {
-    const errPayload = await res.json().catch(() => null);
-    const err: any = new Error(errPayload?.error?.message ?? `HTTP ${res.status}`);
-    err.status = res.status;
-    throw err;
+function saveLocalCart(cart: Cart): Cart {
+  try {
+    let subtotal = 0;
+    cart.items.forEach((item) => {
+      item.totalPrice = item.unitPrice * item.quantity;
+      subtotal += item.totalPrice;
+    });
+    cart.subtotal = subtotal;
+    cart.taxTotal = Math.round(subtotal * 0.15 * 100) / 100;
+    cart.grandTotal = cart.subtotal + cart.taxTotal;
+    localStorage.setItem(LOCAL_STORAGE_CART_KEY, JSON.stringify(cart));
+    return cart;
+  } catch (e) {
+    console.error('Error saving local cart:', e);
+    return cart;
   }
-  const payload = await res.json();
-  return payload?.data;
+}
+
+export async function getCart(): Promise<Cart | null> {
+  try {
+    const res = await fetchWithAuth('/cart', { method: 'GET' });
+    if (!res.ok) {
+      return getLocalCart();
+    }
+    const payload = await res.json();
+    return payload?.data ?? getLocalCart();
+  } catch {
+    return getLocalCart();
+  }
+}
+
+export async function addItemToCart(productId: string, quantity = 1, productDetails?: { name: string; sellingPrice: number; image?: string }): Promise<Cart> {
+  try {
+    const res = await fetchWithAuth('/cart/items', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ productId, quantity }),
+    });
+    if (res.ok) {
+      const payload = await res.json();
+      if (payload?.data) return payload.data;
+    }
+  } catch {
+    // fallback below
+  }
+
+  const localCart = getLocalCart();
+  const existingIndex = localCart.items.findIndex((item) => item.productId === productId || item.product?.id === productId);
+  
+  if (existingIndex >= 0) {
+    localCart.items[existingIndex].quantity += quantity;
+  } else {
+    localCart.items.push({
+      id: `item-${Date.now()}`,
+      productId,
+      quantity,
+      unitPrice: productDetails?.sellingPrice ?? 10,
+      totalPrice: (productDetails?.sellingPrice ?? 10) * quantity,
+      product: {
+        id: productId,
+        name: productDetails?.name ?? `منتج ${productId}`,
+        sellingPrice: productDetails?.sellingPrice ?? 10,
+        image: productDetails?.image,
+      },
+    });
+  }
+
+  return saveLocalCart(localCart);
 }
 
 export async function updateCartItem(itemId: string, quantity: number): Promise<Cart> {
-  const res = await fetchWithAuth(`/cart/items/${itemId}`, {
-    method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ quantity }),
-  });
-  if (!res.ok) {
-    const errPayload = await res.json().catch(() => null);
-    const err: any = new Error(errPayload?.error?.message ?? `HTTP ${res.status}`);
-    err.status = res.status;
-    throw err;
+  try {
+    const res = await fetchWithAuth(`/cart/items/${itemId}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ quantity }),
+    });
+    if (res.ok) {
+      const payload = await res.json();
+      if (payload?.data) return payload.data;
+    }
+  } catch {
+    // fallback below
   }
-  const payload = await res.json();
-  return payload?.data;
+
+  const localCart = getLocalCart();
+  const itemIndex = localCart.items.findIndex((i) => i.id === itemId);
+  if (itemIndex >= 0) {
+    if (quantity <= 0) {
+      localCart.items.splice(itemIndex, 1);
+    } else {
+      localCart.items[itemIndex].quantity = quantity;
+    }
+  }
+
+  return saveLocalCart(localCart);
 }
 
 export async function removeCartItem(itemId: string): Promise<Cart> {
-  const res = await fetchWithAuth(`/cart/items/${itemId}`, {
-    method: 'DELETE',
-  });
-  if (!res.ok) {
-    const errPayload = await res.json().catch(() => null);
-    const err: any = new Error(errPayload?.error?.message ?? `HTTP ${res.status}`);
-    err.status = res.status;
-    throw err;
+  try {
+    const res = await fetchWithAuth(`/cart/items/${itemId}`, {
+      method: 'DELETE',
+    });
+    if (res.ok) {
+      const payload = await res.json();
+      if (payload?.data) return payload.data;
+    }
+  } catch {
+    // fallback below
   }
-  const payload = await res.json();
-  return payload?.data;
+
+  const localCart = getLocalCart();
+  localCart.items = localCart.items.filter((i) => i.id !== itemId);
+  return saveLocalCart(localCart);
 }
 
 export async function clearCart(): Promise<void> {
-  const res = await fetchWithAuth('/cart', {
-    method: 'DELETE',
-  });
-  if (!res.ok) {
-    const errPayload = await res.json().catch(() => null);
-    const err: any = new Error(errPayload?.error?.message ?? `HTTP ${res.status}`);
-    err.status = res.status;
-    throw err;
+  try {
+    await fetchWithAuth('/cart', {
+      method: 'DELETE',
+    });
+  } catch {
+    // fallback below
   }
+
+  localStorage.removeItem(LOCAL_STORAGE_CART_KEY);
 }
 

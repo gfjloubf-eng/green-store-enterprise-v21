@@ -25,16 +25,24 @@ import {
 
 /* ─── Props ────────────────────────────────────────────────── */
 
+import { ProductService } from '../../services/productService';
+
 interface ProductFormProps {
   /** Optional initial data for edit mode */
   initialData?: Partial<ProductFormData>;
+  /** Product ID if editing */
+  productId?: string;
   /** Whether this is an edit form */
   isEdit?: boolean;
+  /** Success callback */
+  onSuccess?: () => void;
+  /** Cancel callback */
+  onCancel?: () => void;
 }
 
 /* ─── ProductForm ──────────────────────────────────────────── */
 
-export function ProductForm({ initialData, isEdit = false }: ProductFormProps) {
+export function ProductForm({ initialData, productId, isEdit = false, onSuccess, onCancel }: ProductFormProps) {
   const navigate = useNavigate();
 
   const [formData, setFormData] = useState<ProductFormData>(() => ({
@@ -87,25 +95,71 @@ export function ProductForm({ initialData, isEdit = false }: ProductFormProps) {
   /* ── Actions ────────────────────────────────────────── */
 
   const handleSave = useCallback(() => {
-    // Mark all fields as touched
     const allKeys = Object.keys(DEFAULT_FORM_DATA) as (keyof ProductFormData)[];
     setTouched(new Set(allKeys));
 
-    // Re-validate
     const validationErrors = validateForm(formData);
     setErrors(validationErrors);
 
     if (isFormValid(validationErrors)) {
-      // No save logic — UI only
-      // In a future milestone this will dispatch to an API
-      // isEdit flag available for edit vs create distinction
-      void isEdit;
+      try {
+        if (isEdit && productId) {
+          ProductService.update(productId, {
+            name: formData.productName,
+            sku: formData.sku,
+            barcode: formData.barcode,
+            description: formData.description,
+            purchasePrice: parseFloat(formData.purchasePrice) || 0,
+            sellingPrice: parseFloat(formData.sellingPrice) || 0,
+            tax: parseFloat(formData.tax) || 0,
+            discount: parseFloat(formData.discount) || 0,
+            stock: parseInt(formData.initialStock, 10) || 0,
+            minStock: parseInt(formData.minStock, 10) || 0,
+            maxStock: parseInt(formData.maxStock, 10) || 0,
+            trackInventory: formData.trackInventory,
+            image: formData.imageUrl,
+            status: formData.status,
+          });
+        } else {
+          ProductService.create({
+            name: formData.productName,
+            sku: formData.sku || `SKU-${Math.floor(100000 + Math.random() * 900000)}`,
+            barcode: formData.barcode,
+            category: { id: formData.categoryId || 'c1', name: 'General' },
+            brand: { id: formData.brandId || 'b1', name: 'Generic' },
+            unit: { id: formData.unitId || 'u1', name: 'Piece', abbreviation: 'pc' },
+            description: formData.description,
+            purchasePrice: parseFloat(formData.purchasePrice) || 0,
+            sellingPrice: parseFloat(formData.sellingPrice) || 0,
+            tax: parseFloat(formData.tax) || 0,
+            discount: parseFloat(formData.discount) || 0,
+            stock: parseInt(formData.initialStock, 10) || 0,
+            minStock: parseInt(formData.minStock, 10) || 0,
+            maxStock: parseInt(formData.maxStock, 10) || 0,
+            trackInventory: formData.trackInventory,
+            image: formData.imageUrl,
+            status: formData.status,
+          });
+        }
+
+        if (onSuccess) {
+          onSuccess();
+        } else {
+          navigate('/products');
+        }
+      } catch (err) {
+        console.error('Error saving product:', err);
+      }
     }
-  }, [formData, isEdit]);
+  }, [formData, isEdit, productId, onSuccess, navigate]);
 
   const handleCancel = useCallback(() => {
-    navigate('/products');
-  }, [navigate]);
+    if (onCancel) {
+      onCancel();
+    } else {
+      navigate('/products');
+    }
+  }, [onCancel, navigate]);
 
   const handleReset = useCallback(() => {
     setFormData({ ...DEFAULT_FORM_DATA, ...initialData });

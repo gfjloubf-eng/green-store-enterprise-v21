@@ -18,6 +18,7 @@ import {
   Plus,
   Check,
   RotateCcw,
+  Filter,
 } from 'lucide-react';
 import { ProductService } from '@/features/products/services/productService';
 import type { ProductDTO } from '@/features/products/domain/productDTO';
@@ -62,6 +63,7 @@ export function HomePage() {
   const [seasonalOnly, setSeasonalOnly] = useState(false);
   const [favorites, setFavorites] = useLocalStorageState<string[]>(FAVORITES_KEY, []);
   const [recentlyViewed] = useLocalStorageState<string[]>(RECENTLY_VIEWED_KEY, []);
+  const [showMobileFilters, setShowMobileFilters] = useState(false);
 
   const allStores = useMemo(() => StoreService.getAll(), []);
 
@@ -242,32 +244,44 @@ export function HomePage() {
             <h2 className="text-lg font-semibold [color:var(--gs-foreground)]">البحث في المنتجات</h2>
             <p className="text-sm [color:var(--gs-foreground-secondary)]">ابحث في الكتالوج الحالي مباشرة.</p>
           </div>
-          <label className="relative block w-full sm:max-w-sm">
-            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 [color:var(--gs-foreground-muted)]" />
-            <input
-              value={searchQuery}
-              onChange={(event) => setSearchQuery(event.target.value)}
-              placeholder="ابحث عن منتج"
-              className="w-full rounded-xl border border-[var(--gs-border-subtle)] bg-transparent py-2 pl-9 pr-8 text-sm outline-none [color:var(--gs-foreground)]"
-            />
-            {searchQuery && (
-              <button
-                type="button"
-                onClick={() => setSearchQuery('')}
-                className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-[var(--gs-foreground-muted)] hover:text-[var(--gs-foreground)]"
-                aria-label="مسح البحث"
-              >
-                <X className="h-4 w-4" />
-              </button>
-            )}
-          </label>
+          <div className="flex items-center gap-2 w-full sm:max-w-md">
+            <label className="relative block flex-1">
+              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 [color:var(--gs-foreground-muted)]" />
+              <input
+                value={searchQuery}
+                onChange={(event) => setSearchQuery(event.target.value)}
+                placeholder="ابحث عن منتج"
+                className="w-full rounded-xl border border-[var(--gs-border-subtle)] bg-transparent py-2 pl-9 pr-8 text-sm outline-none [color:var(--gs-foreground)]"
+              />
+              {searchQuery && (
+                <button
+                  type="button"
+                  onClick={() => setSearchQuery('')}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-[var(--gs-foreground-muted)] hover:text-[var(--gs-foreground)]"
+                  aria-label="مسح البحث"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              )}
+            </label>
+            <button
+              type="button"
+              onClick={() => setShowMobileFilters((prev) => !prev)}
+              className="sm:hidden gsd-btn gsd-btn--ghost gsd-btn--sm p-2.5 rounded-xl border border-[var(--gs-border)] text-emerald-700 bg-emerald-50 font-bold shrink-0 flex items-center gap-1"
+              aria-label="فلاتر البحث"
+            >
+              <Filter className="h-4 w-4" />
+              <span className="text-xs">فلاتر</span>
+            </button>
+          </div>
         </div>
 
-        <div className="mt-4 flex flex-wrap items-center gap-3">
+        {/* Filter Controls (Desktop row / Mobile toggleable panel) */}
+        <div className={`mt-4 ${showMobileFilters ? 'block' : 'hidden sm:flex'} flex-wrap items-center gap-3 p-3 sm:p-0 rounded-2xl bg-[var(--gs-surface)] sm:bg-transparent border sm:border-0 border-[var(--gs-border)]`}>
           <select
             value={selectedCategory}
             onChange={(event) => setSelectedCategory(event.target.value)}
-            className="gsd-input h-10 rounded-xl text-sm"
+            className="gsd-input h-10 rounded-xl text-sm w-full sm:w-auto"
           >
             <option value="">كل الفئات</option>
             {categories.map((category) => (
@@ -280,7 +294,7 @@ export function HomePage() {
           <select
             value={selectedStore}
             onChange={(event) => setSelectedStore(event.target.value)}
-            className="gsd-input h-10 rounded-xl text-sm"
+            className="gsd-input h-10 rounded-xl text-sm w-full sm:w-auto"
           >
             <option value="">كل المحلات</option>
             {allStores.map((store) => (
@@ -293,7 +307,7 @@ export function HomePage() {
           <select
             value={priceFilter}
             onChange={(event) => setPriceFilter(event.target.value as PriceFilter)}
-            className="gsd-input h-10 rounded-xl text-sm"
+            className="gsd-input h-10 rounded-xl text-sm w-full sm:w-auto"
           >
             {PRICE_FILTERS.map((filter) => (
               <option key={filter.id} value={filter.id}>
@@ -302,29 +316,31 @@ export function HomePage() {
             ))}
           </select>
 
-          <button
-            type="button"
-            onClick={() => setFreshToday((value) => !value)}
-            className={`gsd-btn gsd-btn--ghost gsd-btn--sm ${freshToday ? 'border-[var(--gs-primary)] text-[var(--gs-primary)] bg-[var(--gs-primary-soft)] font-bold' : ''}`}
-          >
-            طازج اليوم
-          </button>
+          <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
+            <button
+              type="button"
+              onClick={() => setFreshToday((value) => !value)}
+              className={`gsd-btn gsd-btn--ghost gsd-btn--sm ${freshToday ? 'border-[var(--gs-primary)] text-[var(--gs-primary)] bg-[var(--gs-primary-soft)] font-bold' : ''}`}
+            >
+              طازج اليوم
+            </button>
 
-          <button
-            type="button"
-            onClick={() => setOrganicOnly((value) => !value)}
-            className={`gsd-btn gsd-btn--ghost gsd-btn--sm ${organicOnly ? 'border-[var(--gs-primary)] text-[var(--gs-primary)] bg-[var(--gs-primary-soft)] font-bold' : ''}`}
-          >
-            عضوي
-          </button>
+            <button
+              type="button"
+              onClick={() => setOrganicOnly((value) => !value)}
+              className={`gsd-btn gsd-btn--ghost gsd-btn--sm ${organicOnly ? 'border-[var(--gs-primary)] text-[var(--gs-primary)] bg-[var(--gs-primary-soft)] font-bold' : ''}`}
+            >
+              عضوي
+            </button>
 
-          <button
-            type="button"
-            onClick={() => setSeasonalOnly((value) => !value)}
-            className={`gsd-btn gsd-btn--ghost gsd-btn--sm ${seasonalOnly ? 'border-[var(--gs-primary)] text-[var(--gs-primary)] bg-[var(--gs-primary-soft)] font-bold' : ''}`}
-          >
-            موسمي
-          </button>
+            <button
+              type="button"
+              onClick={() => setSeasonalOnly((value) => !value)}
+              className={`gsd-btn gsd-btn--ghost gsd-btn--sm ${seasonalOnly ? 'border-[var(--gs-primary)] text-[var(--gs-primary)] bg-[var(--gs-primary-soft)] font-bold' : ''}`}
+            >
+              موسمي
+            </button>
+          </div>
 
           {(selectedCategory || selectedStore || priceFilter !== 'all' || freshToday || organicOnly || seasonalOnly || searchQuery) && (
             <button

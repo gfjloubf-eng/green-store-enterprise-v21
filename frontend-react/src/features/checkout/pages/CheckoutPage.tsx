@@ -42,6 +42,8 @@ export function CheckoutPage() {
       const { createPayment } = await import('@/services/paymentClient');
       await createPayment({
         orderId: order.id,
+        amount: order.total,
+        currency: order.currency || 'SAR',
         paymentMethod,
         idempotencyKey: `IDEM-${order.id}-${Date.now()}`,
       });
