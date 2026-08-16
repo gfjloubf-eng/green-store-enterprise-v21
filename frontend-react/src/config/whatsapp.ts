@@ -52,7 +52,7 @@ export const WHATSAPP_NUMBER = `+967${WHATSAPP_CONTACTS.store.phone}`;
 export function buildWhatsAppTargetUrl(target: WhatsAppTarget = 'store', message: string): string {
   const contact = WHATSAPP_CONTACTS[target] || WHATSAPP_CONTACTS.store;
   const encodedMessage = encodeURIComponent(message);
-  return `https://wa.me/${contact.fullNumber}?text=${encodedMessage}`;
+  return `https://api.whatsapp.com/send?phone=${contact.fullNumber}&text=${encodedMessage}`;
 }
 
 /**

@@ -43,7 +43,7 @@ export const SUPPORT_TEAM: SupportMember[] = [
 export function buildWhatsAppOrderUrl(orderNumber: string, targetPhone?: string | null): string {
   const phone = targetPhone || SUPPORT_TEAM[0].whatsappNumber || '967712275038';
   const message = `السلام عليكم، لدي استفسار بخصوص الطلب #${orderNumber}.`;
-  return `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
+  return `https://api.whatsapp.com/send?phone=${phone}&text=${encodeURIComponent(message)}`;
 }
 
 /**
@@ -52,7 +52,7 @@ export function buildWhatsAppOrderUrl(orderNumber: string, targetPhone?: string 
 export function buildWhatsAppGeneralUrl(targetPhone?: string | null, customMsg?: string): string {
   const phone = targetPhone || SUPPORT_TEAM[0].whatsappNumber || '967712275038';
   const message = customMsg || 'السلام عليكم، لدي استفسار بخصوص خدمات قطوف الطبيعة.';
-  return `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
+  return `https://api.whatsapp.com/send?phone=${phone}&text=${encodeURIComponent(message)}`;
 }
 
 /**
