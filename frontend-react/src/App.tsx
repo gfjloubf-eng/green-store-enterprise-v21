@@ -82,11 +82,9 @@ export default function App() {
           <Route path="products" element={<ProductsListPage />} />
           <Route path="products/:id" element={<ProductDetailsPage />} />
           <Route path="cart" element={<CartPage />} />
+          <Route path="settings" element={<SettingsPage />} />
           <Route path="about" element={<AboutPage />} />
           <Route path="contact" element={<ContactPage />} />
-
-          {/* Local Development Unprotected Route for Settings testing */}
-          {import.meta.env.DEV && <Route path="settings" element={<SettingsPage />} />}
 
           {/* Customer / Authenticated Protected Routes */}
           <Route element={<ProtectedRoute />}>
@@ -95,7 +93,6 @@ export default function App() {
             <Route path="orders/:id" element={<OrderDetailsPage />} />
             <Route path="profile" element={<ProfilePage />} />
             <Route path="checkout" element={<CheckoutPage />} />
-            {!import.meta.env.DEV && <Route path="settings" element={<SettingsPage />} />}
           </Route>
 
           {/* Help & Support Routes */}

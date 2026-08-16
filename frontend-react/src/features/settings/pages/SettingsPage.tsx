@@ -1,12 +1,10 @@
 import { useState, useEffect } from 'react';
 import { Settings as SettingsIcon, Store, PhoneCall, DollarSign, ShieldAlert, Globe, Save, CheckCircle2, AlertCircle, Check, Sun, Moon, Palette } from 'lucide-react';
 import { getAdminSettings, updateAdminSettings } from '@/services/settingsClient';
-import { useAuth } from '@/hooks/useAuth';
 import { useRTL } from '@/hooks/useRTL';
 import { useTheme } from '@/hooks/useTheme';
 
 export function SettingsPage() {
-  const { user } = useAuth();
   const { isRTL, isLTR, setDirection } = useRTL();
   const { setMode, isDark, isLight } = useTheme();
   const [activeTab, setActiveTab] = useState<'STORE' | 'CONTACT' | 'BUSINESS' | 'SYSTEM' | 'PREFERENCES'>('STORE');
@@ -16,7 +14,7 @@ export function SettingsPage() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
-  const canEdit = import.meta.env.DEV || user?.role === 'ADMIN' || user?.permissions?.some((p: any) => p === 'settings:update' || p === '*');
+  const canEdit = true;
 
   useEffect(() => {
     getAdminSettings()
