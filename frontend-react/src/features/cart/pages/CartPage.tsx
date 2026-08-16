@@ -275,6 +275,24 @@ export function CartPage() {
           </div>
         </div>
       )}
+
+      {/* Mobile Bottom Sticky Checkout Bar */}
+      {items.length > 0 && (
+        <div className="fixed bottom-14 left-0 right-0 z-30 lg:hidden border-t border-[var(--gs-border)] bg-[var(--gs-surface)]/95 backdrop-blur-md p-3 px-4 shadow-xl flex items-center justify-between gap-3">
+          <div>
+            <span className="text-[10px] text-[var(--gs-foreground-secondary)] block">الإجمالي الكلي</span>
+            <span className="text-sm font-bold text-emerald-600">{formatPrice(cart?.grandTotal, locale)}</span>
+          </div>
+          <button
+            type="button"
+            onClick={() => navigate('/checkout')}
+            className="gsd-btn gsd-btn--primary gsd-btn--md rounded-2xl px-5 py-2.5 text-xs font-bold inline-flex items-center gap-2 min-h-[44px] touch-manipulation"
+          >
+            متابعة الطلب
+            <ArrowRight className="h-4 w-4" />
+          </button>
+        </div>
+      )}
     </div>
   );
 }

@@ -8,7 +8,7 @@ export default function CartFloatingButton() {
   const itemCount = items.reduce((s, i) => s + i.quantity, 0);
 
   return (
-    <div className="fixed right-4 bottom-6 md:hidden z-50">
+    <div className="fixed right-4 bottom-20 md:hidden z-40">
       <button
         aria-label="Open cart"
         title="Cart"

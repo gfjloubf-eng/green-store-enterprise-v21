@@ -17,6 +17,7 @@ import { Footer } from './Footer';
 import { FloatingSupport } from '@/components/support/FloatingSupport';
 import CartFloatingButton from '@/features/marketplace/CartFloatingButton';
 import CartDrawer from '@/features/marketplace/CartDrawer';
+import { MobileBottomNav } from './MobileBottomNav';
 
 export function AppShell() {
   const [expanded, setExpanded] = useState(true);
@@ -53,7 +54,7 @@ export function AppShell() {
         {/* Content */}
         <main
           className={cn(
-            'gsd-main flex-1 overflow-y-auto p-6',
+            'gsd-main flex-1 overflow-y-auto p-3.5 sm:p-6 pb-20 lg:pb-6',
             'scrollbar-none',
           )}
         >
@@ -63,6 +64,9 @@ export function AppShell() {
         {/* Footer */}
         <Footer />
       </div>
+
+      {/* Mobile Bottom Navigation */}
+      <MobileBottomNav />
 
       {/* Global Cart UI */}
       <CartFloatingButton />
