@@ -5,7 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "npx prisma generate --schema ../backend/prisma/schema.prisma && node -e \"const fs=require('fs'); if(fs.existsSync('../backend/node_modules/.prisma')) fs.cpSync('../backend/node_modules/.prisma', './node_modules/.prisma', {recursive:true});\" && npx esbuild api-src/index.ts --bundle --platform=node --target=node20 --format=cjs --outfile=api/index.cjs --external:@prisma/client --external:@prisma/adapter-pg --external:argon2 --external:pg && tsc -b && vite build",
+    "postinstall": "npx prisma generate --schema ../backend/prisma/schema.prisma && node -e \"const fs=require('fs'); if(fs.existsSync('../backend/frontend-react/node_modules/.prisma')) fs.cpSync('../backend/frontend-react/node_modules/.prisma', './node_modules/.prisma', {recursive:true});\"",
+    "build": "npx prisma generate --schema ../backend/prisma/schema.prisma && node -e \"const fs=require('fs'); if(fs.existsSync('../backend/frontend-react/node_modules/.prisma')) fs.cpSync('../backend/frontend-react/node_modules/.prisma', './node_modules/.prisma', {recursive:true}); if(fs.existsSync('../backend/node_modules/.prisma')) fs.cpSync('../backend/node_modules/.prisma', './node_modules/.prisma', {recursive:true});\" && npx esbuild api-src/index.ts --bundle --platform=node --target=node20 --format=cjs --outfile=api/index.cjs --external:@prisma/client --external:@prisma/adapter-pg --external:argon2 --external:pg && tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview"
   },
