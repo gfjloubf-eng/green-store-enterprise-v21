@@ -38,6 +38,8 @@ export function StoreProfilePage() {
   const navigate = useNavigate();
   const { storeId } = useParams<{ storeId: string }>();
   const store = StoreService.getById(storeId ?? '');
+  const [userStoreRating, setUserStoreRating] = useState<number | null>(null);
+  const [storeRatingSubmitted, setStoreRatingSubmitted] = useState(false);
 
   const availableProducts = useMemo(() => {
     if (!store) return [];
@@ -258,8 +260,45 @@ export function StoreProfilePage() {
           </div>
 
           <div className="gsd-card rounded-3xl p-4 text-right">
-            <div className="text-lg font-semibold [color:var(--gs-foreground)]">تقييمات العملاء</div>
-            <div className="mt-3 space-y-3">
+            <div className="text-lg font-semibold [color:var(--gs-foreground)] mb-3">تقييمات العملاء</div>
+
+            {/* Interactive Store & Service Rating Widget */}
+            <div className="mb-4 p-3.5 rounded-2xl bg-[var(--gs-muted)]/70 border border-[var(--gs-border-subtle)] space-y-2">
+              <div className="text-xs font-bold text-[var(--gs-foreground)] flex items-center justify-between">
+                <span>قيّم هذا المتجر وجودة الخدمة:</span>
+                {userStoreRating && <span className="text-emerald-600 font-bold">{userStoreRating} / 5 🌟</span>}
+              </div>
+              <div className="flex items-center gap-1.5">
+                {[1, 2, 3, 4, 5].map((star) => (
+                  <button
+                    key={star}
+                    type="button"
+                    onClick={() => {
+                      setUserStoreRating(star);
+                      setStoreRatingSubmitted(true);
+                      setTimeout(() => setStoreRatingSubmitted(false), 3500);
+                    }}
+                    className="p-1 transition hover:scale-125 focus:outline-none"
+                    aria-label={`تقييم المتجر ${star} من 5`}
+                  >
+                    <Star
+                      className={`h-5 w-5 ${
+                        userStoreRating && star <= userStoreRating
+                          ? 'fill-amber-400 text-amber-500'
+                          : 'text-gray-300 dark:text-gray-600'
+                      }`}
+                    />
+                  </button>
+                ))}
+              </div>
+              {storeRatingSubmitted && (
+                <div className="rounded-xl bg-emerald-500/10 border border-emerald-500/20 p-2 text-[11px] font-bold text-emerald-700 dark:text-emerald-300">
+                  ✓ شكرًا لتقييمك للمتجر! تم حفظ تقييم الخدمة محلية.
+                </div>
+              )}
+            </div>
+
+            <div className="space-y-3">
               {reviews.map((review) => (
                 <div key={review.author} className="rounded-3xl bg-[var(--gs-muted)] p-4">
                   <div className="flex items-center justify-between gap-3 text-sm font-semibold [color:var(--gs-foreground)]">
