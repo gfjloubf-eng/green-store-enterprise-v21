@@ -11,10 +11,11 @@
 
 import { useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Package } from 'lucide-react';
+import { Plus, Package, Tag } from 'lucide-react';
 import { DEFAULT_PRODUCT_FILTERS } from '../constants';
 import type { ProductSummary, ProductColumnId, ProductFilters } from '../types/product';
 import { useI18n } from '@/i18n/useI18n';
+import { useAuth } from '@/hooks/useAuth';
 import { BreadcrumbEngine } from '@/components/layout/BreadcrumbEngine';
 import { ProductTable } from '../components/ProductTable';
 import { ProductFilters as ProductFiltersBar } from '../components/ProductFilters';
@@ -31,11 +32,20 @@ import { addItemToCart } from '@/services/cartClient';
 export function ProductsListPage() {
   const navigate = useNavigate();
   const { t } = useI18n();
+  const { user, hasRole, hasPermission } = useAuth();
   const [filters, setFilters] = useState<ProductFilters>(DEFAULT_PRODUCT_FILTERS);
   const [createOpen, setCreateOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [cartSuccess, setCartSuccess] = useState<string | null>(null);
+
+  const canManage =
+    user?.role === 'admin' ||
+    user?.role === 'ADMIN' ||
+    user?.role === 'MANAGER' ||
+    hasRole('admin') ||
+    hasPermission('products:create') ||
+    hasPermission('products:update');
 
   /* ── Service Hook ──────────────────────────────────── */
 
@@ -104,14 +114,27 @@ export function ProductsListPage() {
           </h1>
           <BreadcrumbEngine className="mt-1" />
         </div>
-        <button
-          type="button"
-          onClick={() => setCreateOpen(true)}
-          className="gsd-btn gsd-btn--primary gsd-btn--md"
-        >
-          <Plus className="h-4 w-4" aria-hidden="true" />
-          {t('products.add')}
-        </button>
+
+        {canManage && (
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => navigate('/products/offers')}
+              className="gsd-btn gsd-btn--secondary gsd-btn--md"
+            >
+              <Tag className="h-4 w-4 text-emerald-600" aria-hidden="true" />
+              إدارة العروض
+            </button>
+            <button
+              type="button"
+              onClick={() => setCreateOpen(true)}
+              className="gsd-btn gsd-btn--primary gsd-btn--md"
+            >
+              <Plus className="h-4 w-4" aria-hidden="true" />
+              {t('products.add')}
+            </button>
+          </div>
+        )}
       </div>
 
       {cartSuccess && (
@@ -143,8 +166,8 @@ export function ProductsListPage() {
           icon={Package}
           title={t('messages.noProducts.title')}
           description={t('messages.noProducts.description')}
-          actionLabel={t('messages.noProducts.action')}
-          onAction={() => setCreateOpen(true)}
+          actionLabel={canManage ? t('messages.noProducts.action') : undefined}
+          onAction={canManage ? () => setCreateOpen(true) : undefined}
         />
       ) : products.length === 0 ? (
         <EmptyState
@@ -161,8 +184,8 @@ export function ProductsListPage() {
           sortDirection={filters.sortDirection}
           onSort={handleSort}
           onView={handleView}
-          onEdit={handleEdit}
-          onDelete={handleDelete}
+          onEdit={canManage ? handleEdit : undefined}
+          onDelete={canManage ? handleDelete : undefined}
           onAddToCart={handleAddToCart}
         />
       )}

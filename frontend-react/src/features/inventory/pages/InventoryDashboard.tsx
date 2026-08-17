@@ -26,7 +26,12 @@ export function InventoryDashboard() {
   const [movements, setMovements] = useState<StockMovement[]>([]);
   const [movementsLoading, setMovementsLoading] = useState(false);
 
-  const canUpdate = user?.role === 'ADMIN' || user?.role === 'MANAGER' || user?.permissions?.some((p: any) => p === 'inventory:update' || p?.action === 'UPDATE' || p === '*');
+  const canUpdate =
+    user?.role === 'admin' ||
+    user?.role === 'ADMIN' ||
+    user?.role === 'MANAGER' ||
+    (Array.isArray(user?.roles) && user.roles.includes('admin')) ||
+    user?.permissions?.some((p: any) => p === 'inventory:update' || p?.action === 'UPDATE' || p === '*');
 
   const fetchInventory = useCallback(async () => {
     setLoading(true);

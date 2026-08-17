@@ -42,6 +42,8 @@ import {
   isYemeni,
 } from '@/features/marketplace/utils/productTags';
 
+import { calculateEffectivePrice } from '@/features/products/services/offerService';
+
 const FAVORITES_KEY = 'qutoof-nature.favorites';
 
 const PRICE_FILTERS = [
@@ -142,7 +144,8 @@ export function HomePage() {
       if (product.category.name === 'Fruits') fruits.push(product);
       if (product.category.name === 'Vegetables') vegetables.push(product);
       if (isYemeni(product)) yemeni.push(product);
-      if (product.sellingPrice <= 3.5) offers.push(product);
+      const priceInfo = calculateEffectivePrice(product);
+      if (priceInfo.hasActiveOffer) offers.push(product);
       if (isSeasonal(product)) seasonal.push(product);
     }
 
@@ -602,13 +605,23 @@ function ProduceCard({
 }: ProduceCardProps) {
   const navigate = useNavigate();
   const rating = getProductRating(product);
+  const priceInfo = calculateEffectivePrice(product);
+  const isOutOfStock = product.stock <= 0;
 
   return (
     <div className="group gsd-card rounded-2xl p-3 border border-[var(--gs-border-subtle)] hover:border-emerald-500 transition duration-200 flex flex-col justify-between relative bg-[var(--gs-surface)] shadow-xs hover:shadow-md">
       {/* Top Badges & Favorite Heart */}
       <div className="flex items-center justify-between mb-2">
-        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">
-          {badgeText || (isYemeni(product) ? 'محلي' : isOrganic(product) ? 'عضوي' : 'طازج')}
+        <span
+          className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+            priceInfo.hasActiveOffer
+              ? 'bg-amber-500/15 text-amber-700 dark:text-amber-300 border border-amber-500/30'
+              : 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300'
+          }`}
+        >
+          {priceInfo.hasActiveOffer
+            ? `${priceInfo.offerTitle || 'عرض'} (-${priceInfo.discountPercentage}%)`
+            : badgeText || (isYemeni(product) ? 'محلي' : isOrganic(product) ? 'عضوي' : 'طازج')}
         </span>
         <button
           type="button"
@@ -634,6 +647,11 @@ function ProduceCard({
           loading="lazy"
           className="h-full w-full object-cover group-hover:scale-105 transition duration-300"
         />
+        {isOutOfStock && (
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-[2px] flex items-center justify-center p-2 text-center text-[11px] font-bold text-white">
+            🔴 نفد المخزون
+          </div>
+        )}
       </div>
 
       {/* Title & Category */}
@@ -653,23 +671,32 @@ function ProduceCard({
       {/* Price & 1-Click Add Button */}
       <div className="pt-2 mt-2 border-t border-[var(--gs-border-subtle)] flex items-center justify-between gap-1">
         <div>
+          {priceInfo.hasActiveOffer && (
+            <div className="text-[10px] text-gray-400 line-through">
+              {formatPrice(priceInfo.originalPrice, locale)}
+            </div>
+          )}
           <div className="text-xs font-black text-emerald-700 dark:text-emerald-400">
-            {formatPrice(product.sellingPrice, locale)}
+            {formatPrice(priceInfo.finalPrice, locale)}
           </div>
         </div>
 
         <button
           type="button"
           onClick={onQuickAdd}
-          disabled={isAdding || product.stock <= 0}
+          disabled={isAdding || isOutOfStock}
           className={`h-8 px-2.5 rounded-xl font-bold text-xs inline-flex items-center gap-1 transition ${
-            isAdded
-              ? 'bg-emerald-700 text-white'
-              : 'bg-emerald-600 hover:bg-emerald-700 text-white'
+            isOutOfStock
+              ? 'bg-gray-400 text-white cursor-not-allowed opacity-60'
+              : isAdded
+                ? 'bg-emerald-700 text-white'
+                : 'bg-emerald-600 hover:bg-emerald-700 text-white'
           }`}
           aria-label={`إضافة ${product.name} إلى السلة`}
         >
-          {isAdded ? (
+          {isOutOfStock ? (
+            'نفد'
+          ) : isAdded ? (
             <Check className="h-3.5 w-3.5" />
           ) : (
             <>

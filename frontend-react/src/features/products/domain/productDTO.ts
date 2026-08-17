@@ -12,7 +12,7 @@
    ============================================================ */
 
 import type { ProductEntity } from './productEntity';
-import type { ProductStatus } from '../types/product';
+import type { ProductStatus, ProductOffer } from '../types/product';
 
 /**
  * ProductDTO — Data Transfer Object for service layer responses.
@@ -22,6 +22,7 @@ import type { ProductStatus } from '../types/product';
 export interface ProductDTO {
   id: string;
   name: string;
+  nameAr?: string;
   sku: string;
   barcode: string;
   category: { id: string; name: string };
@@ -30,6 +31,8 @@ export interface ProductDTO {
   description: string;
   purchasePrice: number;
   sellingPrice: number;
+  compareAtPrice?: number;
+  offer?: ProductOffer;
   tax: number;
   discount: number;
   stock: number;

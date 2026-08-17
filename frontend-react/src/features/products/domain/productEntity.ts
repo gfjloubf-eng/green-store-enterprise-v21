@@ -7,7 +7,7 @@
    All other models (DTO, Form, Table, Filter) derive from this.
    ============================================================ */
 
-import type { ProductStatus } from '../types/product';
+import type { ProductStatus, ProductOffer } from '../types/product';
 
 /**
  * Reference to a related entity (category, brand, unit).
@@ -33,6 +33,8 @@ export interface ProductEntity {
   id: string;
   /** Product display name */
   name: string;
+  /** Arabic product name */
+  nameAr?: string;
   /** Stock Keeping Unit */
   sku: string;
   /** Barcode / SKU identifier */
@@ -49,6 +51,10 @@ export interface ProductEntity {
   purchasePrice: number;
   /** Selling price (retail) */
   sellingPrice: number;
+  /** Original / Compare-at price */
+  compareAtPrice?: number;
+  /** Active offer metadata */
+  offer?: ProductOffer;
   /** Tax percentage */
   tax: number;
   /** Discount value */

@@ -44,6 +44,7 @@ import { getProductBadges, getProductRating } from '@/features/marketplace/utils
 import { getProduceIntelligence } from '../domain/produceIntelligence';
 import { EducationalImageCard } from '@/components/ui/EducationalImageCard';
 import { WhatsAppOrderAction } from '@/components/ui/WhatsAppOrderAction';
+import { calculateEffectivePrice } from '../services/offerService';
 
 const FAVORITES_KEY = 'qutoof-nature.favorites';
 const RECENTLY_VIEWED_KEY = 'qutoof-nature.recentlyViewed';
@@ -255,21 +256,56 @@ export function ProductDetailsPage() {
                 </div>
 
                 {/* Price Display */}
-                <div className="rounded-2xl bg-emerald-50/70 dark:bg-emerald-950/30 border border-emerald-500/20 p-4 text-right flex items-center justify-between">
-                  <div>
-                    <div className="text-xs font-semibold text-emerald-800 dark:text-emerald-300">السعر / الوحدة</div>
-                    <div className="mt-0.5 text-3xl font-black text-emerald-700 dark:text-emerald-400">
-                      {formatPrice(product.sellingPrice, locale)} <span className="text-sm font-normal text-emerald-800 dark:text-emerald-300">/ {product.unit.name}</span>
+                {(() => {
+                  const priceInfo = calculateEffectivePrice(product);
+                  const isLow = product.stock > 0 && product.stock <= 10;
+                  const isOut = product.stock <= 0;
+
+                  return (
+                    <div className="rounded-2xl bg-emerald-50/70 dark:bg-emerald-950/30 border border-emerald-500/20 p-4 text-right flex flex-wrap items-center justify-between gap-3">
+                      <div>
+                        <div className="text-xs font-semibold text-emerald-800 dark:text-emerald-300 flex items-center gap-2">
+                          <span>السعر / الوحدة</span>
+                          {priceInfo.hasActiveOffer && (
+                            <span className="rounded-full bg-amber-500/20 text-amber-800 dark:text-amber-200 px-2 py-0.5 text-[10px] font-bold border border-amber-500/30">
+                              {priceInfo.offerTitle || 'عرض ممتاز'} (-{priceInfo.discountPercentage}%)
+                            </span>
+                          )}
+                        </div>
+                        <div className="mt-0.5 flex items-baseline gap-2">
+                          <span className="text-3xl font-black text-emerald-700 dark:text-emerald-400">
+                            {formatPrice(priceInfo.finalPrice, locale)}
+                          </span>
+                          {priceInfo.hasActiveOffer && (
+                            <span className="text-sm font-semibold text-gray-400 line-through">
+                              {formatPrice(priceInfo.originalPrice, locale)}
+                            </span>
+                          )}
+                          <span className="text-sm font-normal text-emerald-800 dark:text-emerald-300">
+                            / {product.unit.name}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="text-left">
+                        <span
+                          className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold ${
+                            isOut
+                              ? 'bg-rose-100 text-rose-800 dark:bg-rose-950/60 dark:text-rose-300'
+                              : isLow
+                                ? 'bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300'
+                                : 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/60 dark:text-emerald-300'
+                          }`}
+                        >
+                          {isOut
+                            ? '🔴 نفد المخزون المؤقت'
+                            : isLow
+                              ? `🟡 مخزون منخفض (${product.stock} ${product.unit.abbreviation})`
+                              : `🟢 متوفر بالمخزون (${product.stock} ${product.unit.abbreviation})`}
+                        </span>
+                      </div>
                     </div>
-                  </div>
-                  <div className="text-left">
-                    <span className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold ${
-                      product.stock > 0 ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/60 dark:text-emerald-300' : 'bg-rose-100 text-rose-800'
-                    }`}>
-                      {product.stock > 0 ? `متوفر بالمخزون (${product.stock} ${product.unit.abbreviation})` : 'نفد المؤقت'}
-                    </span>
-                  </div>
-                </div>
+                  );
+                })()}
 
                 {/* Interactive Order & Dual WhatsApp Box */}
                 <div className="gsd-surface rounded-3xl p-5 text-right border border-[var(--gs-border-subtle)] space-y-4 shadow-xs">
@@ -302,14 +338,18 @@ export function ProductDetailsPage() {
                         <input
                           type="number"
                           min={1}
-                          max={product.stock || 99}
+                          max={product.stock || 1}
                           value={quantity}
-                          onChange={(e) => setQuantity(Math.max(1, Number(e.target.value) || 1))}
+                          onChange={(e) => {
+                            const val = Number(e.target.value) || 1;
+                            const maxLimit = product.stock > 0 ? product.stock : 1;
+                            setQuantity(Math.max(1, Math.min(maxLimit, val)));
+                          }}
                           className="w-full text-center rounded-xl border border-[var(--gs-border-subtle)] bg-transparent py-2 font-bold text-base outline-none [color:var(--gs-foreground)]"
                         />
                         <button
                           type="button"
-                          onClick={() => setQuantity((q) => q + 1)}
+                          onClick={() => setQuantity((q) => Math.min(product.stock > 0 ? product.stock : 1, q + 1))}
                           className="h-10 w-10 rounded-xl border border-[var(--gs-border-subtle)] bg-[var(--gs-surface)] font-bold text-lg hover:bg-[var(--gs-muted)]"
                         >
                           +
@@ -329,26 +369,39 @@ export function ProductDetailsPage() {
                   </div>
 
                   {/* Primary Action: Add to Cart */}
-                  <button
-                    type="button"
-                    onClick={handleAddToCart}
-                    disabled={adding || !product || product.stock <= 0}
-                    className={`w-full gsd-btn gsd-btn--primary gsd-btn--md inline-flex items-center justify-center gap-2 rounded-2xl h-12 font-bold text-sm shadow-md transition ${
-                      added ? 'bg-emerald-700 text-white' : 'bg-emerald-600 hover:bg-emerald-700 text-white'
-                    }`}
-                  >
-                    {added ? (
-                      <>
-                        <Check className="h-5 w-5" />
-                        تمت إضافة المنتج للسلة بنجاح ✓
-                      </>
-                    ) : (
-                      <>
-                        <ShoppingBag className="h-5 w-5" />
-                        إضافة إلى السلة (إجمالي: {formatPrice(product.sellingPrice * quantity, locale)})
-                      </>
-                    )}
-                  </button>
+                  {(() => {
+                    const priceInfo = calculateEffectivePrice(product);
+                    const isOutOfStock = product.stock <= 0;
+
+                    return (
+                      <button
+                        type="button"
+                        onClick={handleAddToCart}
+                        disabled={adding || isOutOfStock}
+                        className={`w-full gsd-btn gsd-btn--primary gsd-btn--md inline-flex items-center justify-center gap-2 rounded-2xl h-12 font-bold text-sm shadow-md transition ${
+                          isOutOfStock
+                            ? 'bg-gray-400 text-white cursor-not-allowed opacity-60'
+                            : added
+                              ? 'bg-emerald-700 text-white'
+                              : 'bg-emerald-600 hover:bg-emerald-700 text-white'
+                        }`}
+                      >
+                        {isOutOfStock ? (
+                          '🔴 هذا المنتج غير متوفر بالمخزون حالياً'
+                        ) : added ? (
+                          <>
+                            <Check className="h-5 w-5" />
+                            تمت إضافة المنتج للسلة بنجاح ✓
+                          </>
+                        ) : (
+                          <>
+                            <ShoppingBag className="h-5 w-5" />
+                            إضافة إلى السلة (إجمالي: {formatPrice(priceInfo.finalPrice * quantity, locale)})
+                          </>
+                        )}
+                      </button>
+                    );
+                  })()}
 
                   {/* PHASE 3: WHATSAPP DUAL ORDERING ACTION */}
                   <div className="pt-2 border-t border-[var(--gs-border-subtle)] space-y-2">

@@ -9,6 +9,20 @@
  */
 export type ProductStatus = 'active' | 'inactive' | 'draft' | 'discontinued';
 
+export type OfferType = 'percentage' | 'fixed' | 'today' | 'week' | 'seasonal' | 'quantity';
+
+export interface ProductOffer {
+  id: string;
+  title: string;
+  type: OfferType;
+  discountValue: number;
+  originalPrice: number;
+  offerPrice: number;
+  startDate?: string;
+  endDate?: string;
+  active: boolean;
+}
+
 /**
  * Product summary — lightweight view model for the products table.
  * Full product entity will be added in a later milestone.
@@ -24,6 +38,8 @@ export interface ProductSummary {
   sku: string;
   /** Product display name */
   name: string;
+  /** Optional Arabic name */
+  nameAr?: string;
   /** Category reference */
   category: CategorySummary;
   /** Brand reference */
@@ -34,6 +50,10 @@ export interface ProductSummary {
   purchasePrice: number;
   /** Selling price (retail) */
   sellingPrice: number;
+  /** Compare at / original price before offer */
+  compareAtPrice?: number;
+  /** Active offer metadata if any */
+  offer?: ProductOffer;
   /** Current stock quantity */
   stock: number;
   /** Status */

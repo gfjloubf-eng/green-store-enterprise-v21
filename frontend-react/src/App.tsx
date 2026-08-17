@@ -28,6 +28,7 @@ import {
   BrandsPage,
   UnitsPage,
   BarcodePage,
+  AdminOffersPage,
 } from '@/features/products/pages';
 import { StoreListPage, StoreProfilePage } from '@/features/marketplace/pages';
 import {
@@ -98,123 +99,63 @@ export default function App() {
           </Route>
 
           {/* Admin Management Routes */}
-          {import.meta.env.DEV ? (
-            <>
-              <Route path="admin/users" element={<AdminUsersPage />} />
-              <Route path="admin/roles" element={<AdminRolesPage />} />
-            </>
-          ) : (
-            <>
-              <Route element={<ProtectedRoute requiredPermission="users:read" />}>
-                <Route path="admin/users" element={<AdminUsersPage />} />
-              </Route>
-              <Route element={<ProtectedRoute requiredPermission="roles:read" />}>
-                <Route path="admin/roles" element={<AdminRolesPage />} />
-              </Route>
-            </>
-          )}
+          <Route element={<ProtectedRoute requiredPermission="users:read" />}>
+            <Route path="admin/users" element={<AdminUsersPage />} />
+          </Route>
+          <Route element={<ProtectedRoute requiredPermission="roles:read" />}>
+            <Route path="admin/roles" element={<AdminRolesPage />} />
+          </Route>
 
           {/* Product Management Routes */}
-          {import.meta.env.DEV ? (
-            <>
-              <Route path="products/create" element={<CreateProductPage />} />
-              <Route path="products/:id/edit" element={<EditProductPage />} />
-              <Route path="products/categories" element={<CategoriesPage />} />
-              <Route path="products/brands" element={<BrandsPage />} />
-              <Route path="products/units" element={<UnitsPage />} />
-              <Route path="products/barcode" element={<BarcodePage />} />
-            </>
-          ) : (
-            <>
-              <Route element={<ProtectedRoute requiredPermission="products:create" />}>
-                <Route path="products/create" element={<CreateProductPage />} />
-              </Route>
-              <Route element={<ProtectedRoute requiredPermission="products:update" />}>
-                <Route path="products/:id/edit" element={<EditProductPage />} />
-              </Route>
-              <Route element={<ProtectedRoute requiredPermission="products:read" />}>
-                <Route path="products/categories" element={<CategoriesPage />} />
-                <Route path="products/brands" element={<BrandsPage />} />
-                <Route path="products/units" element={<UnitsPage />} />
-                <Route path="products/barcode" element={<BarcodePage />} />
-              </Route>
-            </>
-          )}
+          <Route element={<ProtectedRoute requiredPermission="products:create" />}>
+            <Route path="products/create" element={<CreateProductPage />} />
+          </Route>
+          <Route element={<ProtectedRoute requiredPermission="products:update" />}>
+            <Route path="products/:id/edit" element={<EditProductPage />} />
+          </Route>
+          <Route element={<ProtectedRoute requiredPermission="products:read" />}>
+            <Route path="products/categories" element={<CategoriesPage />} />
+            <Route path="products/brands" element={<BrandsPage />} />
+            <Route path="products/units" element={<UnitsPage />} />
+            <Route path="products/barcode" element={<BarcodePage />} />
+            <Route path="products/offers" element={<AdminOffersPage />} />
+          </Route>
 
           {/* Inventory Management Routes */}
-          {import.meta.env.DEV ? (
-            <>
-              <Route path="inventory" element={<InventoryDashboard />} />
-              <Route path="inventory/overview" element={<StockOverview />} />
-              <Route path="inventory/movements" element={<StockMovements />} />
-              <Route path="inventory/adjustment" element={<StockAdjustment />} />
-              <Route path="inventory/transfer" element={<StockTransfer />} />
-              <Route path="inventory/low-stock" element={<LowStock />} />
-              <Route path="inventory/out-of-stock" element={<OutOfStock />} />
-              <Route path="inventory/reports" element={<InventoryReports />} />
-            </>
-          ) : (
-            <Route element={<ProtectedRoute requiredPermission="inventory:read" />}>
-              <Route path="inventory" element={<InventoryDashboard />} />
-              <Route path="inventory/overview" element={<StockOverview />} />
-              <Route path="inventory/movements" element={<StockMovements />} />
-              <Route path="inventory/adjustment" element={<StockAdjustment />} />
-              <Route path="inventory/transfer" element={<StockTransfer />} />
-              <Route path="inventory/low-stock" element={<LowStock />} />
-              <Route path="inventory/out-of-stock" element={<OutOfStock />} />
-              <Route path="inventory/reports" element={<InventoryReports />} />
-            </Route>
-          )}
+          <Route element={<ProtectedRoute requiredPermission="inventory:read" />}>
+            <Route path="inventory" element={<InventoryDashboard />} />
+            <Route path="inventory/overview" element={<StockOverview />} />
+            <Route path="inventory/movements" element={<StockMovements />} />
+            <Route path="inventory/adjustment" element={<StockAdjustment />} />
+            <Route path="inventory/transfer" element={<StockTransfer />} />
+            <Route path="inventory/low-stock" element={<LowStock />} />
+            <Route path="inventory/out-of-stock" element={<OutOfStock />} />
+            <Route path="inventory/reports" element={<InventoryReports />} />
+          </Route>
 
           {/* Supplier Management Routes */}
-          {import.meta.env.DEV ? (
-            <>
-              <Route path="suppliers" element={<SupplierDashboard />} />
-              <Route path="suppliers/list" element={<SupplierListPage />} />
-              <Route path="suppliers/create" element={<CreateSupplierPage />} />
-              <Route path="suppliers/categories" element={<SupplierCategoriesPage />} />
-              <Route path="suppliers/contacts" element={<SupplierContactsPage />} />
-              <Route path="suppliers/reports" element={<SupplierReportsPage />} />
-              <Route path="suppliers/:id" element={<SupplierDetailsPage />} />
-              <Route path="suppliers/:id/edit" element={<EditSupplierPage />} />
-            </>
-          ) : (
-            <Route element={<ProtectedRoute requiredPermission="suppliers:read" />}>
-              <Route path="suppliers" element={<SupplierDashboard />} />
-              <Route path="suppliers/list" element={<SupplierListPage />} />
-              <Route path="suppliers/create" element={<CreateSupplierPage />} />
-              <Route path="suppliers/categories" element={<SupplierCategoriesPage />} />
-              <Route path="suppliers/contacts" element={<SupplierContactsPage />} />
-              <Route path="suppliers/reports" element={<SupplierReportsPage />} />
-              <Route path="suppliers/:id" element={<SupplierDetailsPage />} />
-              <Route path="suppliers/:id/edit" element={<EditSupplierPage />} />
-            </Route>
-          )}
+          <Route element={<ProtectedRoute requiredPermission="suppliers:read" />}>
+            <Route path="suppliers" element={<SupplierDashboard />} />
+            <Route path="suppliers/list" element={<SupplierListPage />} />
+            <Route path="suppliers/create" element={<CreateSupplierPage />} />
+            <Route path="suppliers/categories" element={<SupplierCategoriesPage />} />
+            <Route path="suppliers/contacts" element={<SupplierContactsPage />} />
+            <Route path="suppliers/reports" element={<SupplierReportsPage />} />
+            <Route path="suppliers/:id" element={<SupplierDetailsPage />} />
+            <Route path="suppliers/:id/edit" element={<EditSupplierPage />} />
+          </Route>
 
           {/* Purchasing Management Routes */}
-          {import.meta.env.DEV ? (
-            <>
-              <Route path="purchasing" element={<PurchaseDashboard />} />
-              <Route path="purchasing/orders" element={<PurchaseOrders />} />
-              <Route path="purchasing/create" element={<CreatePurchaseOrder />} />
-              <Route path="purchasing/receiving" element={<GoodsReceiving />} />
-              <Route path="purchasing/returns" element={<PurchaseReturns />} />
-              <Route path="purchasing/reports" element={<PurchaseReports />} />
-              <Route path="purchasing/analytics" element={<PurchaseAnalytics />} />
-              <Route path="purchasing/:id" element={<PurchaseDetails />} />
-            </>
-          ) : (
-            <Route element={<ProtectedRoute requiredPermission="purchasing:read" />}>
-              <Route path="purchasing" element={<PurchaseDashboard />} />
-              <Route path="purchasing/orders" element={<PurchaseOrders />} />
-              <Route path="purchasing/create" element={<CreatePurchaseOrder />} />
-              <Route path="purchasing/receiving" element={<GoodsReceiving />} />
-              <Route path="purchasing/returns" element={<PurchaseReturns />} />
-              <Route path="purchasing/reports" element={<PurchaseReports />} />
-              <Route path="purchasing/analytics" element={<PurchaseAnalytics />} />
-              <Route path="purchasing/:id" element={<PurchaseDetails />} />
-            </Route>
-          )}
+          <Route element={<ProtectedRoute requiredPermission="purchasing:read" />}>
+            <Route path="purchasing" element={<PurchaseDashboard />} />
+            <Route path="purchasing/orders" element={<PurchaseOrders />} />
+            <Route path="purchasing/create" element={<CreatePurchaseOrder />} />
+            <Route path="purchasing/receiving" element={<GoodsReceiving />} />
+            <Route path="purchasing/returns" element={<PurchaseReturns />} />
+            <Route path="purchasing/reports" element={<PurchaseReports />} />
+            <Route path="purchasing/analytics" element={<PurchaseAnalytics />} />
+            <Route path="purchasing/:id" element={<PurchaseDetails />} />
+          </Route>
 
           {/* Marketplace / Stores */}
           <Route path="stores" element={<StoreListPage />} />

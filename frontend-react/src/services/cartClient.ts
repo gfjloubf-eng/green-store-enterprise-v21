@@ -1,4 +1,6 @@
 import { fetchWithAuth } from './authClient';
+import { ProductService } from '@/features/products/services/productService';
+import { calculateEffectivePrice } from '@/features/products/services/offerService';
 
 export interface CartItem {
   id: string;
@@ -51,9 +53,9 @@ function saveLocalCart(cart: Cart): Cart {
       item.totalPrice = item.unitPrice * item.quantity;
       subtotal += item.totalPrice;
     });
-    cart.subtotal = subtotal;
+    cart.subtotal = Math.round(subtotal * 100) / 100;
     cart.taxTotal = Math.round(subtotal * 0.15 * 100) / 100;
-    cart.grandTotal = cart.subtotal + cart.taxTotal;
+    cart.grandTotal = Math.round((cart.subtotal + cart.taxTotal) * 100) / 100;
     localStorage.setItem(LOCAL_STORAGE_CART_KEY, JSON.stringify(cart));
     return cart;
   } catch (e) {
@@ -76,6 +78,15 @@ export async function getCart(): Promise<Cart | null> {
 }
 
 export async function addItemToCart(productId: string, quantity = 1, productDetails?: { name: string; sellingPrice: number; image?: string }): Promise<Cart> {
+  const prod = ProductService.getById(productId);
+  const effectivePrice = prod
+    ? calculateEffectivePrice(prod).finalPrice
+    : (productDetails?.sellingPrice ?? 10);
+
+  if (prod && prod.stock <= 0) {
+    throw new Error('عذراً، هذا المنتج نفد من المخزون حالياً');
+  }
+
   try {
     const res = await fetchWithAuth('/cart/items', {
       method: 'POST',
@@ -92,21 +103,28 @@ export async function addItemToCart(productId: string, quantity = 1, productDeta
 
   const localCart = getLocalCart();
   const existingIndex = localCart.items.findIndex((item) => item.productId === productId || item.product?.id === productId);
+
+  const availableStock = prod ? prod.stock : 999;
   
   if (existingIndex >= 0) {
-    localCart.items[existingIndex].quantity += quantity;
+    const currentQty = localCart.items[existingIndex].quantity;
+    const newQty = Math.min(availableStock, currentQty + quantity);
+    localCart.items[existingIndex].quantity = newQty;
+    localCart.items[existingIndex].unitPrice = effectivePrice;
+    localCart.items[existingIndex].totalPrice = effectivePrice * newQty;
   } else {
+    const finalQty = Math.min(availableStock, Math.max(1, quantity));
     localCart.items.push({
       id: `item-${Date.now()}`,
       productId,
-      quantity,
-      unitPrice: productDetails?.sellingPrice ?? 10,
-      totalPrice: (productDetails?.sellingPrice ?? 10) * quantity,
+      quantity: finalQty,
+      unitPrice: effectivePrice,
+      totalPrice: effectivePrice * finalQty,
       product: {
         id: productId,
-        name: productDetails?.name ?? `منتج ${productId}`,
-        sellingPrice: productDetails?.sellingPrice ?? 10,
-        image: productDetails?.image,
+        name: prod?.name ?? productDetails?.name ?? `منتج ${productId}`,
+        sellingPrice: effectivePrice,
+        image: prod?.image ?? productDetails?.image,
       },
     });
   }

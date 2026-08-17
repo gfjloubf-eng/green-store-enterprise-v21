@@ -12,3 +12,4 @@ export { CategoriesPage } from './CategoriesPage';
 export { BrandsPage } from './BrandsPage';
 export { UnitsPage } from './UnitsPage';
 export { BarcodePage } from './BarcodePage';
+export { AdminOffersPage } from './AdminOffersPage';
