@@ -8893,8 +8893,22 @@ if (__require.main === module) {
 
 // api-src/index.ts
 var handler = createSystemRequestHandler();
-function apiHandler(req, res) {
-  return handler(req, res);
+async function apiHandler(req, res) {
+  try {
+    return await handler(req, res);
+  } catch (error) {
+    if (!res.headersSent) {
+      res.statusCode = 500;
+      res.setHeader("Content-Type", "application/json");
+      res.end(JSON.stringify({
+        success: false,
+        error: {
+          code: "internal_error",
+          message: error?.message || "Server error"
+        }
+      }));
+    }
+  }
 }
 export {
   apiHandler as default
