@@ -28,6 +28,7 @@ export function CheckoutPage() {
   }, []);
 
   const handlePlaceOrder = async () => {
+    if (submitting) return;
     if (!cart || !cart.items || cart.items.length === 0) {
       setError('سلة التسوق فارغة');
       return;
