@@ -3,12 +3,17 @@ import { createSystemRequestHandler } from '../../backend/src/system/server';
 
 let handler: any;
 
+function getHandler() {
+  if (!handler) {
+    handler = createSystemRequestHandler();
+  }
+  return handler;
+}
+
 export default async function apiHandler(req: IncomingMessage, res: ServerResponse) {
   try {
-    if (!handler) {
-      handler = createSystemRequestHandler();
-    }
-    return await handler(req, res);
+    const fn = getHandler();
+    return await fn(req, res);
   } catch (error: any) {
     if (!res.headersSent) {
       res.statusCode = 500;
@@ -22,4 +27,9 @@ export default async function apiHandler(req: IncomingMessage, res: ServerRespon
       }));
     }
   }
+}
+
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = apiHandler;
+  module.exports.default = apiHandler;
 }

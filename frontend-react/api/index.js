@@ -8904,12 +8904,16 @@ if (__require.main === module) {
 
 // api-src/index.ts
 var handler;
+function getHandler() {
+  if (!handler) {
+    handler = createSystemRequestHandler();
+  }
+  return handler;
+}
 async function apiHandler(req, res) {
   try {
-    if (!handler) {
-      handler = createSystemRequestHandler();
-    }
-    return await handler(req, res);
+    const fn = getHandler();
+    return await fn(req, res);
   } catch (error) {
     if (!res.headersSent) {
       res.statusCode = 500;
@@ -8923,6 +8927,10 @@ async function apiHandler(req, res) {
       }));
     }
   }
+}
+if (typeof module !== "undefined" && module.exports) {
+  module.exports = apiHandler;
+  module.exports.default = apiHandler;
 }
 export {
   apiHandler as default
