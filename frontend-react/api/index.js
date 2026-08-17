@@ -243,15 +243,17 @@ var init_auth_hash_service = __esm({
     "use strict";
     HashService = class {
       // Argon2id recommended parameters (tune per environment)
-      options = {
-        type: argon2.argon2id,
-        memoryCost: 2 ** 16,
-        // 64 MB
-        timeCost: 3,
-        parallelism: 1
-      };
+      getOptions() {
+        return {
+          type: argon2?.argon2id ?? 2,
+          memoryCost: 2 ** 16,
+          // 64 MB
+          timeCost: 3,
+          parallelism: 1
+        };
+      }
       async hash(password) {
-        return argon2.hash(password, this.options);
+        return argon2.hash(password, this.getOptions());
       }
       async verify(password, stored) {
         try {
