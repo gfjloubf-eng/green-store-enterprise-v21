@@ -8752,9 +8752,23 @@ function createAuditRoutes(controller = new AuditController()) {
 // ../backend/src/system/server.ts
 init_errors();
 async function readBody(request2) {
+  const reqAny = request2;
+  if (reqAny.body !== void 0 && reqAny.body !== null) {
+    if (typeof reqAny.body === "object") return reqAny.body;
+    if (typeof reqAny.body === "string") {
+      try {
+        return JSON.parse(reqAny.body);
+      } catch {
+        return reqAny.body;
+      }
+    }
+  }
   const chunks = [];
-  for await (const chunk of request2) {
-    chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
+  try {
+    for await (const chunk of request2) {
+      chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
+    }
+  } catch {
   }
   if (chunks.length === 0) {
     return void 0;
@@ -8796,7 +8810,10 @@ function createSystemRequestHandler() {
         return;
       }
       const url = new URL(request2.url ?? "/", `http://${request2.headers.host ?? "localhost"}`);
-      const targetPath = url.searchParams.get("path") || url.pathname;
+      let targetPath = url.searchParams.get("path") || url.pathname;
+      if (targetPath.startsWith("/api/") && !targetPath.startsWith("/api/system") && !targetPath.startsWith("/api/health") && !targetPath.startsWith("/api/live") && !targetPath.startsWith("/api/ready")) {
+        targetPath = targetPath.substring(4);
+      }
       const resolved = resolver.resolve(registry, {
         method: request2.method ?? "GET",
         path: targetPath,

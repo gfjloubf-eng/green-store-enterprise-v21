@@ -25,10 +25,23 @@ import { createAuditRoutes } from '../modules/audit/routes';
 import { UnauthorizedError, InvalidTokenError } from '../common/security/errors';
 
 async function readBody(request: IncomingMessage): Promise<unknown> {
-  const chunks: Buffer[] = [];
-  for await (const chunk of request) {
-    chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
+  const reqAny = request as any;
+  if (reqAny.body !== undefined && reqAny.body !== null) {
+    if (typeof reqAny.body === 'object') return reqAny.body;
+    if (typeof reqAny.body === 'string') {
+      try { return JSON.parse(reqAny.body); } catch { return reqAny.body; }
+    }
   }
+
+  const chunks: Buffer[] = [];
+  try {
+    for await (const chunk of request) {
+      chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
+    }
+  } catch {
+    // Ignore stream read error if already consumed
+  }
+
   if (chunks.length === 0) {
     return undefined;
   }
@@ -76,7 +89,10 @@ export function createSystemRequestHandler() {
       }
 
       const url = new URL(request.url ?? '/', `http://${request.headers.host ?? 'localhost'}`);
-      const targetPath = url.searchParams.get('path') || url.pathname;
+      let targetPath = url.searchParams.get('path') || url.pathname;
+      if (targetPath.startsWith('/api/') && !targetPath.startsWith('/api/system') && !targetPath.startsWith('/api/health') && !targetPath.startsWith('/api/live') && !targetPath.startsWith('/api/ready')) {
+        targetPath = targetPath.substring(4);
+      }
       const resolved = resolver.resolve(registry, {
         method: (request.method ?? 'GET') as RouteMethod,
         path: targetPath,
