@@ -158,21 +158,27 @@ export function HomePage() {
     };
   }, [products]);
 
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+
   const handleQuickAdd = async (product: ProductDTO) => {
     setAddingId(product.id);
     try {
       await addItemToCart(product.id, 1).catch(() => null);
       add(product, 1);
       setAddedIds((prev) => ({ ...prev, [product.id]: true }));
+      setToastMessage(`تمت إضافة "${product.name}" إلى السلة بنجاح ✓`);
       setTimeout(() => {
         setAddedIds((prev) => ({ ...prev, [product.id]: false }));
-      }, 2000);
+        setToastMessage(null);
+      }, 2500);
     } catch {
       add(product, 1);
       setAddedIds((prev) => ({ ...prev, [product.id]: true }));
+      setToastMessage(`تمت إضافة "${product.name}" إلى السلة بنجاح ✓`);
       setTimeout(() => {
         setAddedIds((prev) => ({ ...prev, [product.id]: false }));
-      }, 2000);
+        setToastMessage(null);
+      }, 2500);
     } finally {
       setAddingId(null);
     }
@@ -576,6 +582,13 @@ export function HomePage() {
               </div>
             </section>
           )}
+        </div>
+      )}
+
+      {toastMessage && (
+        <div className="fixed bottom-20 left-1/2 -translate-x-1/2 z-50 rounded-2xl bg-emerald-900/95 dark:bg-emerald-950/95 text-white px-5 py-3 text-xs font-extrabold shadow-2xl flex items-center gap-2 border border-emerald-500/40 backdrop-blur-md transition-all animate-bounce">
+          <Check className="h-4 w-4 text-emerald-400 shrink-0" />
+          <span>{toastMessage}</span>
         </div>
       )}
     </div>
