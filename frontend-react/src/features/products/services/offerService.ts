@@ -23,11 +23,27 @@ export interface CalculatedPrice {
   offerType?: string;
 }
 
+export type OfferStateStatus = 'active' | 'upcoming' | 'expired' | 'disabled';
+
+export function getOfferStateStatus(offer: ProductOffer): OfferStateStatus {
+  if (!offer.active) return 'disabled';
+  const now = Date.now();
+  if (offer.startDate) {
+    const start = new Date(offer.startDate).getTime();
+    if (!isNaN(start) && start > now) return 'upcoming';
+  }
+  if (offer.endDate) {
+    const end = new Date(offer.endDate).getTime();
+    if (!isNaN(end) && end < now) return 'expired';
+  }
+  return 'active';
+}
+
 /**
  * Price Safety Calculator.
  * Guarantees:
  * - Final price is never negative.
- * - Inactive or expired offers fallback to original retail price.
+ * - Inactive, upcoming, or expired offers fallback to original retail price.
  * - Strikethrough price is always strictly greater than final price.
  */
 export function calculateEffectivePrice(product: {
@@ -38,7 +54,19 @@ export function calculateEffectivePrice(product: {
   const basePrice = Math.max(0.01, product.sellingPrice || 0);
 
   if (product.offer && product.offer.active) {
-    // Expiration check
+    // Start & Expiration check
+    if (product.offer.startDate) {
+      const start = new Date(product.offer.startDate).getTime();
+      if (!isNaN(start) && start > Date.now()) {
+        return {
+          finalPrice: basePrice,
+          originalPrice: basePrice,
+          hasActiveOffer: false,
+          discountPercentage: 0,
+        };
+      }
+    }
+
     if (product.offer.endDate) {
       const end = new Date(product.offer.endDate).getTime();
       if (!isNaN(end) && end < Date.now()) {

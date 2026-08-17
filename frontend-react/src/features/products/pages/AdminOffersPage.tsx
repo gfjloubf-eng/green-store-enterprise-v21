@@ -7,7 +7,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Tag, Plus, CheckCircle2, AlertCircle, Trash2, Power, ArrowRight } from 'lucide-react';
 import { ProductService } from '../services/productService';
-import { OfferService, calculateEffectivePrice } from '../services/offerService';
+import { OfferService, calculateEffectivePrice, getOfferStateStatus } from '../services/offerService';
 import type { ProductDTO } from '../domain/productDTO';
 import type { OfferType, ProductOffer } from '../types/product';
 import { formatPrice } from '@/lib/formatters';
@@ -211,25 +211,33 @@ export function AdminOffersPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {offerProducts.map((p) => {
-                    const priceInfo = calculateEffectivePrice(p);
-                    const isActive = p.offer ? p.offer.active : true;
+                    {offerProducts.map((p) => {
+                      const priceInfo = calculateEffectivePrice(p);
+                      const isActive = p.offer ? p.offer.active : true;
+                      const statusState = p.offer ? getOfferStateStatus(p.offer) : 'active';
 
-                    return (
-                      <tr key={p.id} className="border-b border-[var(--gs-border-subtle)] hover:bg-[var(--gs-muted)]/30">
-                        <td className="p-2.5 font-semibold text-[var(--gs-foreground)]">{p.name}</td>
-                        <td className="p-2.5">
-                          <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 text-emerald-700 px-2 py-0.5 text-[11px] font-bold">
-                            {priceInfo.offerTitle || 'عرض'} ({priceInfo.discountPercentage}%)
-                          </span>
-                        </td>
-                        <td className="p-2.5 text-rose-500 line-through">{formatPrice(priceInfo.originalPrice, locale)}</td>
-                        <td className="p-2.5 font-bold text-emerald-600">{formatPrice(priceInfo.finalPrice, locale)}</td>
-                        <td className="p-2.5">
-                          <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold ${isActive ? 'bg-emerald-500/10 text-emerald-600' : 'bg-gray-500/10 text-gray-500'}`}>
-                            {isActive ? 'فعّال 🟢' : 'معطّل 🔴'}
-                          </span>
-                        </td>
+                      const statusBadge = {
+                        active: { label: '🟢 نشط', style: 'bg-emerald-500/10 text-emerald-600 border border-emerald-500/20' },
+                        upcoming: { label: '⏳ قادم', style: 'bg-blue-500/10 text-blue-600 border border-blue-500/20' },
+                        expired: { label: '⚠️ منتهي', style: 'bg-amber-500/10 text-amber-600 border border-amber-500/20' },
+                        disabled: { label: '🔴 معطل', style: 'bg-rose-500/10 text-rose-600 border border-rose-500/20' },
+                      }[statusState];
+
+                      return (
+                        <tr key={p.id} className="border-b border-[var(--gs-border-subtle)] hover:bg-[var(--gs-muted)]/30">
+                          <td className="p-2.5 font-semibold text-[var(--gs-foreground)]">{p.name}</td>
+                          <td className="p-2.5">
+                            <span className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 text-emerald-700 px-2 py-0.5 text-[11px] font-bold">
+                              {priceInfo.offerTitle || 'عرض'} ({priceInfo.discountPercentage}%)
+                            </span>
+                          </td>
+                          <td className="p-2.5 text-rose-500 line-through">{formatPrice(priceInfo.originalPrice, locale)}</td>
+                          <td className="p-2.5 font-bold text-emerald-600">{formatPrice(priceInfo.finalPrice, locale)}</td>
+                          <td className="p-2.5">
+                            <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold ${statusBadge.style}`}>
+                              {statusBadge.label}
+                            </span>
+                          </td>
                         <td className="p-2.5 text-center">
                           <div className="flex items-center justify-center gap-1">
                             <button

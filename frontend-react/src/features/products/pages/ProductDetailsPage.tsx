@@ -62,6 +62,8 @@ export function ProductDetailsPage() {
   const [quantity, setQuantity] = useState(1);
   const [customerRequest, setCustomerRequest] = useState('أرغب في طلب هذا المنتج من المتجر اليوم.');
   const [selectedImage, setSelectedImage] = useState(product?.image || placeholderImage);
+  const [userRating, setUserRating] = useState<number | null>(null);
+  const [ratingSubmitted, setRatingSubmitted] = useState(false);
   const { add } = useCart();
   const [added, setAdded] = useState(false);
   const [adding, setAdding] = useState(false);
@@ -412,6 +414,49 @@ export function ProductDetailsPage() {
                       getMessage={getWhatsAppMessage}
                       variant="buttons"
                     />
+                  </div>
+
+                  {/* CUSTOMER EXPERIENCE: PRODUCT & SERVICE RATING CONTROL */}
+                  <div className="pt-3 border-t border-[var(--gs-border-subtle)] space-y-2">
+                    <div className="text-xs font-bold text-[var(--gs-foreground)] flex items-center justify-between">
+                      <span className="flex items-center gap-1.5">
+                        <Star className="h-4 w-4 text-amber-500 fill-amber-400" />
+                        تقييم تجربة العميل والخدمة:
+                      </span>
+                      {userRating && (
+                        <span className="text-xs font-bold text-emerald-600">
+                          {userRating} / 5 🌟
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      {[1, 2, 3, 4, 5].map((star) => (
+                        <button
+                          key={star}
+                          type="button"
+                          onClick={() => {
+                            setUserRating(star);
+                            setRatingSubmitted(true);
+                            setTimeout(() => setRatingSubmitted(false), 3500);
+                          }}
+                          className="p-1 transition hover:scale-125 focus:outline-none"
+                          aria-label={`تقييم ${star} من 5`}
+                        >
+                          <Star
+                            className={`h-5 w-5 ${
+                              userRating && star <= userRating
+                                ? 'fill-amber-400 text-amber-500'
+                                : 'text-gray-300 dark:text-gray-600'
+                            }`}
+                          />
+                        </button>
+                      ))}
+                    </div>
+                    {ratingSubmitted && (
+                      <div className="rounded-xl bg-emerald-500/10 border border-emerald-500/20 p-2 text-[11px] font-bold text-emerald-700 dark:text-emerald-300">
+                        ✓ شكرًا لتقييمك! تم حفظ تقييم جودة المنتج والخدمة محلية.
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>

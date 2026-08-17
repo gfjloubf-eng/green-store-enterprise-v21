@@ -12,6 +12,21 @@ import {
 
 export type StoreStatus = 'open' | 'closed';
 
+export interface StoreLocation {
+  city: string;
+  district?: string;
+  address?: string;
+  coordinates?: { lat: number; lng: number };
+}
+
+export interface StoreBranch {
+  id: string;
+  storeId: string;
+  name: string;
+  location?: StoreLocation;
+  isMainBranch?: boolean;
+}
+
 export interface LocalMarketplaceStore {
   id: string;
   name: string;
@@ -30,6 +45,8 @@ export interface LocalMarketplaceStore {
   coverImage: string;
   productIds: string[];
   highlight: string;
+  location?: StoreLocation;
+  branches?: StoreBranch[];
 }
 
 export const LOCAL_MARKETPLACE_STORES: LocalMarketplaceStore[] = [
