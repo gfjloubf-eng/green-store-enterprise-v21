@@ -42,9 +42,33 @@ import type { ProductLookup } from '../domain/inventoryTableModel';
 import { toTableModelList } from '../domain/inventoryTableModel';
 import type { InventoryTableModel } from '../domain/inventoryTableModel';
 import { ProductService } from '@/features/products/services/productService';
-import { isAuthorizedStaffOrAdmin } from '@/services/authClient';
+import { isAuthorizedStaffOrAdmin, getApiBase, parseJsonSafe } from '@/services/authClient';
 import { MOCK_INVENTORY, MOCK_MOVEMENTS } from '../mock/inventory';
 import type { MovementType, MovementStatus, InventoryLocation } from '../types/inventory';
+
+/* ─── Backend DTO Mapper (Read-Only) ────────────────────────── */
+
+function mapBackendInventoryToEntity(item: any): InventoryEntity {
+  const qOnHand = Number(item.quantityOnHand ?? item.quantity ?? item.availableQuantity ?? 0);
+  const qReserved = Number(item.quantityReserved ?? item.reservedQuantity ?? item.reserved ?? 0);
+  const minStk = Number(item.minStock ?? item.lowStockThreshold ?? 10);
+  const maxStk = Number(item.maxStock ?? 100);
+  const now = new Date().toISOString();
+
+  return {
+    id: String(item.id || `inv-${item.productId || Math.random()}`),
+    productId: String(item.productId || item.product?.id || ''),
+    quantityOnHand: qOnHand,
+    quantityReserved: qReserved,
+    minStock: minStk,
+    maxStock: maxStk,
+    location: typeof item.location === 'object' && item.location !== null ? item.location : { id: String(item.warehouseId || 'loc-1'), name: item.warehouse?.name || 'Main Warehouse', type: 'warehouse' },
+    status: item.status || (qOnHand === 0 ? 'out_of_stock' : qOnHand <= minStk ? 'low_stock' : 'in_stock'),
+    lastMovementAt: String(item.lastMovementAt || item.updatedAt || now),
+    createdAt: String(item.createdAt || now),
+    updatedAt: String(item.updatedAt || now),
+  };
+}
 
 /* ─── Mock Data Store ──────────────────────────────────────── */
 
@@ -125,6 +149,7 @@ export const InventoryService = {
    * Dynamically includes products from ProductService so all products have inventory state.
    */
   getInventory(): InventoryDTO[] {
+    this.syncFromBackendApi().catch(() => {});
     const invEntities = store.getAllEntities();
     const invProductIds = new Set(invEntities.map((e) => e.productId));
     const allProducts = ProductService.getAll();
@@ -151,6 +176,30 @@ export const InventoryService = {
     }
 
     return toInventoryDTOList(invEntities);
+  },
+
+  /**
+   * Async fetch inventory records from Backend API with safe fallback to local store.
+   */
+  async syncFromBackendApi(): Promise<InventoryDTO[]> {
+    try {
+      const res = await fetch(`${getApiBase()}/inventory`);
+      if (res.ok) {
+        const payload = await parseJsonSafe(res);
+        const list = Array.isArray(payload) ? payload : (Array.isArray(payload?.data) ? payload.data : null);
+        if (list && list.length > 0) {
+          for (const item of list) {
+            const entity = mapBackendInventoryToEntity(item);
+            if (entity.productId) {
+              store.upsert(entity);
+            }
+          }
+        }
+      }
+    } catch {
+      // Safe fallback: Local store remains active
+    }
+    return this.getInventory();
   },
 
   /**

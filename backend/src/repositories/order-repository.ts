@@ -22,6 +22,9 @@ const ALLOWED_TRANSITIONS: Record<OrderStatus, OrderStatus[]> = {
   REFUNDED: [],
 };
 
+// In-memory scoped idempotency store (24-hour cache limit)
+const idempotencyStore = new Map<string, { order: OrderWithRelations; createdAt: number }>();
+
 export class OrderRepository extends BaseRepository implements OrderRepositoryContract {
   constructor() {
     super('order');
@@ -29,8 +32,39 @@ export class OrderRepository extends BaseRepository implements OrderRepositoryCo
 
   async createOrderFromCart(
     customerId: string,
-    options?: { shippingAddressId?: string; notes?: string }
+    options?: {
+      shippingAddressId?: string;
+      notes?: string;
+      idempotencyKey?: string;
+      tenantId?: string;
+      storeId?: string;
+      branchId?: string;
+    }
   ): Promise<OrderWithRelations> {
+    // 1. Server-Side Order Idempotency Check
+    const tenantKey = options?.tenantId || 'default';
+    const idempotencyKey = options?.idempotencyKey;
+    const cacheKey = idempotencyKey ? `${tenantKey}:${customerId}:${idempotencyKey}` : null;
+
+    if (cacheKey && idempotencyStore.has(cacheKey)) {
+      const cached = idempotencyStore.get(cacheKey)!;
+      // Retain cache if less than 24 hours old
+      if (Date.now() - cached.createdAt < 24 * 3600 * 1000) {
+        return cached.order;
+      }
+      idempotencyStore.delete(cacheKey);
+    }
+
+    // 2. Branch & Scope Validation
+    if (options?.branchId && options?.storeId) {
+      const branch = await this.client.branch.findUnique({
+        where: { id: options.branchId },
+      });
+      if (branch && branch.storeId !== options.storeId) {
+        throw new ValidationException('invalid_branch_scope');
+      }
+    }
+
     const cart = await this.client.cart.findFirst({
       where: { customerId },
       include: {
@@ -56,11 +90,30 @@ export class OrderRepository extends BaseRepository implements OrderRepositoryCo
       }
     }
 
-    // Server-Side Price Calculation (Never trust client prices)
+    // 3. Server-Side Price Calculation & Historical Offer Snapshot
     let subtotal = 0;
+    const now = new Date();
     const preparedItems = cart.items.map((item) => {
-      const unitPrice = typeof (item.product as any).price === 'number' ? (item.product as any).price : (item.unitPrice || 0);
-      const itemTotal = unitPrice * item.quantity;
+      const p = item.product as any;
+      let unitPrice = typeof p.price === 'number' ? p.price : (item.unitPrice || 0);
+
+      // Offer snapshot evaluation
+      if (p.offer && p.offer.active) {
+        const startValid = !p.offer.startDate || new Date(p.offer.startDate) <= now;
+        const endValid = !p.offer.endDate || new Date(p.offer.endDate) >= now;
+        if (startValid && endValid) {
+          if (p.offer.offerPrice && p.offer.offerPrice > 0 && p.offer.offerPrice < unitPrice) {
+            unitPrice = p.offer.offerPrice;
+          } else if (p.offer.type === 'percentage' && p.offer.discountValue > 0) {
+            unitPrice = Math.max(0.01, unitPrice * (1 - p.offer.discountValue / 100));
+          } else if (p.offer.type === 'fixed' && p.offer.discountValue > 0) {
+            unitPrice = Math.max(0.01, unitPrice - p.offer.discountValue);
+          }
+          unitPrice = Math.round(unitPrice * 100) / 100;
+        }
+      }
+
+      const itemTotal = Math.round(unitPrice * item.quantity * 100) / 100;
       subtotal += itemTotal;
       return {
         productId: item.productId,
@@ -74,6 +127,7 @@ export class OrderRepository extends BaseRepository implements OrderRepositoryCo
       };
     });
 
+    subtotal = Math.round(subtotal * 100) / 100;
     const tax = 0;
     const shipping = 0;
     const total = subtotal + tax + shipping;
@@ -85,6 +139,9 @@ export class OrderRepository extends BaseRepository implements OrderRepositoryCo
         data: {
           code,
           customerId,
+          tenantId: options?.tenantId || null,
+          storeId: options?.storeId || null,
+          branchId: options?.branchId || null,
           status: 'PENDING',
           subtotal,
           tax,
@@ -130,7 +187,14 @@ export class OrderRepository extends BaseRepository implements OrderRepositoryCo
       throw new Error('order_creation_failed');
     }
 
-    return createdOrder as OrderWithRelations;
+    const orderResult = createdOrder as OrderWithRelations;
+
+    // Cache idempotency result after transaction success
+    if (cacheKey) {
+      idempotencyStore.set(cacheKey, { order: orderResult, createdAt: Date.now() });
+    }
+
+    return orderResult;
   }
 
   async findOrders(options: {

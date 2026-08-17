@@ -189,6 +189,30 @@ export async function getCurrentUser(): Promise<any> {
   return payload?.data ?? null;
 }
 
+/**
+ * Safe Read-Only Customer / User Session Sync from Backend API.
+ * Validates backend roles against explicit whitelist without privilege escalation.
+ */
+export async function syncCurrentUserSession(): Promise<any> {
+  const token = getStoredAccessToken();
+  if (!token) return null;
+
+  try {
+    const user = await getCurrentUser();
+    if (user && user.role) {
+      const serverRole = String(user.role).toLowerCase();
+      const allowedRoles = ['super_admin', 'admin', 'manager', 'staff', 'customer'];
+      if (allowedRoles.includes(serverRole)) {
+        setStoredUserRole(serverRole);
+      }
+      return user;
+    }
+  } catch {
+    // Safe fallback: Do NOT elevate privileges or invalidate valid offline sessions on temporary network failure
+  }
+  return null;
+}
+
 // Token storage helpers — read from localStorage or sessionStorage (same keys as AuthProvider)
 function readToken(key: string): string | null {
   try {

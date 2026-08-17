@@ -29,7 +29,38 @@ import { applyFilters, applySort, applyPagination } from '../domain/productFilte
 import { toTableModelList, type ProductTableModel } from '../domain/productTableModel';
 import { MOCK_PRODUCTS } from '../mock/products';
 
-import { isAuthorizedStaffOrAdmin } from '@/services/authClient';
+import { isAuthorizedStaffOrAdmin, getApiBase, parseJsonSafe } from '@/services/authClient';
+
+/* ─── Backend DTO Mapper (Read-Only) ────────────────────────── */
+
+function mapBackendProductToEntity(item: any): ProductEntity {
+  const priceVal = Number(item.sellingPrice ?? item.price ?? 0);
+  return {
+    id: String(item.id || item.productId || ''),
+    name: String(item.name || item.nameAr || 'منتج'),
+    nameAr: item.nameAr ? String(item.nameAr) : (item.name ? String(item.name) : 'منتج'),
+    sku: String(item.sku || ''),
+    barcode: String(item.barcode || item.sku || ''),
+    category: typeof item.category === 'object' && item.category !== null ? item.category : { id: 'cat-1', name: String(item.category || 'عام'), slug: 'general', icon: 'ShoppingBag' },
+    brand: typeof item.brand === 'object' && item.brand !== null ? item.brand : { id: 'brand-1', name: 'قطوف الطبيعة', logo: '' },
+    unit: typeof item.unit === 'object' && item.unit !== null ? item.unit : { id: 'unit-1', name: String(item.unit || 'كيلو'), symbol: 'كجم' },
+    description: String(item.description || ''),
+    purchasePrice: Number(item.purchasePrice ?? priceVal),
+    sellingPrice: priceVal,
+    compareAtPrice: item.compareAtPrice ? Number(item.compareAtPrice) : undefined,
+    offer: item.offer ? item.offer : undefined,
+    tax: 0,
+    discount: Number(item.discount || item.offer?.discountValue || 0),
+    stock: Number(item.stock ?? item.quantity ?? 0),
+    minStock: Number(item.minStock || 0),
+    maxStock: Number(item.maxStock || 0),
+    trackInventory: true,
+    image: String(item.image || item.imageUrl || item.url || ''),
+    status: (item.status === 'inactive' || item.status === 'out_of_stock' || item.status === 'active') ? item.status : 'active',
+    createdAt: String(item.createdAt || new Date().toISOString()),
+    updatedAt: String(item.updatedAt || new Date().toISOString()),
+  };
+}
 
 /* ─── Mock Data Store ──────────────────────────────────────── */
 
@@ -117,8 +148,10 @@ const store = new ProductStore();
 export const ProductService = {
   /**
    * Get all products as DTOs.
+   * Returns current store state with safe background backend sync attempt.
    */
   getAll(): ProductDTO[] {
+    this.syncAllFromBackend().catch(() => {});
     return toDTOList(store.getAll());
   },
 
@@ -129,6 +162,50 @@ export const ProductService = {
   getById(id: string): ProductDTO | undefined {
     const entity = store.getById(id);
     return entity ? toDTO(entity) : undefined;
+  },
+
+  /**
+   * Async fetch all products from Backend API with local fallback.
+   */
+  async syncAllFromBackend(): Promise<ProductDTO[]> {
+    try {
+      const res = await fetch(`${getApiBase()}/products`);
+      if (res.ok) {
+        const payload = await parseJsonSafe(res);
+        const list = Array.isArray(payload) ? payload : (Array.isArray(payload?.data) ? payload.data : null);
+        if (list && list.length > 0) {
+          for (const item of list) {
+            const entity = mapBackendProductToEntity(item);
+            if (entity.id && entity.name) {
+              store.add(entity);
+            }
+          }
+        }
+      }
+    } catch {
+      // Safe fallback: Local store remains active
+    }
+    return toDTOList(store.getAll());
+  },
+
+  /**
+   * Async fetch single product by ID from Backend API with local fallback.
+   */
+  async syncByIdFromBackend(id: string): Promise<ProductDTO | undefined> {
+    try {
+      const res = await fetch(`${getApiBase()}/products/${id}`);
+      if (res.ok) {
+        const payload = await parseJsonSafe(res);
+        const item = payload?.data || payload;
+        if (item && item.id && item.name) {
+          const entity = mapBackendProductToEntity(item);
+          store.add(entity);
+        }
+      }
+    } catch {
+      // Safe fallback: Local store remains active
+    }
+    return this.getById(id);
   },
 
   /**

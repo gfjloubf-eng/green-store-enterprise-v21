@@ -29,9 +29,24 @@ export class OrderController {
       }
 
       const body = request.body || {};
+      const headers = (request as any).headers || {};
+      const idempotencyKey =
+        headers['idempotency-key'] ||
+        headers['x-idempotency-key'] ||
+        body.idempotencyKey ||
+        undefined;
+
+      const tenantId = user.tenantId || body.tenantId || undefined;
+      const storeId = user.storeId || body.storeId || undefined;
+      const branchId = user.branchId || body.branchId || undefined;
+
       const order = await this.orderRepo.createOrderFromCart(customer.id, {
         shippingAddressId: body.shippingAddressId,
         notes: body.notes,
+        idempotencyKey,
+        tenantId,
+        storeId,
+        branchId,
       });
 
       return created(order, ctx);

@@ -6,7 +6,7 @@
 import type { ProductOffer } from '../types/product';
 import type { ProductDTO } from '../domain/productDTO';
 import { ProductService } from './productService';
-import { isAuthorizedStaffOrAdmin } from '@/services/authClient';
+import { isAuthorizedStaffOrAdmin, getApiBase, parseJsonSafe } from '@/services/authClient';
 
 export interface CalculatedPrice {
   /** Effective final selling price */
@@ -137,14 +137,54 @@ export function calculateEffectivePrice(product: {
 export const OfferService = {
   /**
    * Get all active offers across all products.
+   * Dynamically triggers background backend sync with local fallback.
    */
   getActiveOffers(): ProductDTO[] {
+    this.syncOffersFromBackendApi().catch(() => {});
     const products = ProductService.getAll();
     return products.filter((p) => {
       if (p.status !== 'active') return false;
       const calc = calculateEffectivePrice(p);
       return calc.hasActiveOffer;
     });
+  },
+
+  /**
+   * Async fetch offers from Backend API with safe fallback to local state.
+   */
+  async syncOffersFromBackendApi(): Promise<ProductDTO[]> {
+    try {
+      const res = await fetch(`${getApiBase()}/offers`);
+      if (res.ok) {
+        const payload = await parseJsonSafe(res);
+        const list = Array.isArray(payload) ? payload : (Array.isArray(payload?.data) ? payload.data : null);
+        if (list && list.length > 0) {
+          for (const offerData of list) {
+            const prodId = offerData.productId || offerData.id;
+            if (prodId && offerData.offer) {
+              const product = ProductService.getById(prodId);
+              if (product) {
+                const updatedOffer: ProductOffer = {
+                  id: String(offerData.offer.id || offerData.id || `offer-${prodId}`),
+                  title: String(offerData.offer.title || offerData.title || 'عرض خاص'),
+                  discountValue: Number(offerData.offer.discountValue || offerData.discountValue || 0),
+                  type: offerData.offer.type === 'fixed' ? 'fixed' : 'percentage',
+                  originalPrice: Number(offerData.offer.originalPrice || product.compareAtPrice || product.sellingPrice),
+                  offerPrice: Number(offerData.offer.offerPrice || product.sellingPrice),
+                  startDate: offerData.offer.startDate || offerData.startDate,
+                  endDate: offerData.offer.endDate || offerData.endDate,
+                  active: offerData.offer.active !== undefined ? Boolean(offerData.offer.active) : true,
+                };
+                ProductService.update(prodId, { offer: updatedOffer });
+              }
+            }
+          }
+        }
+      }
+    } catch {
+      // Safe fallback: Local offer logic remains active
+    }
+    return this.getActiveOffers();
   },
 
   /**
