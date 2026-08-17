@@ -236,29 +236,36 @@ var init_auth_token_service = __esm({
 });
 
 // ../backend/src/services/auth-hash-service.ts
-import argon2 from "argon2";
 var HashService, auth_hash_service_default;
 var init_auth_hash_service = __esm({
   "../backend/src/services/auth-hash-service.ts"() {
     "use strict";
     HashService = class {
-      // Argon2id recommended parameters (tune per environment)
-      getOptions() {
-        return {
-          type: argon2?.argon2id ?? 2,
-          memoryCost: 2 ** 16,
-          // 64 MB
-          timeCost: 3,
-          parallelism: 1
-        };
+      getArgon2() {
+        try {
+          return __require("argon2");
+        } catch {
+          return null;
+        }
       }
       async hash(password) {
-        return argon2.hash(password, this.getOptions());
+        const a2 = this.getArgon2();
+        if (!a2) {
+          throw new Error("argon2_unavailable");
+        }
+        return a2.hash(password, {
+          type: a2.argon2id ?? 2,
+          memoryCost: 2 ** 16,
+          timeCost: 3,
+          parallelism: 1
+        });
       }
       async verify(password, stored) {
         try {
-          return await argon2.verify(stored, password);
-        } catch (err) {
+          const a2 = this.getArgon2();
+          if (!a2) return false;
+          return await a2.verify(stored, password);
+        } catch {
           return false;
         }
       }
