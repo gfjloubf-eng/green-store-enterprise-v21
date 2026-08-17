@@ -1,0 +1,11 @@
+{
+  "remoteName": "origin",
+  "projects": [
+    {
+      "id": "prj_1vCaD8JiQzglwlaBnMoNKZKg1VNk",
+      "name": "green-store-enterprise-v21",
+      "directory": "frontend-react",
+      "orgId": "team_lsdzYruQWAcaappMouYWsr4v"
+    }
+  ]
+}

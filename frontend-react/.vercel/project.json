@@ -1,0 +1,13 @@
+{
+  "settings": {
+    "createdAt": 1786649229466,
+    "framework": null,
+    "devCommand": null,
+    "installCommand": null,
+    "buildCommand": null,
+    "outputDirectory": null,
+    "rootDirectory": "frontend-react",
+    "directoryListing": false,
+    "nodeVersion": "24.x"
+  }
+}
