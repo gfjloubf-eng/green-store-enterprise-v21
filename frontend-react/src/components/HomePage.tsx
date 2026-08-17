@@ -690,7 +690,7 @@ function ProduceCard({
             </div>
           )}
           <div className="text-xs font-black text-emerald-700 dark:text-emerald-400">
-            {formatPrice(priceInfo.finalPrice, locale)}
+            {formatPrice(priceInfo.finalPrice, locale)} <span className="text-[10px] font-normal text-emerald-800/80 dark:text-emerald-300/80">/ {product.unit.abbreviation}</span>
           </div>
         </div>
 

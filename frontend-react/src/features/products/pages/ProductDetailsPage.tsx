@@ -23,6 +23,8 @@ import {
   Snowflake,
   AlertTriangle,
   Users,
+  CheckCircle2,
+  ShieldCheck,
   Tag,
 } from 'lucide-react';
 import { formatPrice } from '@/lib/formatters';
@@ -264,46 +266,60 @@ export function ProductDetailsPage() {
                   const isOut = product.stock <= 0;
 
                   return (
-                    <div className="rounded-2xl bg-emerald-50/70 dark:bg-emerald-950/30 border border-emerald-500/20 p-4 text-right flex flex-wrap items-center justify-between gap-3">
-                      <div>
-                        <div className="text-xs font-semibold text-emerald-800 dark:text-emerald-300 flex items-center gap-2">
-                          <span>السعر / الوحدة</span>
-                          {priceInfo.hasActiveOffer && (
-                            <span className="rounded-full bg-amber-500/20 text-amber-800 dark:text-amber-200 px-2 py-0.5 text-[10px] font-bold border border-amber-500/30">
-                              {priceInfo.offerTitle || 'عرض ممتاز'} (-{priceInfo.discountPercentage}%)
+                    <div className="space-y-3">
+                      <div className="rounded-2xl bg-emerald-50/70 dark:bg-emerald-950/30 border border-emerald-500/20 p-4 text-right flex flex-wrap items-center justify-between gap-3">
+                        <div>
+                          <div className="text-xs font-semibold text-emerald-800 dark:text-emerald-300 flex items-center gap-2">
+                            <span>السعر / الوحدة</span>
+                            {priceInfo.hasActiveOffer && (
+                              <span className="rounded-full bg-amber-500/20 text-amber-800 dark:text-amber-200 px-2 py-0.5 text-[10px] font-bold border border-amber-500/30">
+                                {priceInfo.offerTitle || 'عرض ممتاز'} (-{priceInfo.discountPercentage}%)
+                              </span>
+                            )}
+                          </div>
+                          <div className="mt-0.5 flex items-baseline gap-2">
+                            <span className="text-3xl font-black text-emerald-700 dark:text-emerald-400">
+                              {formatPrice(priceInfo.finalPrice, locale)}
                             </span>
-                          )}
+                            {priceInfo.hasActiveOffer && (
+                              <span className="text-sm font-semibold text-gray-400 line-through">
+                                {formatPrice(priceInfo.originalPrice, locale)}
+                              </span>
+                            )}
+                            <span className="text-sm font-normal text-emerald-800 dark:text-emerald-300">
+                              / {product.unit.name}
+                            </span>
+                          </div>
                         </div>
-                        <div className="mt-0.5 flex items-baseline gap-2">
-                          <span className="text-3xl font-black text-emerald-700 dark:text-emerald-400">
-                            {formatPrice(priceInfo.finalPrice, locale)}
-                          </span>
-                          {priceInfo.hasActiveOffer && (
-                            <span className="text-sm font-semibold text-gray-400 line-through">
-                              {formatPrice(priceInfo.originalPrice, locale)}
-                            </span>
-                          )}
-                          <span className="text-sm font-normal text-emerald-800 dark:text-emerald-300">
-                            / {product.unit.name}
+                        <div className="text-left">
+                          <span
+                            className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold ${
+                              isOut
+                                ? 'bg-rose-100 text-rose-800 dark:bg-rose-950/60 dark:text-rose-300'
+                                : isLow
+                                  ? 'bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300'
+                                  : 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/60 dark:text-emerald-300'
+                            }`}
+                          >
+                            {isOut
+                              ? '🔴 نفد المخزون المؤقت'
+                              : isLow
+                                ? '⚠️ كمية محدودة (أسرع بالطلب)'
+                                : '🟢 متوفر بالمخزون'}
                           </span>
                         </div>
                       </div>
-                      <div className="text-left">
-                        <span
-                          className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold ${
-                            isOut
-                              ? 'bg-rose-100 text-rose-800 dark:bg-rose-950/60 dark:text-rose-300'
-                              : isLow
-                                ? 'bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300'
-                                : 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/60 dark:text-emerald-300'
-                          }`}
-                        >
-                          {isOut
-                            ? '🔴 نفد المخزون المؤقت'
-                            : isLow
-                              ? `🟡 مخزون منخفض (${product.stock} ${product.unit.abbreviation})`
-                              : `🟢 متوفر بالمخزون (${product.stock} ${product.unit.abbreviation})`}
-                        </span>
+
+                      {/* WAVE 4: Trust Microcopy Indicators */}
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[11px] font-semibold text-[var(--gs-foreground-secondary)]">
+                        <div className="flex items-center gap-1.5 rounded-2xl bg-[var(--gs-muted)]/60 px-3 py-2 border border-[var(--gs-border-subtle)]">
+                          <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600 shrink-0" />
+                          <span>السعر شامل حسب الوحدة الموضحة ({product.unit.name})</span>
+                        </div>
+                        <div className="flex items-center gap-1.5 rounded-2xl bg-[var(--gs-muted)]/60 px-3 py-2 border border-[var(--gs-border-subtle)]">
+                          <ShieldCheck className="h-3.5 w-3.5 text-emerald-600 shrink-0" />
+                          <span>محصول بلدي طازج يومياً</span>
+                        </div>
                       </div>
                     </div>
                   );
