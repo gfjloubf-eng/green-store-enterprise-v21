@@ -153,7 +153,12 @@ export async function updateCartItem(itemId: string, quantity: number): Promise<
     if (quantity <= 0) {
       localCart.items.splice(itemIndex, 1);
     } else {
-      localCart.items[itemIndex].quantity = quantity;
+      const prodId = localCart.items[itemIndex].productId || localCart.items[itemIndex].product?.id;
+      const prod = prodId ? ProductService.getById(prodId) : undefined;
+      const availableStock = prod ? prod.stock : 999;
+      const cappedQty = Math.min(availableStock, Math.max(1, quantity));
+      localCart.items[itemIndex].quantity = cappedQty;
+      localCart.items[itemIndex].totalPrice = localCart.items[itemIndex].unitPrice * cappedQty;
     }
   }
 

@@ -222,6 +222,20 @@ export function getStoredRefreshToken(): string | null {
   return readToken('gs_refresh_token');
 }
 
+export function getStoredUserRole(): string | null {
+  return readToken('gs_user_role');
+}
+
+export function setStoredUserRole(role: string | null, remember = true) {
+  writeToken('gs_user_role', role, remember);
+}
+
+export function isAuthorizedStaffOrAdmin(): boolean {
+  const role = (getStoredUserRole() || '').toLowerCase();
+  const adminRoles = ['admin', 'super_admin', 'manager', 'staff'];
+  return adminRoles.includes(role);
+}
+
 export function setStoredTokens(result: AuthResult, remember = true) {
   writeToken('gs_access_token', result.accessToken, remember);
   writeToken('gs_refresh_token', result.refreshToken, remember);
@@ -239,10 +253,13 @@ export function clearStoredTokens() {
     writeToken('gs_refresh_token', null, false);
     writeToken('gs_expires_in', null, true);
     writeToken('gs_expires_in', null, false);
+    writeToken('gs_user_role', null, true);
+    writeToken('gs_user_role', null, false);
 
     sessionStorage.removeItem('gs_access_token');
     sessionStorage.removeItem('gs_refresh_token');
     sessionStorage.removeItem('gs_expires_in');
+    sessionStorage.removeItem('gs_user_role');
   } catch {}
 }
 

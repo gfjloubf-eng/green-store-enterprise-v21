@@ -42,6 +42,7 @@ import type { ProductLookup } from '../domain/inventoryTableModel';
 import { toTableModelList } from '../domain/inventoryTableModel';
 import type { InventoryTableModel } from '../domain/inventoryTableModel';
 import { ProductService } from '@/features/products/services/productService';
+import { isAuthorizedStaffOrAdmin } from '@/services/authClient';
 import { MOCK_INVENTORY, MOCK_MOVEMENTS } from '../mock/inventory';
 import type { MovementType, MovementStatus, InventoryLocation } from '../types/inventory';
 
@@ -172,6 +173,9 @@ export const InventoryService = {
     reason: string,
     locationId?: string,
   ): InventoryDTO | undefined {
+    if (!isAuthorizedStaffOrAdmin()) {
+      throw new Error('غير مصرح: تعديل المخزون يتطلب صلاحيات إدارية');
+    }
     const now = new Date().toISOString();
     let entity = store.getEntityByProductId(productId);
     if (!entity) {

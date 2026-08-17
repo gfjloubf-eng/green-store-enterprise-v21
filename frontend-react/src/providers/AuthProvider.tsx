@@ -1,5 +1,5 @@
 import { createContext, useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
-import { getCurrentUser, getStoredAccessToken, getStoredRefreshToken, logout as clientLogout, setStoredTokens, signIn, clearStoredTokens, AUTH_UNAUTHENTICATED_EVENT } from '@/services/authClient';
+import { getCurrentUser, getStoredAccessToken, getStoredRefreshToken, logout as clientLogout, setStoredTokens, setStoredUserRole, signIn, clearStoredTokens, AUTH_UNAUTHENTICATED_EVENT } from '@/services/authClient';
 import type { AuthContextValue, AuthStatus, AuthUser } from '@/types/auth';
 
 export const AuthContext = createContext<AuthContextValue | undefined>(undefined);
@@ -10,12 +10,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const normalizeUser = useCallback((raw: any, fallbackIdentifier?: string): AuthUser => {
     if (!raw) {
+      setStoredUserRole('user', true);
       return { id: '0', email: fallbackIdentifier ?? '', name: fallbackIdentifier ?? '', role: 'user', roles: ['user'], permissions: [] };
     }
 
     const rolesList = Array.isArray(raw.roles) ? raw.roles : raw.role ? [raw.role] : ['user'];
     const primaryRole = raw.role ?? rolesList[0] ?? 'user';
     const permissionsList = Array.isArray(raw.permissions) ? raw.permissions : [];
+
+    setStoredUserRole(primaryRole, true);
 
     return {
       id: String(raw.id ?? raw.sub ?? '0'),
@@ -39,6 +42,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const refresh = getStoredRefreshToken();
 
     if (!access && !refresh) {
+      clearStoredTokens();
       setUser(null);
       setStatus('unauthenticated');
       return;

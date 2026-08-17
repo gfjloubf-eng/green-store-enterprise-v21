@@ -6,6 +6,7 @@
 import type { ProductOffer } from '../types/product';
 import type { ProductDTO } from '../domain/productDTO';
 import { ProductService } from './productService';
+import { isAuthorizedStaffOrAdmin } from '@/services/authClient';
 
 export interface CalculatedPrice {
   /** Effective final selling price */
@@ -129,6 +130,9 @@ export const OfferService = {
    * Attach or update an offer on a product (Admin function).
    */
   setProductOffer(productId: string, offer: ProductOffer): ProductDTO | undefined {
+    if (!isAuthorizedStaffOrAdmin()) {
+      throw new Error('غير مصرح: إدارة العروض تتطلب صلاحيات إدارية');
+    }
     const calc = calculateEffectivePrice({
       sellingPrice: offer.originalPrice,
       compareAtPrice: offer.originalPrice,
@@ -152,6 +156,9 @@ export const OfferService = {
    * Toggle offer active state (Admin function).
    */
   toggleOfferState(productId: string, active: boolean): ProductDTO | undefined {
+    if (!isAuthorizedStaffOrAdmin()) {
+      throw new Error('غير مصرح: إدارة العروض تتطلب صلاحيات إدارية');
+    }
     const product = ProductService.getById(productId);
     if (!product || !product.offer) return undefined;
 
@@ -163,6 +170,9 @@ export const OfferService = {
    * Remove offer from product (Admin function).
    */
   removeOffer(productId: string): ProductDTO | undefined {
+    if (!isAuthorizedStaffOrAdmin()) {
+      throw new Error('غير مصرح: إدارة العروض تتطلب صلاحيات إدارية');
+    }
     return ProductService.update(productId, { offer: undefined, compareAtPrice: undefined, discount: 0 });
   },
 };

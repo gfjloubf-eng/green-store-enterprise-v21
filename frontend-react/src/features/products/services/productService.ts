@@ -29,6 +29,8 @@ import { applyFilters, applySort, applyPagination } from '../domain/productFilte
 import { toTableModelList, type ProductTableModel } from '../domain/productTableModel';
 import { MOCK_PRODUCTS } from '../mock/products';
 
+import { isAuthorizedStaffOrAdmin } from '@/services/authClient';
+
 /* ─── Mock Data Store ──────────────────────────────────────── */
 
 /**
@@ -137,6 +139,9 @@ export const ProductService = {
   create(
     data: Omit<ProductEntity, 'id' | 'createdAt' | 'updatedAt'>,
   ): ProductDTO {
+    if (!isAuthorizedStaffOrAdmin()) {
+      throw new Error('غير مصرح: هذه العملية تتطلب صلاحيات إدارة المتجر');
+    }
     const entity = createProductEntity(data);
     store.add(entity);
     return toDTO(entity);
@@ -151,6 +156,9 @@ export const ProductService = {
     id: string,
     updates: Partial<Omit<ProductEntity, 'id' | 'createdAt' | 'updatedAt'>>,
   ): ProductDTO | undefined {
+    if (!isAuthorizedStaffOrAdmin()) {
+      throw new Error('غير مصرح: هذه العملية تتطلب صلاحيات إدارة المتجر');
+    }
     const existing = store.getById(id);
     if (!existing) return undefined;
     const updated = updateProductEntity(existing, updates);
@@ -163,6 +171,9 @@ export const ProductService = {
    * Returns true if deleted, false if not found.
    */
   delete(id: string): boolean {
+    if (!isAuthorizedStaffOrAdmin()) {
+      throw new Error('غير مصرح: هذه العملية تتطلب صلاحيات إدارة المتجر');
+    }
     return store.delete(id);
   },
 
