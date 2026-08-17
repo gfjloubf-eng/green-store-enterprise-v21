@@ -3,8 +3,8 @@
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
   "rewrites": [
-    { "source": "/api/(.*)", "destination": "/api/index.cjs?path=/$1" },
-    { "source": "/auth/(.*)", "destination": "/api/index.cjs?path=/auth/$1" },
+    { "source": "/api/(.*)", "destination": "/api/index.js?path=/$1" },
+    { "source": "/auth/(.*)", "destination": "/api/index.js?path=/auth/$1" },
     { "source": "/((?!api/|auth/|assets/|favicon.svg|index.html).*)", "destination": "/index.html" }
   ]
 }
