@@ -1,10 +1,13 @@
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import { createSystemRequestHandler } from '../../backend/src/system/server';
 
-const handler = createSystemRequestHandler();
+let handler: any;
 
 export default async function apiHandler(req: IncomingMessage, res: ServerResponse) {
   try {
+    if (!handler) {
+      handler = createSystemRequestHandler();
+    }
     return await handler(req, res);
   } catch (error: any) {
     if (!res.headersSent) {

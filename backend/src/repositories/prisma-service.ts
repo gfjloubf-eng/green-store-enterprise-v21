@@ -39,40 +39,43 @@ declare global {
   var __prismaClient: PrismaClient | undefined;
 }
 
-const prismaClient = ((): PrismaClient => {
-  loadEnvFile();
-
-  if (!process.env.NODE_TLS_REJECT_UNAUTHORIZED && process.env.DATABASE_URL?.includes('sslmode=require')) {
-    process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
-  }
-
-  const connectionString = process.env.DATABASE_URL || '';
-  const adapter = new PrismaPg({ connectionString });
-  const createClient = () => new PrismaClient({ log: ['error'], adapter });
-
-  if (process.env.NODE_ENV !== 'production') {
-    if (!global.__prismaClient) {
-      global.__prismaClient = createClient();
-    }
-    return global.__prismaClient as PrismaClient;
-  }
-
-  return createClient();
-})();
-
 export class PrismaService {
-  private static client = prismaClient;
+  private static client: PrismaClient | undefined;
 
   static getClient(): PrismaClient {
+    if (!PrismaService.client) {
+      loadEnvFile();
+
+      if (!process.env.NODE_TLS_REJECT_UNAUTHORIZED && process.env.DATABASE_URL?.includes('sslmode=require')) {
+        process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
+      }
+
+      const connectionString = process.env.DATABASE_URL || '';
+      const adapter = new PrismaPg({ connectionString });
+      const createClient = () => new PrismaClient({ log: ['error'], adapter });
+
+      if (process.env.NODE_ENV !== 'production') {
+        if (!global.__prismaClient) {
+          global.__prismaClient = createClient();
+        }
+        PrismaService.client = global.__prismaClient as PrismaClient;
+      } else {
+        PrismaService.client = createClient();
+      }
+    }
+
     return PrismaService.client;
   }
 
   static async disconnect(): Promise<void> {
-    await PrismaService.client.$disconnect();
+    if (PrismaService.client) {
+      await PrismaService.client.$disconnect();
+    }
   }
 
   static async transaction<T>(work: (tx: any) => Promise<T>): Promise<T> {
-      return PrismaService.client.$transaction(work as any) as Promise<T>;
+    const client = PrismaService.getClient();
+    return client.$transaction(work as any) as Promise<T>;
   }
 }
 

@@ -85,36 +85,40 @@ function loadEnvFile() {
     }
   }
 }
-var prismaClient, PrismaService, prisma_service_default;
+var PrismaService, prisma_service_default;
 var init_prisma_service = __esm({
   "../backend/src/repositories/prisma-service.ts"() {
     "use strict";
-    prismaClient = (() => {
-      loadEnvFile();
-      if (!process.env.NODE_TLS_REJECT_UNAUTHORIZED && process.env.DATABASE_URL?.includes("sslmode=require")) {
-        process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
-      }
-      const connectionString = process.env.DATABASE_URL || "";
-      const adapter = new PrismaPg({ connectionString });
-      const createClient = () => new PrismaClient({ log: ["error"], adapter });
-      if (process.env.NODE_ENV !== "production") {
-        if (!global.__prismaClient) {
-          global.__prismaClient = createClient();
-        }
-        return global.__prismaClient;
-      }
-      return createClient();
-    })();
     PrismaService = class _PrismaService {
-      static client = prismaClient;
+      static client;
       static getClient() {
+        if (!_PrismaService.client) {
+          loadEnvFile();
+          if (!process.env.NODE_TLS_REJECT_UNAUTHORIZED && process.env.DATABASE_URL?.includes("sslmode=require")) {
+            process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
+          }
+          const connectionString = process.env.DATABASE_URL || "";
+          const adapter = new PrismaPg({ connectionString });
+          const createClient = () => new PrismaClient({ log: ["error"], adapter });
+          if (process.env.NODE_ENV !== "production") {
+            if (!global.__prismaClient) {
+              global.__prismaClient = createClient();
+            }
+            _PrismaService.client = global.__prismaClient;
+          } else {
+            _PrismaService.client = createClient();
+          }
+        }
         return _PrismaService.client;
       }
       static async disconnect() {
-        await _PrismaService.client.$disconnect();
+        if (_PrismaService.client) {
+          await _PrismaService.client.$disconnect();
+        }
       }
       static async transaction(work) {
-        return _PrismaService.client.$transaction(work);
+        const client = _PrismaService.getClient();
+        return client.$transaction(work);
       }
     };
     prisma_service_default = PrismaService;
@@ -8899,9 +8903,12 @@ if (__require.main === module) {
 }
 
 // api-src/index.ts
-var handler = createSystemRequestHandler();
+var handler;
 async function apiHandler(req, res) {
   try {
+    if (!handler) {
+      handler = createSystemRequestHandler();
+    }
     return await handler(req, res);
   } catch (error) {
     if (!res.headersSent) {
