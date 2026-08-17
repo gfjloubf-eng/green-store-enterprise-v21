@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "npx prisma generate --schema ./prisma/schema.prisma && npx esbuild api-src/index.ts --bundle --platform=node --target=node20 --format=esm --outfile=api/index.js --external:@prisma/client --external:@prisma/adapter-pg --external:argon2 --external:pg && node -e \"require('fs').mkdirSync('../api', {recursive: true}); require('fs').copyFileSync('api/index.js', '../api/index.js')\" && npx tsc -b && npx vite build",
+    "build": "npx prisma generate --schema ./prisma/schema.prisma && npx esbuild api-src/index.ts --bundle --platform=node --target=node20 --format=esm --outfile=api/index.js --external:argon2 && node -e \"import('node:fs').then(fs => { fs.mkdirSync('../api', {recursive: true}); fs.copyFileSync('api/index.js', '../api/index.js'); })\" && npx tsc -b && npx vite build",
     "lint": "eslint .",
     "preview": "vite preview"
   },

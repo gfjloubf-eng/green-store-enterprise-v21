@@ -1,4 +1,5 @@
 {
+  "type": "module",
   "scripts": {
     "build": "cd frontend-react && npm run build",
     "prisma:validate": "npx prisma validate --schema backend/prisma/schema.prisma --config backend/prisma/prisma.config.ts",
