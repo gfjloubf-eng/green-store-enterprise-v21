@@ -97,7 +97,7 @@ var init_prisma_service = __esm({
           if (!process.env.NODE_TLS_REJECT_UNAUTHORIZED && process.env.DATABASE_URL?.includes("sslmode=require")) {
             process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
           }
-          const connectionString = process.env.DATABASE_URL || "";
+          const connectionString = process.env.DATABASE_URL || "postgresql://postgres:postgres@localhost:5432/postgres";
           const adapter = new PrismaPg({ connectionString });
           const createClient = () => new PrismaClient({ log: ["error"], adapter });
           if (process.env.NODE_ENV !== "production") {

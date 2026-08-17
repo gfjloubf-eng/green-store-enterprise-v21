@@ -50,7 +50,7 @@ export class PrismaService {
         process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
       }
 
-      const connectionString = process.env.DATABASE_URL || '';
+      const connectionString = process.env.DATABASE_URL || 'postgresql://postgres:postgres@localhost:5432/postgres';
       const adapter = new PrismaPg({ connectionString });
       const createClient = () => new PrismaClient({ log: ['error'], adapter });
 
