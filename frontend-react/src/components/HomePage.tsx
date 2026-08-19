@@ -3,7 +3,7 @@
    Green Store Enterprise v2 — Fresh Fruits & Vegetables Store
    ============================================================ */
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   ArrowRight,
@@ -84,10 +84,29 @@ export function HomePage() {
     return map;
   }, [allStores]);
 
-  const products = useMemo(
-    () => ProductService.getAll().filter((product) => product.status === 'active' && product.stock > 0),
-    [],
+  const [products, setProducts] = useState<ProductDTO[]>(() =>
+    ProductService.getAll().filter((product) => product.status === 'active' && product.stock > 0),
   );
+  const [isPricesSyncing, setIsPricesSyncing] = useState(true);
+
+  useEffect(() => {
+    let isMounted = true;
+    ProductService.syncAllFromBackend()
+      .then((syncedProducts) => {
+        if (!isMounted) return;
+        setProducts(syncedProducts.filter((product) => product.status === 'active' && product.stock > 0));
+      })
+      .catch(() => {
+        // ProductService keeps the safe local fallback when the API is unavailable.
+      })
+      .finally(() => {
+        if (isMounted) setIsPricesSyncing(false);
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   const categories = useMemo(
     () =>
@@ -152,9 +171,9 @@ export function HomePage() {
     return {
       fruitsProducts: fruits,
       vegetablesProducts: vegetables,
-      yemeniProducts: yemeni.slice(0, 8),
-      todayOffers: offers.slice(0, 6),
-      seasonalProducts: seasonal.slice(0, 6),
+      yemeniProducts: yemeni.slice(0, 6),
+      todayOffers: offers.slice(0, 4),
+      seasonalProducts: seasonal.slice(0, 4),
     };
   }, [products]);
 
@@ -192,6 +211,13 @@ export function HomePage() {
 
   return (
     <div className="flex flex-col gap-6 sm:gap-8 pb-24 lg:pb-12 max-w-7xl mx-auto px-3 sm:px-4" dir="rtl">
+      {isPricesSyncing && (
+        <div className="flex items-center justify-center gap-2 rounded-2xl border border-emerald-200/70 bg-emerald-50/80 px-4 py-2 text-xs font-semibold text-emerald-800 dark:border-emerald-900/60 dark:bg-emerald-950/40 dark:text-emerald-200" role="status">
+          <RotateCcw className="h-3.5 w-3.5 animate-spin" />
+          يتم تحديث الأسعار والمخزون من المتجر...
+        </div>
+      )}
+
       {/* 1. Hero / Store Welcome Banner */}
       <section className="gsd-card overflow-hidden rounded-3xl p-5 sm:p-8 bg-gradient-to-br from-emerald-950 via-emerald-900 to-emerald-950 text-white relative shadow-xl">
         <div className="absolute top-0 right-0 left-0 h-1 bg-gradient-to-r from-emerald-400 via-amber-300 to-emerald-400" />
