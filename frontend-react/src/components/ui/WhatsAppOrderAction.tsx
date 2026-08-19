@@ -12,6 +12,7 @@ import { MessageCircle, User, Store, ChevronDown, Check, X } from 'lucide-react'
 import {
   WHATSAPP_CONTACTS,
   buildWhatsAppTargetUrl,
+  buildWhatsAppWelcomeMessage,
   type WhatsAppTarget,
 } from '@/config/whatsapp';
 
@@ -31,8 +32,11 @@ export function WhatsAppOrderAction({
   const [openDropdown, setOpenDropdown] = useState(false);
 
   const handleOrder = (target: WhatsAppTarget) => {
-    const message = getMessage(target);
-    const url = buildWhatsAppTargetUrl(target, message);
+    const details = getMessage(target).trim();
+    const welcome = buildWhatsAppWelcomeMessage(target);
+    const message = details.replace(/^السلام عليكم ورحمة الله وبركاته،?\s*/, welcome);
+    const finalMessage = message === details ? `${welcome}\n\n${details}` : message;
+    const url = buildWhatsAppTargetUrl(target, finalMessage);
     try {
       const win = window.open(url, '_blank', 'noopener,noreferrer');
       if (!win || win.closed || typeof win.closed === 'undefined') {
