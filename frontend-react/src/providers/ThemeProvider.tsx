@@ -4,7 +4,7 @@ import type { ThemeContextValue, ThemeMode } from '@/types/theme';
 export const ThemeContext = createContext<ThemeContextValue | undefined>(undefined);
 
 const STORAGE_KEY = 'gsd-theme';
-const DEFAULT_MODE: ThemeMode = 'dark';
+const DEFAULT_MODE: ThemeMode = 'light';
 
 /**
  * Reads the initial theme from:
