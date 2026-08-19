@@ -8,7 +8,7 @@
    ============================================================ */
 
 import { useState } from 'react';
-import { MessageCircle, User, Store, ChevronDown, Check } from 'lucide-react';
+import { MessageCircle, User, Store, ChevronDown, Check, X } from 'lucide-react';
 import {
   WHATSAPP_CONTACTS,
   buildWhatsAppTargetUrl,
@@ -43,6 +43,94 @@ export function WhatsAppOrderAction({
     }
     setOpenDropdown(false);
   };
+
+  if (variant === 'modal') {
+    return (
+      <div className={`relative inline-block w-full ${className}`} dir="rtl">
+        <button
+          type="button"
+          onClick={() => setOpenDropdown(true)}
+          className="w-full inline-flex items-center justify-center gap-2 rounded-2xl border border-emerald-400/40 bg-emerald-500 px-5 py-3 text-sm font-bold text-white shadow-lg transition hover:bg-emerald-600 active:scale-[0.98] touch-manipulation min-h-[44px]"
+          aria-haspopup="dialog"
+          aria-expanded={openDropdown}
+        >
+          <MessageCircle className="h-5 w-5" />
+          <span>{buttonText}</span>
+        </button>
+
+        {openDropdown && (
+          <div
+            className="fixed inset-0 z-[100] flex items-end justify-center bg-slate-950/55 p-3 backdrop-blur-[2px] sm:items-center sm:p-5"
+            role="presentation"
+            onMouseDown={(event) => {
+              if (event.target === event.currentTarget) setOpenDropdown(false);
+            }}
+          >
+            <div
+              className="w-full max-w-md rounded-3xl border border-[var(--gs-border)] bg-[var(--gs-surface)] p-4 shadow-2xl sm:p-5 animate-in fade-in slide-in-from-bottom-3 duration-150"
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="whatsapp-choice-title"
+            >
+              <div className="mb-4 flex items-start justify-between gap-3">
+                <div>
+                  <p className="mb-1 text-[11px] font-semibold text-emerald-600 dark:text-emerald-300">قطوف الطبيعة</p>
+                  <h2 id="whatsapp-choice-title" className="text-base font-extrabold text-[var(--gs-foreground)]">
+                    هل تريد الانتقال إلى واتساب؟
+                  </h2>
+                  <p className="mt-1 text-xs leading-5 text-[var(--gs-foreground-secondary)]">
+                    اختر الرقم المناسب لإرسال طلبك أو متابعة التوصيل.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setOpenDropdown(false)}
+                  className="rounded-full p-2 text-[var(--gs-foreground-muted)] transition hover:bg-[var(--gs-surface-muted)] hover:text-[var(--gs-foreground)]"
+                  aria-label="إغلاق نافذة اختيار واتساب"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+
+              <div className="grid gap-2.5">
+                <button
+                  type="button"
+                  onClick={() => handleOrder('store')}
+                  className="w-full rounded-2xl border border-emerald-500/25 bg-emerald-50 p-3 text-right transition hover:bg-emerald-100 active:scale-[0.99] dark:bg-emerald-950/35 dark:hover:bg-emerald-900/55"
+                >
+                  <span className="flex items-center gap-3">
+                    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-emerald-500 text-white">
+                      <Store className="h-5 w-5" />
+                    </span>
+                    <span>
+                      <strong className="block text-sm text-emerald-900 dark:text-emerald-100">واتساب الطلب الرئيسي</strong>
+                      <span className="mt-0.5 block text-xs text-emerald-800/75 dark:text-emerald-200/75">عمار عادل · {WHATSAPP_CONTACTS.store.phone}</span>
+                    </span>
+                  </span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => handleOrder('saqr')}
+                  className="w-full rounded-2xl border border-teal-500/25 bg-teal-50 p-3 text-right transition hover:bg-teal-100 active:scale-[0.99] dark:bg-teal-950/35 dark:hover:bg-teal-900/55"
+                >
+                  <span className="flex items-center gap-3">
+                    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-teal-500 text-white">
+                      <User className="h-5 w-5" />
+                    </span>
+                    <span>
+                      <strong className="block text-sm text-teal-900 dark:text-teal-100">واتساب المتابعة والتوصيل</strong>
+                      <span className="mt-0.5 block text-xs text-teal-800/75 dark:text-teal-200/75">صقر أنور · {WHATSAPP_CONTACTS.saqr.phone}</span>
+                    </span>
+                  </span>
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  }
 
   if (variant === 'buttons') {
     return (
