@@ -9,7 +9,7 @@ const DEFAULT_SETTINGS: Record<string, string> = {
   store_description: 'متجر خضروات وفواكه طازجة وعضوية عالية الجودة',
   contact_email: 'ggjloubf@gmail.com',
   contact_phone: '+967 712 275 038',
-  support_phone: '712275038',
+  support_phone: '+967 777 803 161',
   address: 'اليمن، صنعاء، شارع هائل',
   currency: 'YER',
   tax_percentage: '15',
@@ -83,8 +83,8 @@ export function SettingsPage() {
       setSuccess('تم حفظ إعدادات المتجر والنظام بنجاح');
       setTimeout(() => setSuccess(null), 3500);
     } catch {
-      setSuccess('تم حفظ الإعدادات المحلية بنجاح');
-      setTimeout(() => setSuccess(null), 3500);
+      setError('تعذر حفظ الإعدادات في الخادم. يرجى تسجيل الدخول بحساب إداري ثم المحاولة مرة أخرى.');
+      setSuccess(null);
     } finally {
       setSaving(false);
     }
