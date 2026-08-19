@@ -36,16 +36,16 @@ export function SupportCenterPage() {
       try {
         const cRes = await getSupportContacts().catch(() => ({
           supportPhone: '712275038',
-          contactEmail: 'support@qutoof.sa',
-          address: 'المملكة العربية السعودية - قطوف الطبيعة',
+          contactEmail: 'ggjloubf@gmail.com',
+          address: 'اليمن، صنعاء، شارع هائل',
         }));
         if (mounted && cRes) setContacts(cRes);
       } catch {
         if (mounted) {
           setContacts({
             supportPhone: '712275038',
-            contactEmail: 'support@qutoof.sa',
-            address: 'المملكة العربية السعودية - قطوف الطبيعة',
+            contactEmail: 'ggjloubf@gmail.com',
+            address: 'اليمن، صنعاء، شارع هائل',
           });
         }
       }
@@ -170,7 +170,7 @@ export function SupportCenterPage() {
           </div>
           <div>
             <span className="text-[11px] text-[var(--gs-foreground-secondary)] block">البريد الإلكتروني</span>
-            <strong className="text-xs text-[var(--gs-foreground)] font-mono">{contacts?.contactEmail || 'support@qutoof.sa'}</strong>
+            <strong className="text-xs text-[var(--gs-foreground)] font-mono">{contacts?.contactEmail || 'ggjloubf@gmail.com'}</strong>
           </div>
         </div>
 
@@ -180,7 +180,7 @@ export function SupportCenterPage() {
           </div>
           <div>
             <span className="text-[11px] text-[var(--gs-foreground-secondary)] block">المركز الرئيسي</span>
-            <strong className="text-xs text-[var(--gs-foreground)] truncate block">{contacts?.address || 'المملكة العربية السعودية'}</strong>
+            <strong className="text-xs text-[var(--gs-foreground)] truncate block">{contacts?.address || 'اليمن، صنعاء، شارع هائل'}</strong>
           </div>
         </div>
       </div>
