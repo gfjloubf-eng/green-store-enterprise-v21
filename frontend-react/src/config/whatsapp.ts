@@ -58,6 +58,26 @@ export function buildWhatsAppTargetUrl(target: WhatsAppTarget = 'store', message
 }
 
 /**
+ * Friendly greeting that identifies the selected WhatsApp channel.
+ * The order/cart details are appended by the caller after this greeting.
+ */
+export function buildWhatsAppWelcomeMessage(target: WhatsAppTarget = 'store'): string {
+  if (target === 'saqr') {
+    return [
+      'السلام عليكم ورحمة الله وبركاته 🌿',
+      'مرحبًا بك في قطوف الطبيعة، معك صقر أنور لمتابعة الطلبات وتنسيق التوصيل.',
+      'أرسل رقم طلبك أو استفسارك وسأتابع معك بإذن الله.',
+    ].join('\\n');
+  }
+
+  return [
+    'السلام عليكم ورحمة الله وبركاته 🌿',
+    'مرحبًا بك في قطوف الطبيعة، معك عمار عادل لاستقبال طلبك الرئيسي.',
+    'أرسل تفاصيل طلبك وسنساعدك في تأكيده وترتيب التوصيل.',
+  ].join('\\n');
+}
+
+/**
  * Legacy compatibility wrapper for buildWhatsAppUrl
  */
 export function buildWhatsAppUrl(message: string): string {
