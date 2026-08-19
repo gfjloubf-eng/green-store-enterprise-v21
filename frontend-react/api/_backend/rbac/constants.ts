@@ -28,6 +28,7 @@ const MODULE_SCOPES: Record<PermissionModule, PermissionScope> = {
   audit: 'tenant',
   notifications: 'tenant',
   carts: 'tenant',
+  delivery: 'tenant',
 };
 
 function createPermissionDefinition(module: PermissionModule, action: PermissionAction, description: string): PermissionDefinition {
@@ -170,6 +171,13 @@ export const PERMISSION_DEFINITIONS: Record<PermissionModule, Record<PermissionA
     delete: 'Delete cart items',
     list: 'List cart items',
   }),
+  delivery: createPermissionMap('delivery', {
+    create: 'Create delivery records',
+    read: 'Read delivery records',
+    update: 'Update delivery records',
+    delete: 'Delete delivery records',
+    list: 'List delivery records',
+  }),
 };
 
 export const PERMISSION_GROUPS: PermissionGroup[] = (Object.entries(PERMISSION_DEFINITIONS) as Array<[PermissionModule, Record<PermissionAction, PermissionDefinition>]>).map(
@@ -220,12 +228,13 @@ function getPermissionsForModuleActions(module: PermissionModule, actions: Permi
 export const ROLE_DEFINITIONS: RoleDefinition[] = [
   createRoleDefinition('SUPER_ADMIN', 'Full access across every module', [...ALL_PERMISSIONS]),
   createRoleDefinition('ADMIN', 'Administrative access with audit excluded', ALL_PERMISSIONS.filter((permission) => !permission.startsWith('audit:'))),
-  createRoleDefinition('MANAGER', 'Operational access for products, inventory, orders, and customers', getPermissionsForModules(['products', 'inventory', 'orders', 'customers'])),
+  createRoleDefinition('MANAGER', 'Operational access for products, inventory, orders, customers, and delivery', getPermissionsForModules(['products', 'inventory', 'orders', 'customers', 'delivery'])),
   createRoleDefinition('EMPLOYEE', 'Staff operational access for reading products, customers, inventory, and updating orders', [
     ...getPermissionsForModuleActions('products', ['read', 'list']),
     ...getPermissionsForModuleActions('customers', ['read', 'list']),
     ...getPermissionsForModuleActions('orders', ['read', 'list', 'update']),
     ...getPermissionsForModuleActions('inventory', ['read', 'list']),
+    ...getPermissionsForModuleActions('delivery', ['read', 'list', 'update']),
   ]),
   createRoleDefinition('CUSTOMER', 'Read and create access for self-service orders and customer profile', [
     ...getPermissionsForModuleActions('customers', ['read', 'list']),

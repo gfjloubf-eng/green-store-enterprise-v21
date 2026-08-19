@@ -17,7 +17,8 @@ export type PermissionModule =
   | 'settings'
   | 'audit'
   | 'notifications'
-  | 'carts';
+  | 'carts'
+  | 'delivery';
 
 export type PermissionScope = 'tenant' | 'store' | 'branch' | 'self';
 
