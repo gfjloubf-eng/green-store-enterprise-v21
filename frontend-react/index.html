@@ -31,7 +31,7 @@
       (function() {
         try {
           var theme = localStorage.getItem('gsd-theme');
-          var finalTheme = (theme === 'light' || theme === 'dark') ? theme : (window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+          var finalTheme = (theme === 'light' || theme === 'dark') ? theme : (window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'light');
           document.documentElement.setAttribute('data-theme', finalTheme);
           document.documentElement.classList.remove('dark', 'light');
           document.documentElement.classList.add(finalTheme);
