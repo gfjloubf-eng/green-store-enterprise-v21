@@ -135,6 +135,7 @@ export function Sidebar({
     if (item.authRequired && !isAuthenticated) return false;
     if (item.publicOnly && isAuthenticated) return false;
     if (item.requiredPermission && !hasPermission(item.requiredPermission)) return false;
+    if (item.requiredRoles?.length && !item.requiredRoles.some((role) => hasRole(role))) return false;
     if (item.requiredRole && !hasRole(item.requiredRole)) return false;
     return true;
   }, [isAuthenticated, hasPermission, hasRole]);
