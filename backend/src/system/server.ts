@@ -90,7 +90,7 @@ export function createSystemRequestHandler() {
 
       const url = new URL(request.url ?? '/', `http://${request.headers.host ?? 'localhost'}`);
       let targetPath = url.searchParams.get('path') || url.pathname;
-      if (targetPath.startsWith('/api/') && !targetPath.startsWith('/api/system') && !targetPath.startsWith('/api/health') && !targetPath.startsWith('/api/live') && !targetPath.startsWith('/api/ready')) {
+      if (targetPath.startsWith('/api/')) {
         targetPath = targetPath.substring(4);
       }
       const resolved = resolver.resolve(registry, {
@@ -208,8 +208,4 @@ export function startSystemServer(port: number = Number(process.env.PORT ?? 3000
   });
 
   return server;
-}
-
-if (require.main === module) {
-  startSystemServer();
 }
