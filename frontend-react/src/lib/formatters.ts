@@ -7,13 +7,15 @@ export function formatPrice(amount: number | null | undefined, locale: string = 
   const num = typeof amount === 'number' && !isNaN(amount) ? amount : 0;
   const isArabic = locale === 'ar' || locale.startsWith('ar');
 
-  const currencySymbol = (currency === 'YER' || currency === 'ر.ي' || !currency)
+  const normalizedCurrency = currency === 'SAR' || currency === 'ر.س' ? 'YER' : currency;
+  const currencySymbol = (normalizedCurrency === 'YER' || normalizedCurrency === 'ر.ي' || !normalizedCurrency)
     ? (isArabic ? 'ر.ي' : 'YER')
-    : (currency === 'SAR' || currency === 'ر.س')
-    ? (isArabic ? 'ر.س' : 'SAR')
-    : currency;
+    : normalizedCurrency;
 
-  const formattedAmount = num.toFixed(2);
+  const formattedAmount = new Intl.NumberFormat(isArabic ? 'ar-YE' : 'en-US', {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 2,
+  }).format(num);
 
-  return isArabic ? `${formattedAmount} ${currencySymbol}` : `${formattedAmount} ${currencySymbol}`;
+  return `${formattedAmount} ${currencySymbol}`;
 }
