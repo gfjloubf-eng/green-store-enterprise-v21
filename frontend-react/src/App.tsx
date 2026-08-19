@@ -23,7 +23,6 @@ import {
 import { ProductsListPage } from '@/features/products/pages/ProductsListPage';
 import { ProductDetailsPage } from '@/features/products/pages/ProductDetailsPage';
 import { StoreListPage, StoreProfilePage } from '@/features/marketplace/pages';
-
 const CreateProductPage = lazy(() => import('@/features/products/pages/CreateProductPage').then((m) => ({ default: m.CreateProductPage })));
 const EditProductPage = lazy(() => import('@/features/products/pages/EditProductPage').then((m) => ({ default: m.EditProductPage })));
 const CategoriesPage = lazy(() => import('@/features/products/pages/CategoriesPage').then((m) => ({ default: m.CategoriesPage })));
@@ -58,10 +57,10 @@ const GoodsReceiving = lazy(() => import('@/features/purchasing/pages/GoodsRecei
 const PurchaseReturns = lazy(() => import('@/features/purchasing/pages/PurchaseReturns').then((m) => ({ default: m.PurchaseReturns })));
 const PurchaseReports = lazy(() => import('@/features/purchasing/pages/PurchaseReports').then((m) => ({ default: m.PurchaseReports })));
 const PurchaseAnalytics = lazy(() => import('@/features/purchasing/pages/PurchaseAnalytics').then((m) => ({ default: m.PurchaseAnalytics })));
-
 import { CheckoutPage } from '@/features/checkout/pages';
 import OrdersListPage from '@/features/orders/pages/OrdersListPage';
 import OrderDetailsPage from '@/features/orders/pages/OrderDetailsPage';
+
 import SupportCenterPage from '@/features/support/pages/SupportCenterPage';
 
 export default function App() {
@@ -75,90 +74,102 @@ export default function App() {
         }
       >
         <Routes>
-          <Route path="/login" element={<LoginPage />} />
-          <Route path="/register" element={<RegisterPage />} />
-          <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-          <Route path="/reset-password" element={<ResetPasswordPage />} />
+        <Route path="/login" element={<LoginPage />} />
+        <Route path="/register" element={<RegisterPage />} />
+        <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+        <Route path="/reset-password" element={<ResetPasswordPage />} />
 
-          <Route element={<AppShell />}>
-            <Route index element={<HomePage />} />
-            <Route path="products" element={<ProductsListPage />} />
-            <Route path="products/:id" element={<ProductDetailsPage />} />
-            <Route path="cart" element={<CartPage />} />
-            <Route path="settings" element={<SettingsPage />} />
-            <Route path="about" element={<AboutPage />} />
-            <Route path="contact" element={<ContactPage />} />
-            <Route path="help" element={<HelpPage />} />
-            <Route path="support" element={<SupportCenterPage />} />
+        {/* AppShell Layout containing Public & Protected routes */}
+        <Route element={<AppShell />}>
+          {/* Public Routes (Accessible without login) */}
+          <Route index element={<HomePage />} />
+          <Route path="products" element={<ProductsListPage />} />
+          <Route path="products/:id" element={<ProductDetailsPage />} />
+          <Route path="cart" element={<CartPage />} />
+          <Route path="settings" element={<SettingsPage />} />
+          <Route path="about" element={<AboutPage />} />
+          <Route path="contact" element={<ContactPage />} />
+          <Route path="help" element={<HelpPage />} />
+          <Route path="support" element={<SupportCenterPage />} />
 
-            <Route element={<ProtectedRoute />}>
-              <Route path="dashboard" element={<DashboardPage />} />
-              <Route path="orders" element={<OrdersListPage />} />
-              <Route path="orders/:id" element={<OrderDetailsPage />} />
-              <Route path="profile" element={<ProfilePage />} />
-              <Route path="checkout" element={<CheckoutPage />} />
-            </Route>
-
-            <Route element={<ProtectedRoute requiredPermission="users:read" />}>
-              <Route path="admin/users" element={<AdminUsersPage />} />
-            </Route>
-            <Route element={<ProtectedRoute requiredPermission="roles:read" />}>
-              <Route path="admin/roles" element={<AdminRolesPage />} />
-            </Route>
-
-            <Route element={<ProtectedRoute requiredPermission="products:create" />}>
-              <Route path="products/create" element={<CreateProductPage />} />
-            </Route>
-            <Route element={<ProtectedRoute requiredPermission="products:update" />}>
-              <Route path="products/:id/edit" element={<EditProductPage />} />
-            </Route>
-            <Route element={<ProtectedRoute requiredPermission="products:read" />}>
-              <Route path="products/categories" element={<CategoriesPage />} />
-              <Route path="products/brands" element={<BrandsPage />} />
-              <Route path="products/units" element={<UnitsPage />} />
-              <Route path="products/barcode" element={<BarcodePage />} />
-              <Route path="products/offers" element={<AdminOffersPage />} />
-            </Route>
-
-            <Route element={<ProtectedRoute requiredPermission="inventory:read" />}>
-              <Route path="inventory" element={<InventoryDashboard />} />
-              <Route path="inventory/overview" element={<StockOverview />} />
-              <Route path="inventory/movements" element={<StockMovements />} />
-              <Route path="inventory/adjustment" element={<StockAdjustment />} />
-              <Route path="inventory/transfer" element={<StockTransfer />} />
-              <Route path="inventory/low-stock" element={<LowStock />} />
-              <Route path="inventory/out-of-stock" element={<OutOfStock />} />
-              <Route path="inventory/reports" element={<InventoryReports />} />
-            </Route>
-
-            <Route element={<ProtectedRoute requiredPermission="suppliers:read" />}>
-              <Route path="suppliers" element={<SupplierDashboard />} />
-              <Route path="suppliers/list" element={<SupplierListPage />} />
-              <Route path="suppliers/create" element={<CreateSupplierPage />} />
-              <Route path="suppliers/categories" element={<SupplierCategoriesPage />} />
-              <Route path="suppliers/contacts" element={<SupplierContactsPage />} />
-              <Route path="suppliers/reports" element={<SupplierReportsPage />} />
-              <Route path="suppliers/:id" element={<SupplierDetailsPage />} />
-              <Route path="suppliers/:id/edit" element={<EditSupplierPage />} />
-            </Route>
-
-            <Route element={<ProtectedRoute requiredPermission="purchasing:read" />}>
-              <Route path="purchasing" element={<PurchaseDashboard />} />
-              <Route path="purchasing/orders" element={<PurchaseOrders />} />
-              <Route path="purchasing/create" element={<CreatePurchaseOrder />} />
-              <Route path="purchasing/receiving" element={<GoodsReceiving />} />
-              <Route path="purchasing/returns" element={<PurchaseReturns />} />
-              <Route path="purchasing/reports" element={<PurchaseReports />} />
-              <Route path="purchasing/analytics" element={<PurchaseAnalytics />} />
-              <Route path="purchasing/:id" element={<PurchaseDetails />} />
-            </Route>
-
-            <Route path="stores" element={<StoreListPage />} />
-            <Route path="stores/:storeId" element={<StoreProfilePage />} />
-            <Route path="*" element={<NotFound404Page />} />
+          {/* Customer / Authenticated Protected Routes */}
+          <Route element={<ProtectedRoute />}>
+            <Route path="dashboard" element={<DashboardPage />} />
+            <Route path="orders" element={<OrdersListPage />} />
+            <Route path="orders/:id" element={<OrderDetailsPage />} />
+            <Route path="profile" element={<ProfilePage />} />
+            <Route path="checkout" element={<CheckoutPage />} />
           </Route>
+
+          {/* Admin Management Routes */}
+          <Route element={<ProtectedRoute requiredPermission="users:read" />}>
+            <Route path="admin/users" element={<AdminUsersPage />} />
+          </Route>
+          <Route element={<ProtectedRoute requiredPermission="roles:read" />}>
+            <Route path="admin/roles" element={<AdminRolesPage />} />
+          </Route>
+
+          {/* Product Management Routes */}
+          <Route element={<ProtectedRoute requiredPermission="products:create" />}>
+            <Route path="products/create" element={<CreateProductPage />} />
+          </Route>
+          <Route element={<ProtectedRoute requiredPermission="products:update" />}>
+            <Route path="products/:id/edit" element={<EditProductPage />} />
+          </Route>
+          <Route element={<ProtectedRoute requiredPermission="products:read" />}>
+            <Route path="products/categories" element={<CategoriesPage />} />
+            <Route path="products/brands" element={<BrandsPage />} />
+            <Route path="products/units" element={<UnitsPage />} />
+            <Route path="products/barcode" element={<BarcodePage />} />
+            <Route path="products/offers" element={<AdminOffersPage />} />
+          </Route>
+
+          {/* Inventory Management Routes */}
+          <Route element={<ProtectedRoute requiredPermission="inventory:read" />}>
+            <Route path="inventory" element={<InventoryDashboard />} />
+            <Route path="inventory/overview" element={<StockOverview />} />
+            <Route path="inventory/movements" element={<StockMovements />} />
+            <Route path="inventory/adjustment" element={<StockAdjustment />} />
+            <Route path="inventory/transfer" element={<StockTransfer />} />
+            <Route path="inventory/low-stock" element={<LowStock />} />
+            <Route path="inventory/out-of-stock" element={<OutOfStock />} />
+            <Route path="inventory/reports" element={<InventoryReports />} />
+          </Route>
+
+          {/* Supplier Management Routes */}
+          <Route element={<ProtectedRoute requiredPermission="suppliers:read" />}>
+            <Route path="suppliers" element={<SupplierDashboard />} />
+            <Route path="suppliers/list" element={<SupplierListPage />} />
+            <Route path="suppliers/create" element={<CreateSupplierPage />} />
+            <Route path="suppliers/categories" element={<SupplierCategoriesPage />} />
+            <Route path="suppliers/contacts" element={<SupplierContactsPage />} />
+            <Route path="suppliers/reports" element={<SupplierReportsPage />} />
+            <Route path="suppliers/:id" element={<SupplierDetailsPage />} />
+            <Route path="suppliers/:id/edit" element={<EditSupplierPage />} />
+          </Route>
+
+          {/* Purchasing Management Routes */}
+          <Route element={<ProtectedRoute requiredPermission="purchasing:read" />}>
+            <Route path="purchasing" element={<PurchaseDashboard />} />
+            <Route path="purchasing/orders" element={<PurchaseOrders />} />
+            <Route path="purchasing/create" element={<CreatePurchaseOrder />} />
+            <Route path="purchasing/receiving" element={<GoodsReceiving />} />
+            <Route path="purchasing/returns" element={<PurchaseReturns />} />
+            <Route path="purchasing/reports" element={<PurchaseReports />} />
+            <Route path="purchasing/analytics" element={<PurchaseAnalytics />} />
+            <Route path="purchasing/:id" element={<PurchaseDetails />} />
+          </Route>
+
+          {/* Marketplace / Stores */}
+          <Route path="stores" element={<StoreListPage />} />
+          <Route path="stores/:storeId" element={<StoreProfilePage />} />
+
+          {/* 404 Catch-all */}
+          <Route path="*" element={<NotFound404Page />} />
+        </Route>
         </Routes>
       </Suspense>
     </AppProviders>
   );
 }
+
