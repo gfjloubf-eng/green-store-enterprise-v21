@@ -1,5 +1,7 @@
-import { Prisma } from '@prisma/client';
+import prismaClientPackage from '@prisma/client';
 import { ConflictException, NotFoundException, DatabaseException } from './exceptions';
+
+const { Prisma } = prismaClientPackage;
 
 export function mapPrismaError(err: any): never {
   if (err instanceof Prisma.PrismaClientKnownRequestError) {

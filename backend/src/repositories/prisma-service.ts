@@ -1,16 +1,22 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import { PrismaClient } from '@prisma/client';
+import prismaClientPackage from '@prisma/client';
+import type { PrismaClient as PrismaClientType } from '@prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg';
+
+const { PrismaClient } = prismaClientPackage;
 
 function loadEnvFile(): void {
   if (process.env.DATABASE_URL) return;
 
+  const cwd = process.cwd();
   const candidates = [
-    path.resolve(__dirname, '../../../.env.local'),
-    path.resolve(__dirname, '../../../.env'),
-    path.resolve(__dirname, '../../.env.local'),
-    path.resolve(__dirname, '../../.env'),
+    path.resolve(cwd, '.env.local'),
+    path.resolve(cwd, '.env'),
+    path.resolve(cwd, 'backend/.env.local'),
+    path.resolve(cwd, 'backend/.env'),
+    path.resolve(cwd, '../.env.local'),
+    path.resolve(cwd, '../.env'),
   ];
 
   for (const candidate of candidates) {
@@ -36,13 +42,13 @@ function loadEnvFile(): void {
 
 declare global {
   // eslint-disable-next-line @typescript-eslint/naming-convention
-  var __prismaClient: PrismaClient | undefined;
+  var __prismaClient: PrismaClientType | undefined;
 }
 
 export class PrismaService {
-  private static client: PrismaClient | undefined;
+  private static client: PrismaClientType | undefined;
 
-  static getClient(): PrismaClient {
+  static getClient(): PrismaClientType {
     if (!PrismaService.client) {
       loadEnvFile();
 
