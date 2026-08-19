@@ -32,25 +32,26 @@ export function useProductList(filters: ProductFilterModel): ProductListState {
 
   useEffect(() => {
     const timer = setTimeout(() => {
-      try {
-        const tableData = ProductService.getTableData(filters);
-        if (tableData.products.length === 0) {
-          setState(emptyState());
-        } else {
-          setState(
-            successState({
-              products: tableData.products,
-              total: tableData.total,
-              page: tableData.page,
-              totalPages: tableData.totalPages,
-            }),
-          );
-        }
-      } catch (err) {
-        const message =
-          err instanceof Error ? err.message : 'An unexpected error occurred';
-        setState(errorState(message));
-      }
+      void ProductService.syncAllFromBackend()
+        .then(() => {
+          const tableData = ProductService.getTableData(filters);
+          if (tableData.products.length === 0) {
+            setState(emptyState());
+          } else {
+            setState(
+              successState({
+                products: tableData.products,
+                total: tableData.total,
+                page: tableData.page,
+                totalPages: tableData.totalPages,
+              }),
+            );
+          }
+        })
+        .catch((err) => {
+          const message = err instanceof Error ? err.message : 'An unexpected error occurred';
+          setState(errorState(message));
+        });
     }, 0);
 
     return () => clearTimeout(timer);
@@ -82,18 +83,18 @@ export function useProductDetail(id: string | undefined): ProductDetailState {
     if (!id) return;
 
     const timer = setTimeout(() => {
-      try {
-        const dto = ProductService.getById(id);
-        if (dto) {
-          setState(successState(dto));
-        } else {
-          setState(errorState(`Product with ID "${id}" was not found.`));
-        }
-      } catch (err) {
-        const message =
-          err instanceof Error ? err.message : 'An unexpected error occurred';
-        setState(errorState(message));
-      }
+      void ProductService.syncByIdFromBackend(id)
+        .then((dto) => {
+          if (dto) {
+            setState(successState(dto));
+          } else {
+            setState(errorState(`Product with ID "${id}" was not found.`));
+          }
+        })
+        .catch((err) => {
+          const message = err instanceof Error ? err.message : 'An unexpected error occurred';
+          setState(errorState(message));
+        });
     }, 0);
 
     return () => clearTimeout(timer);
