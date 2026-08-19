@@ -28,6 +28,8 @@ export interface NavItem {
   requiredPermission?: string;
   /** Required role (e.g. "ADMIN") */
   requiredRole?: string;
+  /** Any of these roles may view the item */
+  requiredRoles?: string[];
   /** Require authenticated user */
   authRequired?: boolean;
   /** Only visible when unauthenticated */
