@@ -1,6 +1,7 @@
 import { createContext, useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { getCurrentUser, getStoredAccessToken, getStoredRefreshToken, logout as clientLogout, setStoredTokens, setStoredUserRole, signIn, clearStoredTokens, AUTH_UNAUTHENTICATED_EVENT } from '@/services/authClient';
 import type { AuthContextValue, AuthStatus, AuthUser } from '@/types/auth';
+import { normalizeAppRole, normalizeAppRoles } from '@/utils/authRoles';
 
 export const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
@@ -10,12 +11,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const normalizeUser = useCallback((raw: any, fallbackIdentifier?: string): AuthUser => {
     if (!raw) {
-      setStoredUserRole('user', true);
-      return { id: '0', email: fallbackIdentifier ?? '', name: fallbackIdentifier ?? '', role: 'user', roles: ['user'], permissions: [] };
+      setStoredUserRole('USER', true);
+      return { id: '0', email: fallbackIdentifier ?? '', name: fallbackIdentifier ?? '', role: 'USER', roles: ['USER'], permissions: [] };
     }
 
-    const rolesList = Array.isArray(raw.roles) ? raw.roles : raw.role ? [raw.role] : ['user'];
-    const primaryRole = raw.role ?? rolesList[0] ?? 'user';
+    const rolesList = normalizeAppRoles(Array.isArray(raw.roles) ? raw.roles : raw.role ? [raw.role] : ['USER']);
+    const primaryRole = normalizeAppRole(raw.role ?? rolesList[0] ?? 'USER');
     const permissionsList = Array.isArray(raw.permissions) ? raw.permissions : [];
 
     setStoredUserRole(primaryRole, true);
@@ -112,7 +113,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           if ((result as any).user) {
             setUser(normalizeUser((result as any).user, identifier));
           } else {
-            setUser({ id: '0', email: identifier, name: identifier, role: 'user', roles: ['user'], permissions: [] });
+            setUser({ id: '0', email: identifier, name: identifier, role: 'USER', roles: ['USER'], permissions: [] });
           }
         }
         setStatus('authenticated');
@@ -187,8 +188,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const hasRole = useCallback(
     (role: string): boolean => {
       if (!user) return false;
-      if (user.role === role) return true;
-      if (Array.isArray(user.roles)) return user.roles.includes(role);
+      const normalizedRole = normalizeAppRole(role);
+      if (normalizeAppRole(user.role) === normalizedRole) return true;
+      if (Array.isArray(user.roles)) return user.roles.some((candidate) => normalizeAppRole(candidate) === normalizedRole);
       return false;
     },
     [user],
