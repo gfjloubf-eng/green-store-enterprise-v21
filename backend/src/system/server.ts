@@ -16,6 +16,8 @@ import { createCustomerRoutes } from '../modules/customers/routes';
 import { createCartRoutes } from '../modules/cart/routes';
 import { createOrderRoutes } from '../modules/orders/routes';
 import { createInventoryRoutes } from '../modules/inventory/routes';
+import { createDeliveryRoutes } from '../modules/delivery/routes';
+import { createSupplierAdminRoutes } from '../modules/suppliers-admin/routes';
 import { createPaymentRoutes } from '../modules/payments/routes';
 import { createSettingsRoutes } from '../modules/settings/routes';
 import { createNotificationRoutes } from '../modules/notifications/routes';
@@ -63,7 +65,7 @@ export function createSystemRequestHandler() {
   const resolver = new RouteResolver();
   const protection = new RouteProtectionFactory();
   const authService = AuthController.createAuthService();
-  const routes = [...createSystemRoutes(), ...createAuthRoutes(), ...createUserRoutes(), ...createRoleRoutes(), ...createPermissionRoutes(), ...createProductRoutes(), ...createCustomerRoutes(), ...createCartRoutes(), ...createOrderRoutes(), ...createInventoryRoutes(), ...createPaymentRoutes(), ...createSettingsRoutes(), ...createNotificationRoutes(), ...createSupportRoutes(), ...createReportsRoutes(), ...createAuditRoutes()];
+  const routes = [...createSystemRoutes(), ...createAuthRoutes(), ...createUserRoutes(), ...createRoleRoutes(), ...createPermissionRoutes(), ...createProductRoutes(), ...createCustomerRoutes(), ...createCartRoutes(), ...createOrderRoutes(), ...createInventoryRoutes(), ...createDeliveryRoutes(), ...createSupplierAdminRoutes(), ...createPaymentRoutes(), ...createSettingsRoutes(), ...createNotificationRoutes(), ...createSupportRoutes(), ...createReportsRoutes(), ...createAuditRoutes()];
 
   for (const route of routes) {
     registry.register(route);
