@@ -101,3 +101,5 @@
 ## GitHub upload checkpoint — 2026-08-19
 تم حفظ وثيقتي `ADMIN_PANEL_ARCHITECTURE.md` و`ADMIN_PANEL_AUDIT_PHASE1.md` عبر واجهة GitHub على فرع `main` في commit `0cf5266`. أكدت صفحة المستودع أن عدد الـ commits أصبح 131. بقية ملفات لوحة الإدارة تحتاج رفعًا منظمًا داخل مساراتها الصحيحة.
 المصدر: https://github.com/gfjloubf-eng/green-store-enterprise-v21
+
+تم حفظ دفعة الجذر الثانية عبر GitHub في commit `b36011e`، وأصبح تاريخ المستودع 132 commit. شملت الدفعة نسخة سجل التدقيق المحدّثة و`package.json`.
