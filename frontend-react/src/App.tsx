@@ -31,6 +31,13 @@ const UnitsPage = lazy(() => import('@/features/products/pages/UnitsPage').then(
 const BarcodePage = lazy(() => import('@/features/products/pages/BarcodePage').then((m) => ({ default: m.BarcodePage })));
 const AdminOffersPage = lazy(() => import('@/features/products/pages/AdminOffersPage').then((m) => ({ default: m.AdminOffersPage })));
 
+const AdminControlCenterPage = lazy(() => import('@/features/admin/pages/AdminControlCenterPage'));
+const AdminCustomersPage = lazy(() => import('@/features/admin/pages/AdminCustomersPage'));
+const AdminSupportPage = lazy(() => import('@/features/admin/pages/AdminSupportPage'));
+const AdminOrdersPage = lazy(() => import('@/features/admin/pages/AdminOrdersPage'));
+const AdminDriversPage = lazy(() => import('@/features/admin/pages/AdminDriversPage'));
+const AdminSuppliersPage = lazy(() => import('@/features/admin/pages/AdminSuppliersPage'));
+const ReportsDashboardPage = lazy(() => import('@/features/reports/pages/ReportsDashboardPage').then((m) => ({ default: m.ReportsDashboardPage })));
 const InventoryDashboard = lazy(() => import('@/features/inventory/pages/InventoryDashboard').then((m) => ({ default: m.InventoryDashboard })));
 const StockOverview = lazy(() => import('@/features/inventory/pages/StockOverview').then((m) => ({ default: m.StockOverview })));
 const StockMovements = lazy(() => import('@/features/inventory/pages/StockMovements').then((m) => ({ default: m.StockMovements })));
@@ -102,6 +109,16 @@ export default function App() {
           </Route>
 
           {/* Admin Management Routes */}
+          <Route element={<ProtectedRoute requiredRoles={['SUPER_ADMIN', 'ADMIN', 'MANAGER', 'EMPLOYEE']} />}>
+            <Route path="admin" element={<AdminControlCenterPage />} />
+            <Route path="admin/customers" element={<AdminCustomersPage />} />
+            <Route path="admin/customers/:customerId" element={<AdminCustomersPage />} />
+            <Route path="admin/support" element={<AdminSupportPage />} />
+            <Route path="admin/orders" element={<AdminOrdersPage />} />
+            <Route path="admin/drivers" element={<AdminDriversPage />} />
+            <Route path="admin/suppliers" element={<AdminSuppliersPage />} />
+            <Route path="admin/reports" element={<ReportsDashboardPage />} />
+          </Route>
           <Route element={<ProtectedRoute requiredPermission="users:read" />}>
             <Route path="admin/users" element={<AdminUsersPage />} />
           </Route>
