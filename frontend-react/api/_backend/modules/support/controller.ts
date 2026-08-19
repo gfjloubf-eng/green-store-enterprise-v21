@@ -63,7 +63,7 @@ export class SupportController {
         return this.errorResponse('unauthorized', 'authentication_required', HTTP_STATUS.UNAUTHORIZED, ctx);
       }
 
-      const isStaffOrAdmin = user.role === 'ADMIN' || user.role === 'MANAGER' || user.role === 'EMPLOYEE';
+      const isStaffOrAdmin = this.isSupportStaff(user);
       let tickets;
       if (isStaffOrAdmin) {
         tickets = await this.supportRepo.findAllTickets();
@@ -91,7 +91,7 @@ export class SupportController {
         return this.errorResponse('bad_request', 'ticket_id_required', HTTP_STATUS.BAD_REQUEST, ctx);
       }
 
-      const isStaffOrAdmin = user.role === 'ADMIN' || user.role === 'MANAGER' || user.role === 'EMPLOYEE';
+      const isStaffOrAdmin = this.isSupportStaff(user);
       const ticket = await this.supportRepo.findTicketById(
         ticketId,
         isStaffOrAdmin ? undefined : user.id
@@ -123,7 +123,7 @@ export class SupportController {
         return this.errorResponse('bad_request', 'ticket_id_and_message_required', HTTP_STATUS.BAD_REQUEST, ctx);
       }
 
-      const isStaffOrAdmin = user.role === 'ADMIN' || user.role === 'MANAGER' || user.role === 'EMPLOYEE';
+      const isStaffOrAdmin = this.isSupportStaff(user);
       const ticketCheck = await this.supportRepo.findTicketById(ticketId, isStaffOrAdmin ? undefined : user.id);
       if (!ticketCheck) {
         return this.errorResponse('not_found', 'ticket_not_found', HTTP_STATUS.NOT_FOUND, ctx);
@@ -155,6 +155,10 @@ export class SupportController {
       const ticketId = request.params?.id;
       const status = request.body?.status;
 
+      if (!this.isSupportStaff(user)) {
+        return this.errorResponse('forbidden', 'support_staff_required', 403, ctx);
+      }
+
       if (!ticketId || !status) {
         return this.errorResponse('bad_request', 'ticket_id_and_status_required', HTTP_STATUS.BAD_REQUEST, ctx);
       }
@@ -164,6 +168,11 @@ export class SupportController {
     } catch (error) {
       return this.mapError(error, ctx);
     }
+  }
+
+  private isSupportStaff(user: any): boolean {
+    const role = String(user?.role ?? '').trim().toUpperCase();
+    return ['SUPER_ADMIN', 'ADMIN', 'MANAGER', 'EMPLOYEE', 'STAFF'].includes(role);
   }
 
   private createApiContext(request: ControllerRequest): ApiContextFields {
