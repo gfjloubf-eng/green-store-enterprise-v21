@@ -6,10 +6,11 @@ import { Forbidden403Page } from './Forbidden403Page';
 interface ProtectedRouteProps {
   requiredPermission?: string;
   requiredRole?: string;
+  requiredRoles?: string[];
   children?: React.ReactNode;
 }
 
-export function ProtectedRoute({ requiredPermission, requiredRole, children }: ProtectedRouteProps) {
+export function ProtectedRoute({ requiredPermission, requiredRole, requiredRoles, children }: ProtectedRouteProps) {
   const { isAuthenticated, isLoading, hasPermission, hasRole } = useAuth();
   const { t } = useI18n();
 
@@ -32,7 +33,11 @@ export function ProtectedRoute({ requiredPermission, requiredRole, children }: P
     return <Forbidden403Page />;
   }
 
-  if (requiredRole && !hasRole(requiredRole)) {
+  const hasRequiredRole = requiredRoles?.length
+    ? requiredRoles.some((role) => hasRole(role))
+    : !requiredRole || hasRole(requiredRole);
+
+  if (!hasRequiredRole) {
     return <Forbidden403Page />;
   }
 
