@@ -4,10 +4,10 @@ import { ValidationException } from '../validation';
 export const DEFAULT_SETTINGS: Record<string, string> = {
   store_name: 'قطوف الطبيعة (Qutoof Nature Store)',
   store_description: 'متجر التمور والفواكه والمواد الغذائية الطازجة',
-  contact_email: 'support@qutoof.sa',
+  contact_email: 'ggjloubf@gmail.com',
   contact_phone: '+967712275038',
   support_phone: '+967777803161',
-  address: 'اليمن — يحدد العنوان عند تأكيد الطلب',
+  address: 'اليمن، صنعاء، شارع هائل',
   currency: 'YER',
   tax_percentage: '15',
   shipping_fee_default: '0',
