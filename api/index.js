@@ -7446,6 +7446,15 @@ var SettingsRepository = class extends base_repository_default {
     for (const r of records) {
       result[r.key] = r.value;
     }
+    if (result.contact_email === "support@qutoof.sa") result.contact_email = DEFAULT_SETTINGS.contact_email;
+    if (result.contact_phone === "+966500000000") result.contact_phone = DEFAULT_SETTINGS.contact_phone;
+    if (result.support_phone === "712275038" || result.support_phone === "+966500000000") {
+      result.support_phone = DEFAULT_SETTINGS.support_phone;
+    }
+    if (result.address?.includes("\u0627\u0644\u0645\u0645\u0644\u0643\u0629 \u0627\u0644\u0639\u0631\u0628\u064A\u0629 \u0627\u0644\u0633\u0639\u0648\u062F\u064A\u0629") || result.address?.includes("\u062C\u062F\u0629") || result.address?.includes("\u0627\u0644\u0631\u064A\u0627\u0636")) {
+      result.address = DEFAULT_SETTINGS.address;
+    }
+    if (result.currency === "SAR") result.currency = DEFAULT_SETTINGS.currency;
     return result;
   }
   async updateSettings(updates) {
