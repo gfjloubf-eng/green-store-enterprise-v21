@@ -238,30 +238,30 @@
    ============================================================ */
 [data-theme='light'] {
   /* Surface & Background */
-  --gs-background: #F4F6F5;
+  --gs-background: #F7FAF8;
   --gs-surface: #FFFFFF;
   --gs-surface-elevated: #FFFFFF;
   --gs-card: #FFFFFF;
-  --gs-card-hover: #FAFCFA;
+  --gs-card-hover: #F2F9F4;
 
-  --gs-border: #D1E0D7;
-  --gs-border-hover: #A5C2B2;
-  --gs-border-subtle: #E6EFEA;
-  --gs-divider: #D1E0D7;
+  --gs-border: #D7E6DC;
+  --gs-border-hover: #9EC4AA;
+  --gs-border-subtle: #E5F0E8;
+  --gs-divider: #D7E6DC;
 
   --gs-overlay: rgba(9, 23, 16, 0.35);
   --gs-overlay-blur: rgba(9, 23, 16, 0.15);
 
   /* Text — High Contrast Readability */
-  --gs-foreground: #091710;
-  --gs-foreground-secondary: #2E4B3B;
-  --gs-foreground-muted: #5C7C6C;
+  --gs-foreground: #12281B;
+  --gs-foreground-secondary: #456454;
+  --gs-foreground-muted: #668272;
   --gs-foreground-disabled: #98B3A4;
   --gs-foreground-inverse: #FFFFFF;
 
   /* Muted */
-  --gs-muted: #E6EFEA;
-  --gs-muted-hover: #D1E0D7;
+  --gs-muted: #EEF6F0;
+  --gs-muted-hover: #DDEDE2;
   --gs-muted-foreground: #5C7C6C;
 
   /* Primary soft */
