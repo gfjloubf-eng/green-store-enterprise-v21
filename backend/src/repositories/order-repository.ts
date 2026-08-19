@@ -147,7 +147,7 @@ export class OrderRepository extends BaseRepository implements OrderRepositoryCo
           tax,
           shipping,
           total,
-          currency: 'SAR',
+          currency: 'YER',
           placedAt: new Date(),
         },
       });
