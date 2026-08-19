@@ -8,7 +8,6 @@ import { useNavigate } from 'react-router-dom';
 import {
   ArrowRight,
   Heart,
-  MessageCircle,
   Search,
   Sparkles,
   Star,
@@ -26,7 +25,7 @@ import {
 import { ProductService } from '@/features/products/services/productService';
 import type { ProductDTO } from '@/features/products/domain/productDTO';
 import { placeholderImage } from '@/assets/images/products/productImages';
-import { buildWhatsAppUrl } from '@/config/whatsapp';
+import { WhatsAppOrderAction } from '@/components/ui/WhatsAppOrderAction';
 import { formatPrice } from '@/lib/formatters';
 import { useI18n } from '@/i18n/useI18n';
 import { useProductSearch } from '@/features/products/hooks/useProductService';
@@ -235,15 +234,12 @@ export function HomePage() {
             </p>
 
             <div className="flex flex-wrap gap-3 pt-2">
-              <a
-                href={buildWhatsAppUrl('مرحبًا، أرغب في طلب خضروات وفواكه طازجة من قطوف الطبيعة.')}
-                target="_blank"
-                rel="noreferrer"
-                className="gsd-btn gsd-btn--primary gsd-btn--md inline-flex items-center justify-center gap-2 bg-emerald-500 hover:bg-emerald-600 text-white font-bold rounded-2xl px-5 py-3 shadow-lg"
-              >
-                <MessageCircle className="h-5 w-5" />
-                طلب سريع عبر واتساب
-              </a>
+              <WhatsAppOrderAction
+                variant="modal"
+                buttonText="طلب سريع عبر واتساب"
+                className="w-auto min-w-[220px]"
+                getMessage={() => 'مرحبًا، أرغب في طلب خضروات وفواكه طازجة من قطوف الطبيعة.'}
+              />
               <button
                 type="button"
                 onClick={() => navigate('/stores')}
