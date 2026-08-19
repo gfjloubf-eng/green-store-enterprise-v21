@@ -7,10 +7,10 @@ import { useTheme } from '@/hooks/useTheme';
 const DEFAULT_SETTINGS: Record<string, string> = {
   store_name: 'قطوف الطبيعة (Qutoof Nature)',
   store_description: 'متجر خضروات وفواكه طازجة وعضوية عالية الجودة',
-  contact_email: 'support@qutoof.sa',
-  contact_phone: '+966 50 000 0000',
+  contact_email: 'ggjloubf@gmail.com',
+  contact_phone: '+967 712 275 038',
   support_phone: '712275038',
-  address: 'المملكة العربية السعودية',
+  address: 'اليمن، صنعاء، شارع هائل',
   currency: 'YER',
   tax_percentage: '15',
   shipping_fee_default: '0',
