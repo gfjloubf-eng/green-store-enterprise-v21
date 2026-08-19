@@ -191,9 +191,9 @@ export function HomePage() {
   };
 
   return (
-    <div className="flex flex-col gap-8 pb-12 max-w-7xl mx-auto px-2 sm:px-4" dir="rtl">
+    <div className="flex flex-col gap-6 sm:gap-8 pb-24 lg:pb-12 max-w-7xl mx-auto px-3 sm:px-4" dir="rtl">
       {/* 1. Hero / Store Welcome Banner */}
-      <section className="gsd-card overflow-hidden rounded-3xl p-6 sm:p-8 bg-gradient-to-br from-emerald-950 via-emerald-900 to-emerald-950 text-white relative shadow-xl">
+      <section className="gsd-card overflow-hidden rounded-3xl p-5 sm:p-8 bg-gradient-to-br from-emerald-950 via-emerald-900 to-emerald-950 text-white relative shadow-xl">
         <div className="absolute top-0 right-0 left-0 h-1 bg-gradient-to-r from-emerald-400 via-amber-300 to-emerald-400" />
         <div className="grid gap-6 lg:grid-cols-[1.3fr_0.7fr] items-center relative z-10">
           <div className="space-y-4">
@@ -434,7 +434,7 @@ export function HomePage() {
               <p className="text-xs text-[var(--gs-foreground-secondary)]">جرب البحث بكلمة مختلفة أو اختر فئة أوسع.</p>
             </div>
           ) : (
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3 sm:gap-4">
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2.5 sm:gap-4">
               {filteredProducts.map((product) => (
                 <ProduceCard
                   key={product.id}
@@ -468,7 +468,7 @@ export function HomePage() {
                 <ArrowRight className="h-3.5 w-3.5" />
               </button>
             </div>
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3 sm:gap-4">
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2.5 sm:gap-4">
               {fruitsProducts.slice(0, 12).map((product) => (
                 <ProduceCard
                   key={product.id}
@@ -499,7 +499,7 @@ export function HomePage() {
                 <ArrowRight className="h-3.5 w-3.5" />
               </button>
             </div>
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3 sm:gap-4">
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2.5 sm:gap-4">
               {vegetablesProducts.slice(0, 12).map((product) => (
                 <ProduceCard
                   key={product.id}
@@ -531,7 +531,7 @@ export function HomePage() {
                   <ArrowRight className="h-3.5 w-3.5" />
                 </button>
               </div>
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3 sm:gap-4">
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2.5 sm:gap-4">
                 {yemeniProducts.map((product) => (
                   <ProduceCard
                     key={`yemeni-${product.id}`}
@@ -565,7 +565,7 @@ export function HomePage() {
                   <ArrowRight className="h-3.5 w-3.5" />
                 </button>
               </div>
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3 sm:gap-4">
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2.5 sm:gap-4">
                 {seasonalProducts.map((product) => (
                   <ProduceCard
                     key={`seasonal-${product.id}`}
@@ -654,15 +654,22 @@ function ProduceCard({
         onClick={() => navigate(`/products/${product.id}`)}
         className="cursor-pointer overflow-hidden rounded-xl bg-gray-50 dark:bg-gray-900/40 mb-2 relative aspect-square"
       >
-        <img
-          src={product.image || placeholderImage}
-          alt={product.name}
-          loading="lazy"
-          className="h-full w-full object-cover group-hover:scale-105 transition duration-300"
-        />
+          <img
+            src={product.image || placeholderImage}
+            alt={product.name}
+            width={480}
+            height={480}
+            loading="lazy"
+            decoding="async"
+            onError={(event) => {
+              event.currentTarget.onerror = null;
+              event.currentTarget.src = placeholderImage;
+            }}
+            className="h-full w-full object-cover group-hover:scale-105 transition duration-300"
+          />
         {isOutOfStock && (
           <div className="absolute inset-0 bg-black/60 backdrop-blur-[2px] flex items-center justify-center p-2 text-center text-[11px] font-bold text-white">
-            🔴 نفد المخزون
+            نفد المخزون
           </div>
         )}
       </div>
@@ -698,7 +705,7 @@ function ProduceCard({
           type="button"
           onClick={onQuickAdd}
           disabled={isAdding || isOutOfStock}
-          className={`h-8 px-2.5 rounded-xl font-bold text-xs inline-flex items-center gap-1 transition ${
+          className={`min-h-10 px-2.5 rounded-xl font-bold text-xs inline-flex items-center justify-center gap-1 transition ${
             isOutOfStock
               ? 'bg-gray-400 text-white cursor-not-allowed opacity-60'
               : isAdded
