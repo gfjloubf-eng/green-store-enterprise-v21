@@ -69,6 +69,11 @@ export const LOCAL_MARKETPLACE_STORES: LocalMarketplaceStore[] = [
     coverImage: strawberry,
     productIds: ['prod-001', 'prod-006', 'prod-010'],
     highlight: 'الحد الأدنى للتوصيل 35 دقيقة',
+    location: {
+      city: 'صنعاء',
+      district: 'شارع هائل',
+      address: 'اليمن، صنعاء، شارع هائل',
+    },
   },
   {
     id: 'store-2',
