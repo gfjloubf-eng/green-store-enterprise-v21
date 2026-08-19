@@ -4,15 +4,14 @@ import path from 'node:path';
 function loadEnvFile(): void {
   if (process.env.JWT_SECRET) return;
 
+  const cwd = process.cwd();
   const candidates = [
-    path.resolve(__dirname, '../../.env.local'),
-    path.resolve(__dirname, '../../.env'),
-    path.resolve(__dirname, '../.env.local'),
-    path.resolve(__dirname, '../.env'),
-    path.resolve(process.cwd(), '.env.local'),
-    path.resolve(process.cwd(), '.env'),
-    path.resolve(process.cwd(), 'backend/.env.local'),
-    path.resolve(process.cwd(), 'backend/.env'),
+    path.resolve(cwd, '.env.local'),
+    path.resolve(cwd, '.env'),
+    path.resolve(cwd, 'backend/.env.local'),
+    path.resolve(cwd, 'backend/.env'),
+    path.resolve(cwd, '../.env.local'),
+    path.resolve(cwd, '../.env'),
   ];
 
   for (const candidate of candidates) {
