@@ -1,3 +1,5 @@
+import { isManagementRole, normalizeAppRole } from '@/utils/authRoles';
+
 export interface SignInRequest {
   identifier: string;
   password: string;
@@ -200,10 +202,10 @@ export async function syncCurrentUserSession(): Promise<any> {
   try {
     const user = await getCurrentUser();
     if (user && user.role) {
-      const serverRole = String(user.role).toLowerCase();
-      const allowedRoles = ['super_admin', 'admin', 'manager', 'staff', 'customer'];
-      if (allowedRoles.includes(serverRole)) {
-        setStoredUserRole(serverRole);
+      const normalizedRole = normalizeAppRole(user.role);
+      const allowedRoles = ['SUPER_ADMIN', 'ADMIN', 'MANAGER', 'EMPLOYEE', 'CUSTOMER'];
+      if (allowedRoles.includes(normalizedRole)) {
+        setStoredUserRole(normalizedRole);
       }
       return user;
     }
@@ -255,9 +257,7 @@ export function setStoredUserRole(role: string | null, remember = true) {
 }
 
 export function isAuthorizedStaffOrAdmin(): boolean {
-  const role = (getStoredUserRole() || '').toLowerCase();
-  const adminRoles = ['admin', 'super_admin', 'manager', 'staff'];
-  return adminRoles.includes(role);
+  return isManagementRole(getStoredUserRole());
 }
 
 export function setStoredTokens(result: AuthResult, remember = true) {
