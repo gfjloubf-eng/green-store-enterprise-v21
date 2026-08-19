@@ -5,8 +5,8 @@
   "main": "dist/system/server.js",
   "scripts": {
     "build": "tsc -p tsconfig.json",
-    "dev": "ts-node src/system/server.ts",
-    "start": "npm run build && node dist/system/server.js",
+    "dev": "ts-node src/system/server-cli.ts",
+    "start": "npm run build && node dist/system/server-cli.js",
     "lint": "echo \"Add lint scripts\"",
     "test": "echo \"Add tests\""
   },
