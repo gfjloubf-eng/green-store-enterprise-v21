@@ -58,8 +58,8 @@ export const LOCAL_MARKETPLACE_STORES: LocalMarketplaceStore[] = [
     status: 'open',
     deliveryAvailable: true,
     deliveryTime: '35 - 45 دقيقة',
-    deliveryCost: '3 ر.س',
-    minimumOrder: '25 ر.س',
+    deliveryCost: 'يحدد حسب المنطقة',
+    minimumOrder: 'حسب الطلب',
     categories: ['خضروات', 'أعشاب', 'فاكهة'],
     description:
       'متجر النخيل يختص بتوفير المنتجات الطازجة مباشرة من المزارع المحلية مع توصيل سريع وخدمة موثوقة.',
@@ -78,8 +78,8 @@ export const LOCAL_MARKETPLACE_STORES: LocalMarketplaceStore[] = [
     status: 'open',
     deliveryAvailable: true,
     deliveryTime: '45 - 55 دقيقة',
-    deliveryCost: '5 ر.س',
-    minimumOrder: '30 ر.س',
+    deliveryCost: 'يحدد حسب المنطقة',
+    minimumOrder: 'حسب الطلب',
     categories: ['فاكهة', 'ألبان', 'مشروبات'],
     description:
       'سوق الحديقة يقدم تشكيلة مميزة من المنتجات الصحية العضوية مع تغليف آمن وجودة يومية.',

@@ -8,6 +8,8 @@
    2. Saqr Anwar Support Number (صقر أنور - متابعة الطلبات)
    ============================================================ */
 
+import { formatPrice } from '@/lib/formatters';
+
 export type WhatsAppTarget = 'store' | 'saqr';
 
 export interface WhatsAppContactInfo {
@@ -22,11 +24,11 @@ export interface WhatsAppContactInfo {
 export const WHATSAPP_CONTACTS: Record<WhatsAppTarget, WhatsAppContactInfo> = {
   store: {
     id: 'store',
-    name: 'المتجر الرسمي (قطوف الطبيعة)',
-    shortName: 'المتجر الرسمي',
+    name: 'عمار عادل المصوعي — الطلب الرئيسي',
+    shortName: 'عمار عادل',
     phone: '712275038',
     fullNumber: '967712275038',
-    role: 'خدمة العملاء والطلب المباشر',
+    role: 'استقبال الطلبات الرئيسية وخدمة العملاء',
   },
   saqr: {
     id: 'saqr',
@@ -76,8 +78,8 @@ export function buildSingleProductWhatsAppMessage(
   let msg = `السلام عليكم ورحمة الله وبركاته،\nأرغب في طلب المنتج التالي من قطوف الطبيعة:\n\n`;
   msg += `📍 المنتج: ${product.name}\n`;
   msg += `📦 الكمية: ${quantity} (${unitName})\n`;
-  msg += `💰 السعر: ${product.sellingPrice} ر.س / ${unitName}\n`;
-  msg += `💵 الإجمالي: ${total} ر.س\n`;
+  msg += `💰 السعر: ${formatPrice(product.sellingPrice)} / ${unitName}\n`;
+  msg += `💵 الإجمالي: ${formatPrice(Number(total))}\n`;
 
   if (notes && notes.trim()) {
     msg += `📝 ملاحظات: ${notes.trim()}\n`;
@@ -97,12 +99,12 @@ export function buildCartWhatsAppMessage(
   let msg = `السلام عليكم ورحمة الله وبركاته،\nأرغب في طلب المنتجات التالية من قطوف الطبيعة:\n\n`;
 
   items.forEach((item, index) => {
-    const itemTotal = (item.price * item.quantity).toFixed(2);
+    const itemTotal = item.price * item.quantity;
     const unit = item.unitName ? ` ${item.unitName}` : '';
-    msg += `${index + 1}. ${item.name} — ${item.quantity}${unit} (الإجمالي: ${itemTotal} ر.س)\n`;
+    msg += `${index + 1}. ${item.name} — ${item.quantity}${unit} (الإجمالي: ${formatPrice(itemTotal)})\n`;
   });
 
-  msg += `\n💳 إجمالي الطلب: ${grandTotal.toFixed(2)} ر.س\n`;
+  msg += `\n💳 إجمالي الطلب: ${formatPrice(grandTotal)}\n`;
   msg += `\nأتمنى التواصل معي لتأكيد الطلب. شكراً لكم!`;
   return msg;
 }
