@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft, MapPin, MessageCircle, Star, Truck, Plus, Check } from 'lucide-react';
 import { BreadcrumbEngine } from '@/components/layout/BreadcrumbEngine';
@@ -12,6 +12,7 @@ import { formatPrice } from '@/lib/formatters';
 import { useI18n } from '@/i18n/useI18n';
 import { useCart } from '../useCart';
 import { addItemToCart } from '@/services/cartClient';
+import { calculateEffectivePrice } from '@/features/products/services/offerService';
 
 const reviews = [
   {
@@ -41,13 +42,24 @@ export function StoreProfilePage() {
   const [userStoreRating, setUserStoreRating] = useState<number | null>(null);
   const [storeRatingSubmitted, setStoreRatingSubmitted] = useState(false);
 
-  const availableProducts = useMemo(() => {
-    if (!store) return [];
-    return ProductService.getAll().filter((product) => store.productIds.includes(product.id));
+  const [availableProducts, setAvailableProducts] = useState<ProductDTO[]>(() =>
+    store ? ProductService.getAll().filter((product) => store.productIds.includes(product.id)) : [],
+  );
+
+  useEffect(() => {
+    if (!store) return;
+    let isMounted = true;
+    void ProductService.syncAllFromBackend().then((syncedProducts) => {
+      if (!isMounted) return;
+      setAvailableProducts(syncedProducts.filter((product) => store.productIds.includes(product.id)));
+    });
+    return () => {
+      isMounted = false;
+    };
   }, [store]);
 
   const todayOffers = useMemo(
-    () => availableProducts.filter((product) => product.sellingPrice <= 3).slice(0, 4),
+    () => availableProducts.filter((product) => calculateEffectivePrice(product).hasActiveOffer).slice(0, 3),
     [availableProducts],
   );
 
@@ -68,6 +80,11 @@ export function StoreProfilePage() {
       ).slice(0, 3),
     [store],
   );
+
+  const coordinates = store?.location?.coordinates;
+  const mapUrl = coordinates
+    ? `https://www.google.com/maps/search/?api=1&query=${coordinates.lat},${coordinates.lng}`
+    : null;
 
   if (!store) {
     return (
@@ -191,6 +208,17 @@ export function StoreProfilePage() {
             تواصل الآن عبر واتساب
             <MessageCircle className="h-5 w-5" />
           </a>
+          {mapUrl && (
+            <a
+              href={mapUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="flex items-center justify-between rounded-3xl border border-[var(--gs-border)] bg-[var(--gs-surface)] p-4 text-sm font-semibold [color:var(--gs-primary)]"
+            >
+              فتح الموقع على الخريطة
+              <MapPin className="h-5 w-5" />
+            </a>
+          )}
         </div>
       </section>
 
