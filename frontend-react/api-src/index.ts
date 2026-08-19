@@ -28,8 +28,3 @@ export default async function apiHandler(req: IncomingMessage, res: ServerRespon
     }
   }
 }
-
-if (typeof module !== 'undefined' && module.exports) {
-  module.exports = apiHandler;
-  module.exports.default = apiHandler;
-}
