@@ -51,13 +51,13 @@ export function ContactPage() {
           <div className="p-4 rounded-2xl border border-[var(--gs-border)] bg-[var(--gs-background)] space-y-1">
             <Mail className="h-5 w-5 text-emerald-600 mb-2" />
             <h3 className="text-xs font-semibold [color:var(--gs-foreground)]">البريد الإلكتروني</h3>
-            <p className="text-xs text-[var(--gs-foreground-secondary)]">support@greenstore.com</p>
+            <p className="text-xs text-[var(--gs-foreground-secondary)]">ggjloubf@gmail.com</p>
           </div>
 
           <div className="p-4 rounded-2xl border border-[var(--gs-border)] bg-[var(--gs-background)] space-y-1">
             <MapPin className="h-5 w-5 text-emerald-600 mb-2" />
             <h3 className="text-xs font-semibold [color:var(--gs-foreground)]">الموقع الرئيسي</h3>
-            <p className="text-xs text-[var(--gs-foreground-secondary)]">جدة / الرياض، المملكة العربية السعودية</p>
+            <p className="text-xs text-[var(--gs-foreground-secondary)]">اليمن، صنعاء، شارع هائل</p>
           </div>
 
           <div className="p-4 rounded-2xl border border-[var(--gs-border)] bg-[var(--gs-background)] space-y-1">
