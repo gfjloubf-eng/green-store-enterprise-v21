@@ -158,7 +158,7 @@ export function CheckoutPage() {
               </div>
               <div className="rounded-2xl bg-[var(--gs-background)] p-4 text-xs space-y-1">
                 <div className="font-semibold [color:var(--gs-foreground)]">عنوان التوصيل السريع</div>
-                <div className="text-[var(--gs-foreground-secondary)]">المملكة العربية السعودية، جدة / الرياض</div>
+                <div className="text-[var(--gs-foreground-secondary)]">اليمن، صنعاء، شارع هائل</div>
               </div>
             </section>
 
