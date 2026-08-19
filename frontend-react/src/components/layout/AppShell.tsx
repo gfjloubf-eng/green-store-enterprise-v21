@@ -5,7 +5,7 @@
    ============================================================ */
 
 import { useState, useCallback } from 'react';
-import { Outlet } from 'react-router-dom';
+import { Outlet, useLocation } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { navConfig } from '@/config/navigation';
 import { Sidebar } from './Sidebar';
@@ -15,12 +15,20 @@ import { Footer } from './Footer';
 /* ─── AppShell ─────────────────────────────────────────────── */
 
 import { FloatingSupport } from '@/components/support/FloatingSupport';
-import CartFloatingButton from '@/features/marketplace/CartFloatingButton';
 import CartDrawer from '@/features/marketplace/CartDrawer';
 import { MobileBottomNav } from './MobileBottomNav';
 
 export function AppShell() {
+  const location = useLocation();
   const [expanded, setExpanded] = useState(true);
+
+  const isStorefront =
+    location.pathname === '/' ||
+    location.pathname === '/products' ||
+    /^\/products\/[^/]+$/.test(location.pathname) ||
+    ['/cart', '/settings', '/about', '/contact', '/help', '/support', '/stores'].some(
+      (path) => location.pathname === path || location.pathname.startsWith(`${path}/`),
+    );
   const [mobileOpen, setMobileOpen] = useState(false);
 
   const handleToggleExpanded = useCallback(() => {
@@ -37,19 +45,21 @@ export function AppShell() {
 
   return (
     <div className="gsd-appshell flex h-screen overflow-hidden [background:var(--gs-background)]" dir="inherit">
-      {/* Sidebar */}
-      <Sidebar
-        groups={navConfig}
-        expanded={expanded}
-        onToggleExpanded={handleToggleExpanded}
-        mobileOpen={mobileOpen}
-        onMobileClose={handleMobileClose}
-      />
+      {/* Storefront pages use a focused commerce shell; admin pages keep the full sidebar. */}
+      {!isStorefront && (
+        <Sidebar
+          groups={navConfig}
+          expanded={expanded}
+          onToggleExpanded={handleToggleExpanded}
+          mobileOpen={mobileOpen}
+          onMobileClose={handleMobileClose}
+        />
+      )}
 
       {/* Main area */}
-      <div className="flex flex-1 flex-col min-w-0">
+      <div className={cn('flex flex-1 flex-col min-w-0', isStorefront && 'w-full')}>
         {/* Topbar */}
-        <Topbar onMenuClick={handleMobileToggle} mobileOpen={mobileOpen} />
+        <Topbar onMenuClick={handleMobileToggle} mobileOpen={mobileOpen} storefront={isStorefront} />
 
         {/* Content */}
         <main
@@ -66,10 +76,9 @@ export function AppShell() {
       </div>
 
       {/* Mobile Bottom Navigation */}
-      <MobileBottomNav />
+      <MobileBottomNav storefront={isStorefront} />
 
       {/* Global Cart UI */}
-      <CartFloatingButton />
       <CartDrawer />
 
       {/* Global Floating Support Widget */}

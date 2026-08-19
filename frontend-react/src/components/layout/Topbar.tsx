@@ -15,13 +15,15 @@ interface TopbarProps {
   onMenuClick: () => void;
   /** Whether mobile sidebar drawer is currently open */
   mobileOpen?: boolean;
+  /** Public storefront mode uses a lighter commerce-focused header. */
+  storefront?: boolean;
   /** Optional class name override */
   className?: string;
 }
 
 /* ─── Topbar ───────────────────────────────────────────────── */
 
-export function Topbar({ onMenuClick, mobileOpen = false, className }: TopbarProps) {
+export function Topbar({ onMenuClick, mobileOpen = false, storefront = false, className }: TopbarProps) {
   const navigate = useNavigate();
   const location = useLocation();
   const { t } = useI18n();
@@ -56,30 +58,33 @@ export function Topbar({ onMenuClick, mobileOpen = false, className }: TopbarPro
         className,
       )}
     >
-      {/* Mobile Left Section: Hamburger & Logo + Store Name visually connected */}
-      <div className="flex items-center gap-2 lg:hidden min-w-0">
-        <button
-          type="button"
-          onClick={onMenuClick}
-          data-sidebar-toggle="true"
-          aria-expanded={mobileOpen}
-          className="flex items-center justify-center rounded-xl p-2.5 touch-manipulation min-h-[44px] min-w-[44px] [color:var(--gs-foreground-secondary)] hover:[background:var(--gs-muted)] hover:[color:var(--gs-foreground)] transition-colors shrink-0"
-          aria-label={mobileOpen ? 'إغلاق القائمة' : 'فتح القائمة'}
-          title={mobileOpen ? 'إغلاق القائمة' : 'فتح القائمة'}
-        >
-          {mobileOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
-        </button>
+      {/* Storefront brand; the menu trigger is only needed when the admin sidebar exists. */}
+      <div className="flex items-center gap-2 min-w-0">
+        {!storefront && (
+          <button
+            type="button"
+            onClick={onMenuClick}
+            data-sidebar-toggle="true"
+            aria-expanded={mobileOpen}
+            className="flex lg:hidden items-center justify-center rounded-xl p-2.5 touch-manipulation min-h-[44px] min-w-[44px] [color:var(--gs-foreground-secondary)] hover:[background:var(--gs-muted)] hover:[color:var(--gs-foreground)] transition-colors shrink-0"
+            aria-label={mobileOpen ? 'إغلاق القائمة' : 'فتح القائمة'}
+            title={mobileOpen ? 'إغلاق القائمة' : 'فتح القائمة'}
+          >
+            {mobileOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+          </button>
+        )}
 
         <div
-          className="flex items-center cursor-pointer min-w-0"
+          className={cn('flex items-center cursor-pointer min-w-0', storefront ? 'lg:flex' : 'lg:hidden')}
           onClick={() => navigate('/')}
         >
           <LogoPlaceholder size="sm" showText />
         </div>
       </div>
 
-      {/* Desktop/Tablet Breadcrumb */}
-      <BreadcrumbEngine className="hidden lg:flex flex-1 min-w-0" />
+      {/* Desktop/Tablet Breadcrumb or storefront search placeholder space */}
+      {!storefront && <BreadcrumbEngine className="hidden lg:flex flex-1 min-w-0" />}
+      {storefront && <div className="hidden sm:block flex-1" aria-hidden="true" />}
 
       {/* Header Actions (Desktop & Mobile) */}
       <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
@@ -112,16 +117,18 @@ export function Topbar({ onMenuClick, mobileOpen = false, className }: TopbarPro
           </button>
         )}
 
-        {/* Centralized Settings Access Button (Desktop & Mobile) */}
-        <button
-          type="button"
-          onClick={() => navigate('/settings')}
-          className="rounded-xl p-2.5 [color:var(--gs-foreground-secondary)] hover:[background:var(--gs-muted)] hover:[color:var(--gs-foreground)] transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center"
-          aria-label={t('nav.settings') || 'الإعدادات'}
-          title={t('nav.settings') || 'الإعدادات'}
-        >
-          <Settings className="h-5 w-5" />
-        </button>
+        {/* Settings remains available to the admin shell; the storefront keeps the header focused. */}
+        {!storefront && (
+          <button
+            type="button"
+            onClick={() => navigate('/settings')}
+            className="rounded-xl p-2.5 [color:var(--gs-foreground-secondary)] hover:[background:var(--gs-muted)] hover:[color:var(--gs-foreground)] transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center"
+            aria-label={t('nav.settings') || 'الإعدادات'}
+            title={t('nav.settings') || 'الإعدادات'}
+          >
+            <Settings className="h-5 w-5" />
+          </button>
+        )}
 
         {/* Desktop User Profile & Logout OR Guest Login button */}
         <div className="hidden lg:flex items-center">

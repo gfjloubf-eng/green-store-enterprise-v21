@@ -3,7 +3,11 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { Home, ShoppingBag, ShoppingCart, Settings, HelpCircle } from 'lucide-react';
 import { getCart } from '@/services/cartClient';
 
-export function MobileBottomNav() {
+interface MobileBottomNavProps {
+  storefront?: boolean;
+}
+
+export function MobileBottomNav({ storefront = false }: MobileBottomNavProps) {
   const navigate = useNavigate();
   const location = useLocation();
   const [cartCount, setCartCount] = useState(0);
@@ -21,18 +25,25 @@ export function MobileBottomNav() {
       .catch(() => setCartCount(0));
   }, [location.pathname]);
 
-  const navItems = [
-    { path: '/', label: 'الرئيسية', icon: Home },
-    { path: '/products', label: 'المنتجات', icon: ShoppingBag },
-    { path: '/cart', label: 'السلة', icon: ShoppingCart, badge: cartCount },
-    { path: '/settings', label: 'الإعدادات', icon: Settings },
-    { path: '/support', label: 'الدعم', icon: HelpCircle },
-  ];
+  const navItems = storefront
+    ? [
+        { path: '/', label: 'الرئيسية', icon: Home },
+        { path: '/products', label: 'المنتجات', icon: ShoppingBag },
+        { path: '/cart', label: 'السلة', icon: ShoppingCart, badge: cartCount },
+        { path: '/support', label: 'الدعم', icon: HelpCircle },
+      ]
+    : [
+        { path: '/', label: 'الرئيسية', icon: Home },
+        { path: '/products', label: 'المنتجات', icon: ShoppingBag },
+        { path: '/cart', label: 'السلة', icon: ShoppingCart, badge: cartCount },
+        { path: '/settings', label: 'الإعدادات', icon: Settings },
+        { path: '/support', label: 'الدعم', icon: HelpCircle },
+      ];
 
   return (
     <nav
       aria-label="التنقل السريع للهاتف"
-      className="fixed bottom-0 left-0 right-0 z-40 lg:hidden border-t border-[var(--gs-border)] bg-[var(--gs-surface)]/95 backdrop-blur-md shadow-lg py-1 px-2 flex items-center justify-around"
+      className="fixed bottom-0 left-0 right-0 z-40 lg:hidden border-t border-[var(--gs-border)] bg-[var(--gs-surface)]/95 backdrop-blur-md shadow-lg py-1 px-2 pb-[calc(0.25rem+env(safe-area-inset-bottom))] flex items-center justify-around"
       dir="rtl"
     >
       {navItems.map((item) => {
@@ -47,7 +58,7 @@ export function MobileBottomNav() {
             key={item.path}
             type="button"
             onClick={() => navigate(item.path)}
-            className={`relative flex flex-col items-center justify-center py-1.5 px-3 min-h-[48px] min-w-[56px] rounded-xl transition-all touch-manipulation ${
+            className={`relative flex flex-col items-center justify-center py-1.5 px-2 min-h-[48px] min-w-[64px] rounded-xl transition-all touch-manipulation ${
               isActive
                 ? 'text-emerald-600 font-bold bg-emerald-500/10'
                 : 'text-[var(--gs-foreground-secondary)] hover:text-[var(--gs-foreground)]'
