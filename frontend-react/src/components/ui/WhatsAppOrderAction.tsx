@@ -103,8 +103,13 @@ export function WhatsAppOrderAction({
                       <Store className="h-5 w-5" />
                     </span>
                     <span>
-                      <strong className="block text-sm text-emerald-900 dark:text-emerald-100">واتساب الطلب الرئيسي</strong>
-                      <span className="mt-0.5 block text-xs text-emerald-800/75 dark:text-emerald-200/75">عمار عادل · {WHATSAPP_CONTACTS.store.phone}</span>
+                      <strong className="flex items-center gap-1.5 text-sm text-emerald-900 dark:text-emerald-100">
+                        <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-emerald-500/15 text-emerald-700 dark:bg-emerald-300/15 dark:text-emerald-200" aria-hidden="true">
+                          <Store className="h-3 w-3" />
+                        </span>
+                        <span>عمار عادل</span>
+                      </strong>
+                      <span className="mt-0.5 block text-xs text-emerald-800/75 dark:text-emerald-200/75">الطلب الرئيسي · {WHATSAPP_CONTACTS.store.phone}</span>
                     </span>
                   </span>
                 </button>
@@ -119,8 +124,13 @@ export function WhatsAppOrderAction({
                       <User className="h-5 w-5" />
                     </span>
                     <span>
-                      <strong className="block text-sm text-teal-900 dark:text-teal-100">واتساب المتابعة والتوصيل</strong>
-                      <span className="mt-0.5 block text-xs text-teal-800/75 dark:text-teal-200/75">صقر أنور · {WHATSAPP_CONTACTS.saqr.phone}</span>
+                      <strong className="flex items-center gap-1.5 text-sm text-teal-900 dark:text-teal-100">
+                        <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-teal-500/15 text-teal-700 dark:bg-teal-300/15 dark:text-teal-200" aria-hidden="true">
+                          <User className="h-3 w-3" />
+                        </span>
+                        <span>صقر أنور</span>
+                      </strong>
+                      <span className="mt-0.5 block text-xs text-teal-800/75 dark:text-teal-200/75">المتابعة والتوصيل · {WHATSAPP_CONTACTS.saqr.phone}</span>
                     </span>
                   </span>
                 </button>
