@@ -13,7 +13,7 @@ export const FloatingSupport: React.FC = () => {
   };
 
   return (
-    <div className="fixed bottom-5 left-5 z-40" dir="rtl">
+    <div className="fixed bottom-20 left-3 sm:left-5 lg:bottom-5 z-30" dir="rtl">
       {/* Expanded Modal / Popover */}
       {isOpen && (
         <div className="mb-3 w-80 sm:w-96 max-w-[calc(100vw-2.5rem)] rounded-3xl border border-[var(--gs-border)] bg-[var(--gs-surface)] shadow-2xl overflow-hidden animate-in fade-in slide-in-from-bottom-3 duration-200">
@@ -24,7 +24,7 @@ export const FloatingSupport: React.FC = () => {
                 <MessageSquare className="h-4 w-4" />
               </div>
               <div>
-                <h3 className="text-xs font-bold">مرحبًا 👋</h3>
+                <h3 className="text-xs font-bold">مرحبًا</h3>
                 <p className="text-[11px] text-emerald-100">كيف يمكننا مساعدتك اليوم؟</p>
               </div>
             </div>
@@ -136,7 +136,7 @@ export const FloatingSupport: React.FC = () => {
         ) : (
           <>
             <MessageSquare className="h-5 w-5" />
-            <span>💬 الدعم</span>
+            <span>الدعم</span>
           </>
         )}
       </button>
