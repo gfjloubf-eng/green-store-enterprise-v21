@@ -53,7 +53,7 @@ export function WhatsAppOrderAction({
           className="flex-1 inline-flex items-center justify-center gap-2 rounded-2xl border border-emerald-500/30 bg-emerald-50 dark:bg-emerald-950/40 px-4 py-3 text-xs font-bold text-emerald-800 dark:text-emerald-300 hover:bg-emerald-100 dark:hover:bg-emerald-900/60 transition shadow-xs touch-manipulation min-h-[44px]"
         >
           <Store className="h-4 w-4 text-emerald-600 shrink-0" />
-          <span>طلب عبر واتساب (المتجر)</span>
+          <span className="text-right"><strong className="block">اطلب من عمار عادل</strong><small className="block text-[10px] font-medium opacity-75">{WHATSAPP_CONTACTS.store.phone} · الطلب الرئيسي</small></span>
         </button>
 
         <button
@@ -62,7 +62,7 @@ export function WhatsAppOrderAction({
           className="flex-1 inline-flex items-center justify-center gap-2 rounded-2xl border border-teal-500/30 bg-teal-50 dark:bg-teal-950/40 px-4 py-3 text-xs font-bold text-teal-800 dark:text-teal-300 hover:bg-teal-100 dark:hover:bg-teal-900/60 transition shadow-xs touch-manipulation min-h-[44px]"
         >
           <User className="h-4 w-4 text-teal-600 shrink-0" />
-          <span>طلب عبر واتساب (صقر أنور)</span>
+          <span className="text-right"><strong className="block">متابعة مع صقر</strong><small className="block text-[10px] font-medium opacity-75">{WHATSAPP_CONTACTS.saqr.phone} · التوصيل والدعم</small></span>
         </button>
       </div>
     );
@@ -85,7 +85,7 @@ export function WhatsAppOrderAction({
       {openDropdown && (
         <div className="absolute top-full right-0 left-0 mt-2 z-30 rounded-2xl bg-[var(--gs-surface)] border border-[var(--gs-border)] shadow-xl p-2 space-y-1.5 animate-in fade-in zoom-in-95 duration-150">
           <div className="px-3 py-1.5 text-[10px] font-bold text-[var(--gs-foreground-muted)] border-b border-[var(--gs-border-subtle)]">
-            اختر جهة الاتصال لإرسال الطلب:
+            اختر القناة المناسبة: الطلب الرئيسي أو متابعة التوصيل
           </div>
 
           <button
@@ -99,7 +99,7 @@ export function WhatsAppOrderAction({
               </div>
               <div>
                 <strong className="block text-[var(--gs-foreground)]">{WHATSAPP_CONTACTS.store.shortName}</strong>
-                <span className="text-[10px] text-[var(--gs-foreground-secondary)]">{WHATSAPP_CONTACTS.store.role}</span>
+                <span className="text-[10px] text-[var(--gs-foreground-secondary)]">{WHATSAPP_CONTACTS.store.role} · {WHATSAPP_CONTACTS.store.phone}</span>
               </div>
             </div>
             <Check className="h-4 w-4 text-emerald-600 opacity-0 group-hover:opacity-100" />
@@ -116,7 +116,7 @@ export function WhatsAppOrderAction({
               </div>
               <div>
                 <strong className="block text-[var(--gs-foreground)]">{WHATSAPP_CONTACTS.saqr.shortName}</strong>
-                <span className="text-[10px] text-[var(--gs-foreground-secondary)]">{WHATSAPP_CONTACTS.saqr.role}</span>
+                <span className="text-[10px] text-[var(--gs-foreground-secondary)]">{WHATSAPP_CONTACTS.saqr.role} · {WHATSAPP_CONTACTS.saqr.phone}</span>
               </div>
             </div>
             <Check className="h-4 w-4 text-teal-600 opacity-0 group-hover:opacity-100" />
