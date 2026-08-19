@@ -238,7 +238,7 @@ export function HomePage() {
                 variant="modal"
                 buttonText="طلب سريع عبر واتساب"
                 className="w-auto min-w-[220px]"
-                getMessage={() => 'مرحبًا، أرغب في طلب خضروات وفواكه طازجة من قطوف الطبيعة.'}
+                getMessage={() => 'أرغب في طلب خضروات وفواكه طازجة من قطوف الطبيعة.'}
               />
               <button
                 type="button"
