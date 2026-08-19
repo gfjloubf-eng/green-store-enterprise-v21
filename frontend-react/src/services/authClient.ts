@@ -55,7 +55,7 @@ export async function signIn(req: SignInRequest): Promise<AuthResult> {
   const payload = await parseJsonSafe(res);
 
   if (!res.ok) {
-    const message = payload?.error?.message ?? res.statusText;
+    const message = payload?.error?.message || (res.statusText ? `${res.statusText} (${res.status})` : `فشل الطلب (${res.status})`);
     const code = payload?.error?.code ?? 'error';
     const err: any = new Error(message);
     err.code = code;
@@ -78,7 +78,7 @@ export async function signUp(req: { name: string; email: string; password: strin
   const payload = await parseJsonSafe(res);
 
   if (!res.ok) {
-    const message = payload?.error?.message ?? res.statusText;
+    const message = payload?.error?.message || (res.statusText ? `${res.statusText} (${res.status})` : `فشل الطلب (${res.status})`);
     const code = payload?.error?.code ?? 'error';
     const err: any = new Error(message);
     err.code = code;
@@ -100,7 +100,7 @@ export async function changePassword(req: { currentPassword: string; newPassword
 
   if (!res.ok) {
     const payload = await parseJsonSafe(res);
-    const message = payload?.error?.message ?? res.statusText;
+    const message = payload?.error?.message || (res.statusText ? `${res.statusText} (${res.status})` : `فشل الطلب (${res.status})`);
     const err: any = new Error(message);
     err.status = res.status;
     throw err;
@@ -116,7 +116,7 @@ export async function forgotPassword(email: string): Promise<void> {
 
   if (!res.ok) {
     const payload = await parseJsonSafe(res);
-    const message = payload?.error?.message ?? res.statusText;
+    const message = payload?.error?.message || (res.statusText ? `${res.statusText} (${res.status})` : `فشل الطلب (${res.status})`);
     const err: any = new Error(message);
     err.status = res.status;
     throw err;
@@ -132,7 +132,7 @@ export async function resetPassword(req: { token: string; newPassword: string; c
 
   if (!res.ok) {
     const payload = await parseJsonSafe(res);
-    const message = payload?.error?.message ?? res.statusText;
+    const message = payload?.error?.message || (res.statusText ? `${res.statusText} (${res.status})` : `فشل الطلب (${res.status})`);
     const err: any = new Error(message);
     err.status = res.status;
     throw err;
@@ -148,7 +148,7 @@ export async function updateProfile(req: { name?: string; displayName?: string; 
 
   const payload = await parseJsonSafe(res);
   if (!res.ok) {
-    const message = payload?.error?.message ?? res.statusText;
+    const message = payload?.error?.message || (res.statusText ? `${res.statusText} (${res.status})` : `فشل الطلب (${res.status})`);
     const err: any = new Error(message);
     err.status = res.status;
     throw err;
@@ -165,7 +165,7 @@ export async function refresh(refreshToken: string): Promise<AuthResult> {
 
   const payload = await parseJsonSafe(res);
   if (!res.ok) {
-    const message = payload?.error?.message ?? res.statusText;
+    const message = payload?.error?.message || (res.statusText ? `${res.statusText} (${res.status})` : `فشل الطلب (${res.status})`);
     const err: any = new Error(message);
     err.status = res.status;
     throw err;
@@ -180,7 +180,7 @@ export async function getCurrentUser(): Promise<any> {
   const res = await fetchWithAuth(`${getApiBase()}/auth/me`, { method: 'GET' });
   const payload = await parseJsonSafe(res);
   if (!res.ok) {
-    const message = payload?.error?.message ?? res.statusText;
+    const message = payload?.error?.message || (res.statusText ? `${res.statusText} (${res.status})` : `فشل الطلب (${res.status})`);
     const err: any = new Error(message);
     err.status = res.status;
     throw err;
