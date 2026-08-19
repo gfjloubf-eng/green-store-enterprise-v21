@@ -58,13 +58,13 @@ export function ReportsDashboardPage() {
 
   const handleExportCsv = () => {
     if (!salesData?.recentOrders) return;
-    const headers = ['رقم الطلب', 'اسم العميل', 'الحالة', 'الإجمالي (ر.س)', 'التاريخ'];
+    const headers = ['رقم الطلب', 'اسم العميل', 'الحالة', 'الإجمالي (ر.ي)', 'التاريخ'];
     const rows = salesData.recentOrders.map((o: any) => [
       o.orderNumber,
       `"${o.customerName}"`,
       o.status,
       o.total,
-      new Date(o.createdAt).toLocaleDateString('ar-SA'),
+      new Date(o.createdAt).toLocaleDateString('ar-YE'),
     ]);
     const csvContent = 'data:text/csv;charset=utf-8,\uFEFF' + [headers.join(','), ...rows.map((r: any) => r.join(','))].join('\n');
     const encodedUri = encodeURI(csvContent);
@@ -120,7 +120,7 @@ export function ReportsDashboardPage() {
           <div>
             <span className="text-[11px] text-[var(--gs-foreground-secondary)] font-medium">إجمالي الإيرادات</span>
             <strong className="text-xl font-bold text-emerald-600 block mt-1">
-              {(kpis?.totalRevenue ?? 0).toLocaleString()} <span className="text-xs font-normal">ر.س</span>
+              {(kpis?.totalRevenue ?? 0).toLocaleString()} <span className="text-xs font-normal">ر.ي</span>
             </strong>
           </div>
           <div className="h-11 w-11 rounded-2xl bg-emerald-500/10 text-emerald-600 flex items-center justify-center">
@@ -228,11 +228,11 @@ export function ReportsDashboardPage() {
             </div>
             <div className="p-4 rounded-2xl border border-[var(--gs-border)] bg-[var(--gs-surface)] text-xs">
               <span className="text-[var(--gs-foreground-secondary)]">إجمالي المبيعات</span>
-              <strong className="text-lg font-bold block text-emerald-600 mt-1">{(salesData?.totalRevenue ?? 0).toLocaleString()} ر.س</strong>
+              <strong className="text-lg font-bold block text-emerald-600 mt-1">{(salesData?.totalRevenue ?? 0).toLocaleString()} ر.ي</strong>
             </div>
             <div className="p-4 rounded-2xl border border-[var(--gs-border)] bg-[var(--gs-surface)] text-xs">
               <span className="text-[var(--gs-foreground-secondary)]">متوسط قيمة الطلب (AOV)</span>
-              <strong className="text-lg font-bold block text-[var(--gs-foreground)] mt-1">{salesData?.averageOrderValue ?? 0} ر.س</strong>
+              <strong className="text-lg font-bold block text-[var(--gs-foreground)] mt-1">{salesData?.averageOrderValue ?? 0} ر.ي</strong>
             </div>
           </div>
 
@@ -260,8 +260,8 @@ export function ReportsDashboardPage() {
                           {o.status}
                         </span>
                       </td>
-                      <td className="py-3 px-3 font-bold">{o.total} ر.س</td>
-                      <td className="py-3 px-3 text-[var(--gs-foreground-secondary)]">{new Date(o.createdAt).toLocaleDateString('ar-SA')}</td>
+                      <td className="py-3 px-3 font-bold">{o.total} ر.ي</td>
+                      <td className="py-3 px-3 text-[var(--gs-foreground-secondary)]">{new Date(o.createdAt).toLocaleDateString('ar-YE')}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -286,7 +286,7 @@ export function ReportsDashboardPage() {
                   </div>
                   <div className="text-left">
                     <span className="font-bold text-emerald-600 block">{p.totalQuantitySold} وحدة</span>
-                    <span className="text-[10px] text-[var(--gs-foreground-secondary)]">{p.totalRevenue} ر.س</span>
+                    <span className="text-[10px] text-[var(--gs-foreground-secondary)]">{p.totalRevenue} ر.ي</span>
                   </div>
                 </div>
               ))}
@@ -386,7 +386,7 @@ export function ReportsDashboardPage() {
                       <td className="py-3 px-3 font-mono text-emerald-600 font-semibold">{log.action}</td>
                       <td className="py-3 px-3 font-mono">{log.resource}</td>
                       <td className="py-3 px-3 text-[var(--gs-foreground-secondary)] font-mono">{log.ipAddress || '127.0.0.1'}</td>
-                      <td className="py-3 px-3 text-[var(--gs-foreground-secondary)]">{new Date(log.createdAt).toLocaleString('ar-SA')}</td>
+                      <td className="py-3 px-3 text-[var(--gs-foreground-secondary)]">{new Date(log.createdAt).toLocaleString('ar-YE')}</td>
                     </tr>
                   ))}
               </tbody>
