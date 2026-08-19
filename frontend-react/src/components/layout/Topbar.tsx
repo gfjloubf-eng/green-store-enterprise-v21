@@ -1,12 +1,13 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Bell, Menu, X, LogOut, ShoppingCart, LogIn, Settings } from 'lucide-react';
+import { Bell, Menu, X, LogOut, ShoppingCart, LogIn, Settings, Sun, Moon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useI18n } from '@/i18n/useI18n';
 import { useAuth } from '@/hooks/useAuth';
 import { BreadcrumbEngine } from './BreadcrumbEngine';
 import { LogoPlaceholder } from '@/components/ui/LogoPlaceholder';
 import { getCart } from '@/services/cartClient';
+import { useTheme } from '@/hooks/useTheme';
 
 /* ─── Props ────────────────────────────────────────────────── */
 
@@ -28,6 +29,7 @@ export function Topbar({ onMenuClick, mobileOpen = false, storefront = false, cl
   const location = useLocation();
   const { t } = useI18n();
   const { user, logout } = useAuth();
+  const { isDark, toggle: toggleTheme } = useTheme();
   const [cartCount, setCartCount] = useState(0);
 
   useEffect(() => {
@@ -88,6 +90,17 @@ export function Topbar({ onMenuClick, mobileOpen = false, storefront = false, cl
 
       {/* Header Actions (Desktop & Mobile) */}
       <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+        {/* Theme toggle (Desktop & Mobile) */}
+        <button
+          type="button"
+          onClick={toggleTheme}
+          className="relative rounded-xl p-2.5 [color:var(--gs-foreground-secondary)] hover:[background:var(--gs-muted)] hover:[color:var(--gs-foreground)] transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center"
+          aria-label={isDark ? 'تفعيل الوضع النهاري' : 'تفعيل الوضع الليلي'}
+          title={isDark ? 'الوضع النهاري' : 'الوضع الليلي'}
+        >
+          {isDark ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
+        </button>
+
         {/* Cart button (Desktop & Mobile) */}
         <button
           type="button"
