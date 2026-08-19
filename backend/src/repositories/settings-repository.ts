@@ -50,6 +50,18 @@ export class SettingsRepository extends BaseRepository {
     for (const r of records) {
       result[r.key] = r.value;
     }
+
+    // Normalize legacy Saudi defaults that may still exist in the database.
+    if (result.contact_email === 'support@qutoof.sa') result.contact_email = DEFAULT_SETTINGS.contact_email;
+    if (result.contact_phone === '+966500000000') result.contact_phone = DEFAULT_SETTINGS.contact_phone;
+    if (result.support_phone === '712275038' || result.support_phone === '+966500000000') {
+      result.support_phone = DEFAULT_SETTINGS.support_phone;
+    }
+    if (result.address?.includes('المملكة العربية السعودية') || result.address?.includes('جدة') || result.address?.includes('الرياض')) {
+      result.address = DEFAULT_SETTINGS.address;
+    }
+    if (result.currency === 'SAR') result.currency = DEFAULT_SETTINGS.currency;
+
     return result;
   }
 
