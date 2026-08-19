@@ -1,11 +1,5 @@
 var __defProp = Object.defineProperty;
 var __getOwnPropNames = Object.getOwnPropertyNames;
-var __require = /* @__PURE__ */ ((x) => typeof require !== "undefined" ? require : typeof Proxy !== "undefined" ? new Proxy(x, {
-  get: (a, b) => (typeof require !== "undefined" ? require : a)[b]
-}) : x)(function(x) {
-  if (typeof require !== "undefined") return require.apply(this, arguments);
-  throw Error('Dynamic require of "' + x + '" is not supported');
-});
 var __esm = (fn, res) => function __init() {
   return fn && (res = (0, fn[__getOwnPropNames(fn)[0]])(fn = 0)), res;
 };
@@ -57,15 +51,18 @@ var init_errors = __esm({
 // ../backend/src/repositories/prisma-service.ts
 import fs from "node:fs";
 import path from "node:path";
-import { PrismaClient } from "@prisma/client";
+import prismaClientPackage from "@prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
 function loadEnvFile() {
   if (process.env.DATABASE_URL) return;
+  const cwd = process.cwd();
   const candidates = [
-    path.resolve(__dirname, "../../../.env.local"),
-    path.resolve(__dirname, "../../../.env"),
-    path.resolve(__dirname, "../../.env.local"),
-    path.resolve(__dirname, "../../.env")
+    path.resolve(cwd, ".env.local"),
+    path.resolve(cwd, ".env"),
+    path.resolve(cwd, "backend/.env.local"),
+    path.resolve(cwd, "backend/.env"),
+    path.resolve(cwd, "../.env.local"),
+    path.resolve(cwd, "../.env")
   ];
   for (const candidate of candidates) {
     if (!fs.existsSync(candidate)) continue;
@@ -85,10 +82,11 @@ function loadEnvFile() {
     }
   }
 }
-var PrismaService, prisma_service_default;
+var PrismaClient, PrismaService, prisma_service_default;
 var init_prisma_service = __esm({
   "../backend/src/repositories/prisma-service.ts"() {
     "use strict";
+    ({ PrismaClient } = prismaClientPackage);
     PrismaService = class _PrismaService {
       static client;
       static getClient() {
@@ -130,15 +128,14 @@ import fs2 from "node:fs";
 import path2 from "node:path";
 function loadEnvFile2() {
   if (process.env.JWT_SECRET) return;
+  const cwd = process.cwd();
   const candidates = [
-    path2.resolve(__dirname, "../../.env.local"),
-    path2.resolve(__dirname, "../../.env"),
-    path2.resolve(__dirname, "../.env.local"),
-    path2.resolve(__dirname, "../.env"),
-    path2.resolve(process.cwd(), ".env.local"),
-    path2.resolve(process.cwd(), ".env"),
-    path2.resolve(process.cwd(), "backend/.env.local"),
-    path2.resolve(process.cwd(), "backend/.env")
+    path2.resolve(cwd, ".env.local"),
+    path2.resolve(cwd, ".env"),
+    path2.resolve(cwd, "backend/.env.local"),
+    path2.resolve(cwd, "backend/.env"),
+    path2.resolve(cwd, "../.env.local"),
+    path2.resolve(cwd, "../.env")
   ];
   for (const candidate of candidates) {
     if (!fs2.existsSync(candidate)) continue;
@@ -240,38 +237,22 @@ var init_auth_token_service = __esm({
 });
 
 // ../backend/src/services/auth-hash-service.ts
+import argon2 from "argon2";
 var HashService, auth_hash_service_default;
 var init_auth_hash_service = __esm({
   "../backend/src/services/auth-hash-service.ts"() {
     "use strict";
     HashService = class {
-      getArgon2() {
-        try {
-          return __require("argon2");
-        } catch {
-          return null;
-        }
-      }
       async hash(password) {
-        const a2 = this.getArgon2();
-        if (!a2) {
-          throw new Error("argon2_unavailable");
-        }
-        return a2.hash(password, {
-          type: a2.argon2id ?? 2,
+        return argon2.hash(password, {
+          type: argon2.argon2id,
           memoryCost: 2 ** 16,
           timeCost: 3,
           parallelism: 1
         });
       }
       async verify(password, stored) {
-        try {
-          const a2 = this.getArgon2();
-          if (!a2) return false;
-          return await a2.verify(stored, password);
-        } catch {
-          return false;
-        }
+        return argon2.verify(stored, password);
       }
     };
     auth_hash_service_default = new HashService();
@@ -566,9 +547,6 @@ var init_auth_email_verification_service = __esm({
     auth_email_verification_service_default = new EmailVerificationService();
   }
 });
-
-// ../backend/src/system/server.ts
-import { createServer } from "node:http";
 
 // ../backend/src/api/status.ts
 var HTTP_STATUS = {
@@ -1985,22 +1963,22 @@ var MODULE_SCOPES = {
   notifications: "tenant",
   carts: "tenant"
 };
-function createPermissionDefinition(module2, action, description) {
+function createPermissionDefinition(module, action, description) {
   return {
-    key: `${module2}:${action}`,
-    module: module2,
+    key: `${module}:${action}`,
+    module,
     action,
-    scope: MODULE_SCOPES[module2],
+    scope: MODULE_SCOPES[module],
     description
   };
 }
-function createPermissionMap(module2, descriptions) {
+function createPermissionMap(module, descriptions) {
   return {
-    create: createPermissionDefinition(module2, "create", descriptions.create),
-    read: createPermissionDefinition(module2, "read", descriptions.read),
-    update: createPermissionDefinition(module2, "update", descriptions.update),
-    delete: createPermissionDefinition(module2, "delete", descriptions.delete),
-    list: createPermissionDefinition(module2, "list", descriptions.list)
+    create: createPermissionDefinition(module, "create", descriptions.create),
+    read: createPermissionDefinition(module, "read", descriptions.read),
+    update: createPermissionDefinition(module, "update", descriptions.update),
+    delete: createPermissionDefinition(module, "delete", descriptions.delete),
+    list: createPermissionDefinition(module, "list", descriptions.list)
   };
 }
 var PERMISSION_DEFINITIONS = {
@@ -2125,9 +2103,9 @@ var PERMISSION_DEFINITIONS = {
   })
 };
 var PERMISSION_GROUPS = Object.entries(PERMISSION_DEFINITIONS).map(
-  ([module2, definitions]) => ({
-    module: module2,
-    scope: MODULE_SCOPES[module2],
+  ([module, definitions]) => ({
+    module,
+    scope: MODULE_SCOPES[module],
     permissions: Object.values(definitions)
   })
 );
@@ -2149,14 +2127,14 @@ function createRoleDefinition(name, description, permissions) {
     permissions
   };
 }
-function getModulePermissions(module2) {
-  return Object.values(PERMISSION_DEFINITIONS[module2]).map((permission) => permission.key);
+function getModulePermissions(module) {
+  return Object.values(PERMISSION_DEFINITIONS[module]).map((permission) => permission.key);
 }
 function getPermissionsForModules(modules) {
-  return modules.flatMap((module2) => getModulePermissions(module2));
+  return modules.flatMap((module) => getModulePermissions(module));
 }
-function getPermissionsForModuleActions(module2, actions) {
-  return Object.values(PERMISSION_DEFINITIONS[module2]).filter((permission) => actions.includes(permission.action)).map((permission) => permission.key);
+function getPermissionsForModuleActions(module, actions) {
+  return Object.values(PERMISSION_DEFINITIONS[module]).filter((permission) => actions.includes(permission.action)).map((permission) => permission.key);
 }
 var ROLE_DEFINITIONS = [
   createRoleDefinition("SUPER_ADMIN", "Full access across every module", [...ALL_PERMISSIONS]),
@@ -3727,7 +3705,7 @@ var OrderRepository = class extends base_repository_default {
           tax,
           shipping,
           total,
-          currency: "SAR",
+          currency: "YER",
           placedAt: /* @__PURE__ */ new Date()
         }
       });
@@ -4164,7 +4142,8 @@ var logger = new NoopLogger();
 init_prisma_service();
 
 // ../backend/src/repositories/prisma-error-mapper.ts
-import { Prisma } from "@prisma/client";
+import prismaClientPackage2 from "@prisma/client";
+var { Prisma } = prismaClientPackage2;
 function mapPrismaError(err) {
   if (err instanceof Prisma.PrismaClientKnownRequestError) {
     switch (err.code) {
@@ -7426,11 +7405,11 @@ init_errors();
 var DEFAULT_SETTINGS = {
   store_name: "\u0642\u0637\u0648\u0641 \u0627\u0644\u0637\u0628\u064A\u0639\u0629 (Qutoof Nature Store)",
   store_description: "\u0645\u062A\u062C\u0631 \u0627\u0644\u062A\u0645\u0648\u0631 \u0648\u0627\u0644\u0641\u0648\u0627\u0643\u0647 \u0648\u0627\u0644\u0645\u0648\u0627\u062F \u0627\u0644\u063A\u0630\u0627\u0626\u064A\u0629 \u0627\u0644\u0637\u0627\u0632\u062C\u0629",
-  contact_email: "support@qutoof.sa",
-  contact_phone: "+966500000000",
-  support_phone: "+966920000000",
-  address: "\u0627\u0644\u0645\u0645\u0644\u0643\u0629 \u0627\u0644\u0639\u0631\u0628\u064A\u0629 \u0627\u0644\u0633\u0639\u0648\u062F\u064A\u0629\u060C \u062C\u062F\u0629 / \u0627\u0644\u0631\u064A\u0627\u0636",
-  currency: "SAR",
+  contact_email: "ggjloubf@gmail.com",
+  contact_phone: "+967712275038",
+  support_phone: "+967777803161",
+  address: "\u0627\u0644\u064A\u0645\u0646\u060C \u0635\u0646\u0639\u0627\u0621\u060C \u0634\u0627\u0631\u0639 \u0647\u0627\u0626\u0644",
+  currency: "YER",
   tax_percentage: "15",
   shipping_fee_default: "0",
   maintenance_mode: "false",
@@ -8811,7 +8790,7 @@ function createSystemRequestHandler() {
       }
       const url = new URL(request2.url ?? "/", `http://${request2.headers.host ?? "localhost"}`);
       let targetPath = url.searchParams.get("path") || url.pathname;
-      if (targetPath.startsWith("/api/") && !targetPath.startsWith("/api/system") && !targetPath.startsWith("/api/health") && !targetPath.startsWith("/api/live") && !targetPath.startsWith("/api/ready")) {
+      if (targetPath.startsWith("/api/")) {
         targetPath = targetPath.substring(4);
       }
       const resolved = resolver.resolve(registry, {
@@ -8907,17 +8886,6 @@ function createSystemRequestHandler() {
     }
   };
 }
-function startSystemServer(port = Number(process.env.PORT ?? 3e3)) {
-  const handler2 = createSystemRequestHandler();
-  const server = createServer(handler2);
-  server.listen(port, () => {
-    console.log(`System backend listening on http://127.0.0.1:${port}`);
-  });
-  return server;
-}
-if (__require.main === module) {
-  startSystemServer();
-}
 
 // api-src/index.ts
 var handler;
@@ -8944,10 +8912,6 @@ async function apiHandler(req, res) {
       }));
     }
   }
-}
-if (typeof module !== "undefined" && module.exports) {
-  module.exports = apiHandler;
-  module.exports.default = apiHandler;
 }
 export {
   apiHandler as default
