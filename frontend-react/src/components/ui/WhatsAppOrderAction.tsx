@@ -64,14 +64,14 @@ export function WhatsAppOrderAction({
 
         {openDropdown && (
           <div
-            className="fixed inset-0 z-[100] flex items-end justify-center bg-slate-950/55 p-3 backdrop-blur-[2px] sm:items-center sm:p-5"
+            className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/55 p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] backdrop-blur-[2px] sm:p-5"
             role="presentation"
             onMouseDown={(event) => {
               if (event.target === event.currentTarget) setOpenDropdown(false);
             }}
           >
             <div
-              className="w-full max-w-md rounded-3xl border border-[var(--gs-border)] bg-[var(--gs-surface)] p-4 shadow-2xl sm:p-5 animate-in fade-in slide-in-from-bottom-3 duration-150"
+              className="w-full max-w-md max-h-[min(86dvh,520px)] overflow-y-auto rounded-3xl border border-[var(--gs-border)] bg-[var(--gs-surface)] p-4 shadow-2xl sm:p-5 animate-in fade-in zoom-in-95 duration-150"
               role="dialog"
               aria-modal="true"
               aria-labelledby="whatsapp-choice-title"
