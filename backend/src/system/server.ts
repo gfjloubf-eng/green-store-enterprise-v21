@@ -24,6 +24,7 @@ import { createNotificationRoutes } from '../modules/notifications/routes';
 import { createSupportRoutes } from '../modules/support/routes';
 import { createReportsRoutes } from '../modules/reports/routes';
 import { createAuditRoutes } from '../modules/audit/routes';
+import { createEducationRoutes } from '../modules/education/routes';
 import { UnauthorizedError, InvalidTokenError } from '../common/security/errors';
 
 async function readBody(request: IncomingMessage): Promise<unknown> {
@@ -65,7 +66,7 @@ export function createSystemRequestHandler() {
   const resolver = new RouteResolver();
   const protection = new RouteProtectionFactory();
   const authService = AuthController.createAuthService();
-  const routes = [...createSystemRoutes(), ...createAuthRoutes(), ...createUserRoutes(), ...createRoleRoutes(), ...createPermissionRoutes(), ...createProductRoutes(), ...createCustomerRoutes(), ...createCartRoutes(), ...createOrderRoutes(), ...createInventoryRoutes(), ...createDeliveryRoutes(), ...createSupplierAdminRoutes(), ...createPaymentRoutes(), ...createSettingsRoutes(), ...createNotificationRoutes(), ...createSupportRoutes(), ...createReportsRoutes(), ...createAuditRoutes()];
+  const routes = [...createSystemRoutes(), ...createAuthRoutes(), ...createUserRoutes(), ...createRoleRoutes(), ...createPermissionRoutes(), ...createProductRoutes(), ...createCustomerRoutes(), ...createCartRoutes(), ...createOrderRoutes(), ...createInventoryRoutes(), ...createDeliveryRoutes(), ...createSupplierAdminRoutes(), ...createPaymentRoutes(), ...createSettingsRoutes(), ...createNotificationRoutes(), ...createSupportRoutes(), ...createReportsRoutes(), ...createAuditRoutes(), ...createEducationRoutes()];
 
   for (const route of routes) {
     registry.register(route);

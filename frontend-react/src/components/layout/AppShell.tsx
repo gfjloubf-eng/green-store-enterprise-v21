@@ -17,6 +17,7 @@ import { Footer } from './Footer';
 import { FloatingSupport } from '@/components/support/FloatingSupport';
 import CartDrawer from '@/features/marketplace/CartDrawer';
 import { MobileBottomNav } from './MobileBottomNav';
+import InstallAppPrompt from '@/components/pwa/InstallAppPrompt';
 
 export function AppShell() {
   const location = useLocation();
@@ -26,7 +27,7 @@ export function AppShell() {
     location.pathname === '/' ||
     location.pathname === '/products' ||
     /^\/products\/[^/]+$/.test(location.pathname) ||
-    ['/cart', '/settings', '/about', '/contact', '/help', '/support', '/stores'].some(
+    ['/cart', '/settings', '/about', '/contact', '/help', '/support', '/stores', '/education', '/consultation'].some(
       (path) => location.pathname === path || location.pathname.startsWith(`${path}/`),
     );
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -83,6 +84,7 @@ export function AppShell() {
 
       {/* Global Floating Support Widget */}
       <FloatingSupport />
+      <InstallAppPrompt />
     </div>
   );
 }

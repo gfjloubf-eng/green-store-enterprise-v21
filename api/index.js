@@ -236,23 +236,701 @@ var init_auth_token_service = __esm({
   }
 });
 
+// node_modules/.pnpm/hash-wasm@4.12.0/node_modules/hash-wasm/dist/index.esm.js
+function __awaiter(thisArg, _arguments, P, generator) {
+  function adopt(value) {
+    return value instanceof P ? value : new P(function(resolve) {
+      resolve(value);
+    });
+  }
+  return new (P || (P = Promise))(function(resolve, reject) {
+    function fulfilled(value) {
+      try {
+        step(generator.next(value));
+      } catch (e) {
+        reject(e);
+      }
+    }
+    function rejected(value) {
+      try {
+        step(generator["throw"](value));
+      } catch (e) {
+        reject(e);
+      }
+    }
+    function step(result) {
+      result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected);
+    }
+    step((generator = generator.apply(thisArg, _arguments || [])).next());
+  });
+}
+function getGlobal() {
+  if (typeof globalThis !== "undefined")
+    return globalThis;
+  if (typeof self !== "undefined")
+    return self;
+  if (typeof window !== "undefined")
+    return window;
+  return global;
+}
+function hexCharCodesToInt(a, b) {
+  return (a & 15) + (a >> 6 | a >> 3 & 8) << 4 | (b & 15) + (b >> 6 | b >> 3 & 8);
+}
+function writeHexToUInt8(buf, str) {
+  const size = str.length >> 1;
+  for (let i = 0; i < size; i++) {
+    const index = i << 1;
+    buf[i] = hexCharCodesToInt(str.charCodeAt(index), str.charCodeAt(index + 1));
+  }
+}
+function hexStringEqualsUInt8(str, buf) {
+  if (str.length !== buf.length * 2) {
+    return false;
+  }
+  for (let i = 0; i < buf.length; i++) {
+    const strIndex = i << 1;
+    if (buf[i] !== hexCharCodesToInt(str.charCodeAt(strIndex), str.charCodeAt(strIndex + 1))) {
+      return false;
+    }
+  }
+  return true;
+}
+function getDigestHex(tmpBuffer, input, hashLength) {
+  let p = 0;
+  for (let i = 0; i < hashLength; i++) {
+    let nibble = input[i] >>> 4;
+    tmpBuffer[p++] = nibble > 9 ? nibble + alpha : nibble + digit;
+    nibble = input[i] & 15;
+    tmpBuffer[p++] = nibble > 9 ? nibble + alpha : nibble + digit;
+  }
+  return String.fromCharCode.apply(null, tmpBuffer);
+}
+function encodeBase64(data, pad = true) {
+  const len = data.length;
+  const extraBytes = len % 3;
+  const parts = [];
+  const len2 = len - extraBytes;
+  for (let i = 0; i < len2; i += 3) {
+    const tmp = (data[i] << 16 & 16711680) + (data[i + 1] << 8 & 65280) + (data[i + 2] & 255);
+    const triplet = base64Chars.charAt(tmp >> 18 & 63) + base64Chars.charAt(tmp >> 12 & 63) + base64Chars.charAt(tmp >> 6 & 63) + base64Chars.charAt(tmp & 63);
+    parts.push(triplet);
+  }
+  if (extraBytes === 1) {
+    const tmp = data[len - 1];
+    const a = base64Chars.charAt(tmp >> 2);
+    const b = base64Chars.charAt(tmp << 4 & 63);
+    parts.push(`${a}${b}`);
+    if (pad) {
+      parts.push("==");
+    }
+  } else if (extraBytes === 2) {
+    const tmp = (data[len - 2] << 8) + data[len - 1];
+    const a = base64Chars.charAt(tmp >> 10);
+    const b = base64Chars.charAt(tmp >> 4 & 63);
+    const c = base64Chars.charAt(tmp << 2 & 63);
+    parts.push(`${a}${b}${c}`);
+    if (pad) {
+      parts.push("=");
+    }
+  }
+  return parts.join("");
+}
+function getDecodeBase64Length(data) {
+  let bufferLength = Math.floor(data.length * 0.75);
+  const len = data.length;
+  if (data[len - 1] === "=") {
+    bufferLength -= 1;
+    if (data[len - 2] === "=") {
+      bufferLength -= 1;
+    }
+  }
+  return bufferLength;
+}
+function decodeBase64(data) {
+  const bufferLength = getDecodeBase64Length(data);
+  const len = data.length;
+  const bytes = new Uint8Array(bufferLength);
+  let p = 0;
+  for (let i = 0; i < len; i += 4) {
+    const encoded1 = base64Lookup[data.charCodeAt(i)];
+    const encoded2 = base64Lookup[data.charCodeAt(i + 1)];
+    const encoded3 = base64Lookup[data.charCodeAt(i + 2)];
+    const encoded4 = base64Lookup[data.charCodeAt(i + 3)];
+    bytes[p] = encoded1 << 2 | encoded2 >> 4;
+    p += 1;
+    bytes[p] = (encoded2 & 15) << 4 | encoded3 >> 2;
+    p += 1;
+    bytes[p] = (encoded3 & 3) << 6 | encoded4 & 63;
+    p += 1;
+  }
+  return bytes;
+}
+function WASMInterface(binary, hashLength) {
+  return __awaiter(this, void 0, void 0, function* () {
+    let wasmInstance = null;
+    let memoryView = null;
+    let initialized = false;
+    if (typeof WebAssembly === "undefined") {
+      throw new Error("WebAssembly is not supported in this environment!");
+    }
+    const writeMemory = (data, offset = 0) => {
+      memoryView.set(data, offset);
+    };
+    const getMemory = () => memoryView;
+    const getExports = () => wasmInstance.exports;
+    const setMemorySize = (totalSize) => {
+      wasmInstance.exports.Hash_SetMemorySize(totalSize);
+      const arrayOffset = wasmInstance.exports.Hash_GetBuffer();
+      const memoryBuffer = wasmInstance.exports.memory.buffer;
+      memoryView = new Uint8Array(memoryBuffer, arrayOffset, totalSize);
+    };
+    const getStateSize = () => {
+      const view = new DataView(wasmInstance.exports.memory.buffer);
+      const stateSize = view.getUint32(wasmInstance.exports.STATE_SIZE, true);
+      return stateSize;
+    };
+    const loadWASMPromise = wasmMutex.dispatch(() => __awaiter(this, void 0, void 0, function* () {
+      if (!wasmModuleCache.has(binary.name)) {
+        const asm = decodeBase64(binary.data);
+        const promise = WebAssembly.compile(asm);
+        wasmModuleCache.set(binary.name, promise);
+      }
+      const module = yield wasmModuleCache.get(binary.name);
+      wasmInstance = yield WebAssembly.instantiate(module, {
+        // env: {
+        //   emscripten_memcpy_big: (dest, src, num) => {
+        //     const memoryBuffer = wasmInstance.exports.memory.buffer;
+        //     const memView = new Uint8Array(memoryBuffer, 0);
+        //     memView.set(memView.subarray(src, src + num), dest);
+        //   },
+        //   print_memory: (offset, len) => {
+        //     const memoryBuffer = wasmInstance.exports.memory.buffer;
+        //     const memView = new Uint8Array(memoryBuffer, 0);
+        //     console.log('print_int32', memView.subarray(offset, offset + len));
+        //   },
+        // },
+      });
+    }));
+    const setupInterface = () => __awaiter(this, void 0, void 0, function* () {
+      if (!wasmInstance) {
+        yield loadWASMPromise;
+      }
+      const arrayOffset = wasmInstance.exports.Hash_GetBuffer();
+      const memoryBuffer = wasmInstance.exports.memory.buffer;
+      memoryView = new Uint8Array(memoryBuffer, arrayOffset, MAX_HEAP);
+    });
+    const init = (bits = null) => {
+      initialized = true;
+      wasmInstance.exports.Hash_Init(bits);
+    };
+    const updateUInt8Array = (data) => {
+      let read = 0;
+      while (read < data.length) {
+        const chunk = data.subarray(read, read + MAX_HEAP);
+        read += chunk.length;
+        memoryView.set(chunk);
+        wasmInstance.exports.Hash_Update(chunk.length);
+      }
+    };
+    const update = (data) => {
+      if (!initialized) {
+        throw new Error("update() called before init()");
+      }
+      const Uint8Buffer = getUInt8Buffer(data);
+      updateUInt8Array(Uint8Buffer);
+    };
+    const digestChars = new Uint8Array(hashLength * 2);
+    const digest = (outputType, padding = null) => {
+      if (!initialized) {
+        throw new Error("digest() called before init()");
+      }
+      initialized = false;
+      wasmInstance.exports.Hash_Final(padding);
+      if (outputType === "binary") {
+        return memoryView.slice(0, hashLength);
+      }
+      return getDigestHex(digestChars, memoryView, hashLength);
+    };
+    const save = () => {
+      if (!initialized) {
+        throw new Error("save() can only be called after init() and before digest()");
+      }
+      const stateOffset = wasmInstance.exports.Hash_GetState();
+      const stateLength = getStateSize();
+      const memoryBuffer = wasmInstance.exports.memory.buffer;
+      const internalState = new Uint8Array(memoryBuffer, stateOffset, stateLength);
+      const prefixedState = new Uint8Array(WASM_FUNC_HASH_LENGTH + stateLength);
+      writeHexToUInt8(prefixedState, binary.hash);
+      prefixedState.set(internalState, WASM_FUNC_HASH_LENGTH);
+      return prefixedState;
+    };
+    const load = (state) => {
+      if (!(state instanceof Uint8Array)) {
+        throw new Error("load() expects an Uint8Array generated by save()");
+      }
+      const stateOffset = wasmInstance.exports.Hash_GetState();
+      const stateLength = getStateSize();
+      const overallLength = WASM_FUNC_HASH_LENGTH + stateLength;
+      const memoryBuffer = wasmInstance.exports.memory.buffer;
+      if (state.length !== overallLength) {
+        throw new Error(`Bad state length (expected ${overallLength} bytes, got ${state.length})`);
+      }
+      if (!hexStringEqualsUInt8(binary.hash, state.subarray(0, WASM_FUNC_HASH_LENGTH))) {
+        throw new Error("This state was written by an incompatible hash implementation");
+      }
+      const internalState = state.subarray(WASM_FUNC_HASH_LENGTH);
+      new Uint8Array(memoryBuffer, stateOffset, stateLength).set(internalState);
+      initialized = true;
+    };
+    const isDataShort = (data) => {
+      if (typeof data === "string") {
+        return data.length < MAX_HEAP / 4;
+      }
+      return data.byteLength < MAX_HEAP;
+    };
+    let canSimplify = isDataShort;
+    switch (binary.name) {
+      case "argon2":
+      case "scrypt":
+        canSimplify = () => true;
+        break;
+      case "blake2b":
+      case "blake2s":
+        canSimplify = (data, initParam) => initParam <= 512 && isDataShort(data);
+        break;
+      case "blake3":
+        canSimplify = (data, initParam) => initParam === 0 && isDataShort(data);
+        break;
+      case "xxhash64":
+      // cannot simplify
+      case "xxhash3":
+      case "xxhash128":
+      case "crc64":
+        canSimplify = () => false;
+        break;
+    }
+    const calculate = (data, initParam = null, digestParam = null) => {
+      if (!canSimplify(data, initParam)) {
+        init(initParam);
+        update(data);
+        return digest("hex", digestParam);
+      }
+      const buffer = getUInt8Buffer(data);
+      memoryView.set(buffer);
+      wasmInstance.exports.Hash_Calculate(buffer.length, initParam, digestParam);
+      return getDigestHex(digestChars, memoryView, hashLength);
+    };
+    yield setupInterface();
+    return {
+      getMemory,
+      writeMemory,
+      getExports,
+      setMemorySize,
+      init,
+      update,
+      digest,
+      save,
+      load,
+      calculate,
+      hashLength
+    };
+  });
+}
+function validateBits$4(bits) {
+  if (!Number.isInteger(bits) || bits < 8 || bits > 512 || bits % 8 !== 0) {
+    return new Error("Invalid variant! Valid values: 8, 16, ..., 512");
+  }
+  return null;
+}
+function getInitParam$1(outputBits, keyBits) {
+  return outputBits | keyBits << 16;
+}
+function createBLAKE2b(bits = 512, key = null) {
+  if (validateBits$4(bits)) {
+    return Promise.reject(validateBits$4(bits));
+  }
+  let keyBuffer = null;
+  let initParam = bits;
+  if (key !== null) {
+    keyBuffer = getUInt8Buffer(key);
+    if (keyBuffer.length > 64) {
+      return Promise.reject(new Error("Max key length is 64 bytes"));
+    }
+    initParam = getInitParam$1(bits, keyBuffer.length);
+  }
+  const outputSize = bits / 8;
+  return WASMInterface(wasmJson$j, outputSize).then((wasm) => {
+    if (initParam > 512) {
+      wasm.writeMemory(keyBuffer);
+    }
+    wasm.init(initParam);
+    const obj = {
+      init: initParam > 512 ? () => {
+        wasm.writeMemory(keyBuffer);
+        wasm.init(initParam);
+        return obj;
+      } : () => {
+        wasm.init(initParam);
+        return obj;
+      },
+      update: (data) => {
+        wasm.update(data);
+        return obj;
+      },
+      // biome-ignore lint/suspicious/noExplicitAny: Conflict with IHasher type
+      digest: (outputType) => wasm.digest(outputType),
+      save: () => wasm.save(),
+      load: (data) => {
+        wasm.load(data);
+        return obj;
+      },
+      blockSize: 128,
+      digestSize: outputSize
+    };
+    return obj;
+  });
+}
+function encodeResult(salt, options, res) {
+  const parameters = [
+    `m=${options.memorySize}`,
+    `t=${options.iterations}`,
+    `p=${options.parallelism}`
+  ].join(",");
+  return `$argon2${options.hashType}$v=19$${parameters}$${encodeBase64(salt, false)}$${encodeBase64(res, false)}`;
+}
+function int32LE(x) {
+  uint32View.setInt32(0, x, true);
+  return new Uint8Array(uint32View.buffer);
+}
+function hashFunc(blake512, buf, len) {
+  return __awaiter(this, void 0, void 0, function* () {
+    if (len <= 64) {
+      const blake = yield createBLAKE2b(len * 8);
+      blake.update(int32LE(len));
+      blake.update(buf);
+      return blake.digest("binary");
+    }
+    const r = Math.ceil(len / 32) - 2;
+    const ret = new Uint8Array(len);
+    blake512.init();
+    blake512.update(int32LE(len));
+    blake512.update(buf);
+    let vp = blake512.digest("binary");
+    ret.set(vp.subarray(0, 32), 0);
+    for (let i = 1; i < r; i++) {
+      blake512.init();
+      blake512.update(vp);
+      vp = blake512.digest("binary");
+      ret.set(vp.subarray(0, 32), i * 32);
+    }
+    const partialBytesNeeded = len - 32 * r;
+    let blakeSmall;
+    if (partialBytesNeeded === 64) {
+      blakeSmall = blake512;
+      blakeSmall.init();
+    } else {
+      blakeSmall = yield createBLAKE2b(partialBytesNeeded * 8);
+    }
+    blakeSmall.update(vp);
+    vp = blakeSmall.digest("binary");
+    ret.set(vp.subarray(0, partialBytesNeeded), r * 32);
+    return ret;
+  });
+}
+function getHashType(type) {
+  switch (type) {
+    case "d":
+      return 0;
+    case "i":
+      return 1;
+    default:
+      return 2;
+  }
+}
+function argon2Internal(options) {
+  return __awaiter(this, void 0, void 0, function* () {
+    var _a2;
+    const { parallelism, iterations, hashLength } = options;
+    const password = getUInt8Buffer(options.password);
+    const salt = getUInt8Buffer(options.salt);
+    const version = 19;
+    const hashType = getHashType(options.hashType);
+    const { memorySize } = options;
+    const secret = getUInt8Buffer((_a2 = options.secret) !== null && _a2 !== void 0 ? _a2 : "");
+    const [argon2Interface, blake512] = yield Promise.all([
+      WASMInterface(wasmJson$k, 1024),
+      createBLAKE2b(512)
+    ]);
+    argon2Interface.setMemorySize(memorySize * 1024 + 1024);
+    const initVector = new Uint8Array(24);
+    const initVectorView = new DataView(initVector.buffer);
+    initVectorView.setInt32(0, parallelism, true);
+    initVectorView.setInt32(4, hashLength, true);
+    initVectorView.setInt32(8, memorySize, true);
+    initVectorView.setInt32(12, iterations, true);
+    initVectorView.setInt32(16, version, true);
+    initVectorView.setInt32(20, hashType, true);
+    argon2Interface.writeMemory(initVector, memorySize * 1024);
+    blake512.init();
+    blake512.update(initVector);
+    blake512.update(int32LE(password.length));
+    blake512.update(password);
+    blake512.update(int32LE(salt.length));
+    blake512.update(salt);
+    blake512.update(int32LE(secret.length));
+    blake512.update(secret);
+    blake512.update(int32LE(0));
+    const segments = Math.floor(memorySize / (parallelism * 4));
+    const lanes = segments * 4;
+    const param = new Uint8Array(72);
+    const H0 = blake512.digest("binary");
+    param.set(H0);
+    for (let lane = 0; lane < parallelism; lane++) {
+      param.set(int32LE(0), 64);
+      param.set(int32LE(lane), 68);
+      let position = lane * lanes;
+      let chunk = yield hashFunc(blake512, param, 1024);
+      argon2Interface.writeMemory(chunk, position * 1024);
+      position += 1;
+      param.set(int32LE(1), 64);
+      chunk = yield hashFunc(blake512, param, 1024);
+      argon2Interface.writeMemory(chunk, position * 1024);
+    }
+    const C = new Uint8Array(1024);
+    writeHexToUInt8(C, argon2Interface.calculate(new Uint8Array([]), memorySize));
+    const res = yield hashFunc(blake512, C, hashLength);
+    if (options.outputType === "hex") {
+      const digestChars = new Uint8Array(hashLength * 2);
+      return getDigestHex(digestChars, res, hashLength);
+    }
+    if (options.outputType === "encoded") {
+      return encodeResult(salt, options, res);
+    }
+    return res;
+  });
+}
+function argon2id(options) {
+  return __awaiter(this, void 0, void 0, function* () {
+    validateOptions$3(options);
+    return argon2Internal(Object.assign(Object.assign({}, options), { hashType: "id" }));
+  });
+}
+function argon2Verify(options) {
+  return __awaiter(this, void 0, void 0, function* () {
+    validateVerifyOptions$1(options);
+    const params = getHashParameters(options.password, options.hash, options.secret);
+    validateOptions$3(params);
+    const hashStart = options.hash.lastIndexOf("$") + 1;
+    const result = yield argon2Internal(params);
+    return result.substring(hashStart) === options.hash.substring(hashStart);
+  });
+}
+var Mutex, _a, globalObject, nodeBuffer, textEncoder, alpha, digit, getUInt8Buffer, base64Chars, base64Lookup, MAX_HEAP, WASM_FUNC_HASH_LENGTH, wasmMutex, wasmModuleCache, mutex$l, name$k, data$k, hash$k, wasmJson$k, name$j, data$j, hash$j, wasmJson$j, mutex$k, uint32View, validateOptions$3, getHashParameters, validateVerifyOptions$1, mutex$j, mutex$i, mutex$h, mutex$g, polyBuffer, mutex$f, mutex$e, mutex$d, mutex$c, mutex$b, mutex$a, mutex$9, mutex$8, mutex$7, mutex$6, mutex$5, seedBuffer$2, mutex$4, seedBuffer$1, mutex$3, seedBuffer, mutex$2, mutex$1, mutex;
+var init_index_esm = __esm({
+  "node_modules/.pnpm/hash-wasm@4.12.0/node_modules/hash-wasm/dist/index.esm.js"() {
+    Mutex = class {
+      constructor() {
+        this.mutex = Promise.resolve();
+      }
+      lock() {
+        let begin = () => {
+        };
+        this.mutex = this.mutex.then(() => new Promise(begin));
+        return new Promise((res) => {
+          begin = res;
+        });
+      }
+      dispatch(fn) {
+        return __awaiter(this, void 0, void 0, function* () {
+          const unlock = yield this.lock();
+          try {
+            return yield Promise.resolve(fn());
+          } finally {
+            unlock();
+          }
+        });
+      }
+    };
+    globalObject = getGlobal();
+    nodeBuffer = (_a = globalObject.Buffer) !== null && _a !== void 0 ? _a : null;
+    textEncoder = globalObject.TextEncoder ? new globalObject.TextEncoder() : null;
+    alpha = "a".charCodeAt(0) - 10;
+    digit = "0".charCodeAt(0);
+    getUInt8Buffer = nodeBuffer !== null ? (data) => {
+      if (typeof data === "string") {
+        const buf = nodeBuffer.from(data, "utf8");
+        return new Uint8Array(buf.buffer, buf.byteOffset, buf.length);
+      }
+      if (nodeBuffer.isBuffer(data)) {
+        return new Uint8Array(data.buffer, data.byteOffset, data.length);
+      }
+      if (ArrayBuffer.isView(data)) {
+        return new Uint8Array(data.buffer, data.byteOffset, data.byteLength);
+      }
+      throw new Error("Invalid data type!");
+    } : (data) => {
+      if (typeof data === "string") {
+        return textEncoder.encode(data);
+      }
+      if (ArrayBuffer.isView(data)) {
+        return new Uint8Array(data.buffer, data.byteOffset, data.byteLength);
+      }
+      throw new Error("Invalid data type!");
+    };
+    base64Chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+    base64Lookup = new Uint8Array(256);
+    for (let i = 0; i < base64Chars.length; i++) {
+      base64Lookup[base64Chars.charCodeAt(i)] = i;
+    }
+    MAX_HEAP = 16 * 1024;
+    WASM_FUNC_HASH_LENGTH = 4;
+    wasmMutex = new Mutex();
+    wasmModuleCache = /* @__PURE__ */ new Map();
+    mutex$l = new Mutex();
+    name$k = "argon2";
+    data$k = "AGFzbQEAAAABKQVgAX8Bf2AAAX9gEH9/f39/f39/f39/f39/f38AYAR/f39/AGACf38AAwYFAAECAwQFBgEBAoCAAgYIAX8BQZCoBAsHQQQGbWVtb3J5AgASSGFzaF9TZXRNZW1vcnlTaXplAAAOSGFzaF9HZXRCdWZmZXIAAQ5IYXNoX0NhbGN1bGF0ZQAECvEyBVgBAn9BACEBAkAgAEEAKAKICCICRg0AAkAgACACayIAQRB2IABBgIB8cSAASWoiAEAAQX9HDQBB/wHADwtBACEBQQBBACkDiAggAEEQdK18NwOICAsgAcALcAECfwJAQQAoAoAIIgANAEEAPwBBEHQiADYCgAhBACgCiAgiAUGAgCBGDQACQEGAgCAgAWsiAEEQdiAAQYCAfHEgAElqIgBAAEF/Rw0AQQAPC0EAQQApA4gIIABBEHStfDcDiAhBACgCgAghAAsgAAvcDgECfiAAIAQpAwAiECAAKQMAIhF8IBFCAYZC/v///x+DIBBC/////w+DfnwiEDcDACAMIBAgDCkDAIVCIIkiEDcDACAIIBAgCCkDACIRfCARQgGGQv7///8fgyAQQv////8Pg358IhA3AwAgBCAQIAQpAwCFQiiJIhA3AwAgACAQIAApAwAiEXwgEEL/////D4MgEUIBhkL+////H4N+fCIQNwMAIAwgECAMKQMAhUIwiSIQNwMAIAggECAIKQMAIhF8IBBC/////w+DIBFCAYZC/v///x+DfnwiEDcDACAEIBAgBCkDAIVCAYk3AwAgASAFKQMAIhAgASkDACIRfCARQgGGQv7///8fgyAQQv////8Pg358IhA3AwAgDSAQIA0pAwCFQiCJIhA3AwAgCSAQIAkpAwAiEXwgEUIBhkL+////H4MgEEL/////D4N+fCIQNwMAIAUgECAFKQMAhUIoiSIQNwMAIAEgECABKQMAIhF8IBBC/////w+DIBFCAYZC/v///x+DfnwiEDcDACANIBAgDSkDAIVCMIkiEDcDACAJIBAgCSkDACIRfCAQQv////8PgyARQgGGQv7///8fg358IhA3AwAgBSAQIAUpAwCFQgGJNwMAIAIgBikDACIQIAIpAwAiEXwgEUIBhkL+////H4MgEEL/////D4N+fCIQNwMAIA4gECAOKQMAhUIgiSIQNwMAIAogECAKKQMAIhF8IBFCAYZC/v///x+DIBBC/////w+DfnwiEDcDACAGIBAgBikDAIVCKIkiEDcDACACIBAgAikDACIRfCAQQv////8PgyARQgGGQv7///8fg358IhA3AwAgDiAQIA4pAwCFQjCJIhA3AwAgCiAQIAopAwAiEXwgEEL/////D4MgEUIBhkL+////H4N+fCIQNwMAIAYgECAGKQMAhUIBiTcDACADIAcpAwAiECADKQMAIhF8IBFCAYZC/v///x+DIBBC/////w+DfnwiEDcDACAPIBAgDykDAIVCIIkiEDcDACALIBAgCykDACIRfCARQgGGQv7///8fgyAQQv////8Pg358IhA3AwAgByAQIAcpAwCFQiiJIhA3AwAgAyAQIAMpAwAiEXwgEEL/////D4MgEUIBhkL+////H4N+fCIQNwMAIA8gECAPKQMAhUIwiSIQNwMAIAsgECALKQMAIhF8IBBC/////w+DIBFCAYZC/v///x+DfnwiEDcDACAHIBAgBykDAIVCAYk3AwAgACAFKQMAIhAgACkDACIRfCARQgGGQv7///8fgyAQQv////8Pg358IhA3AwAgDyAQIA8pAwCFQiCJIhA3AwAgCiAQIAopAwAiEXwgEUIBhkL+////H4MgEEL/////D4N+fCIQNwMAIAUgECAFKQMAhUIoiSIQNwMAIAAgECAAKQMAIhF8IBBC/////w+DIBFCAYZC/v///x+DfnwiEDcDACAPIBAgDykDAIVCMIkiEDcDACAKIBAgCikDACIRfCAQQv////8PgyARQgGGQv7///8fg358IhA3AwAgBSAQIAUpAwCFQgGJNwMAIAEgBikDACIQIAEpAwAiEXwgEUIBhkL+////H4MgEEL/////D4N+fCIQNwMAIAwgECAMKQMAhUIgiSIQNwMAIAsgECALKQMAIhF8IBFCAYZC/v///x+DIBBC/////w+DfnwiEDcDACAGIBAgBikDAIVCKIkiEDcDACABIBAgASkDACIRfCAQQv////8PgyARQgGGQv7///8fg358IhA3AwAgDCAQIAwpAwCFQjCJIhA3AwAgCyAQIAspAwAiEXwgEEL/////D4MgEUIBhkL+////H4N+fCIQNwMAIAYgECAGKQMAhUIBiTcDACACIAcpAwAiECACKQMAIhF8IBFCAYZC/v///x+DIBBC/////w+DfnwiEDcDACANIBAgDSkDAIVCIIkiEDcDACAIIBAgCCkDACIRfCARQgGGQv7///8fgyAQQv////8Pg358IhA3AwAgByAQIAcpAwCFQiiJIhA3AwAgAiAQIAIpAwAiEXwgEEL/////D4MgEUIBhkL+////H4N+fCIQNwMAIA0gECANKQMAhUIwiSIQNwMAIAggECAIKQMAIhF8IBBC/////w+DIBFCAYZC/v///x+DfnwiEDcDACAHIBAgBykDAIVCAYk3AwAgAyAEKQMAIhAgAykDACIRfCARQgGGQv7///8fgyAQQv////8Pg358IhA3AwAgDiAQIA4pAwCFQiCJIhA3AwAgCSAQIAkpAwAiEXwgEUIBhkL+////H4MgEEL/////D4N+fCIQNwMAIAQgECAEKQMAhUIoiSIQNwMAIAMgECADKQMAIhF8IBBC/////w+DIBFCAYZC/v///x+DfnwiEDcDACAOIBAgDikDAIVCMIkiEDcDACAJIBAgCSkDACIRfCAQQv////8PgyARQgGGQv7///8fg358IhA3AwAgBCAQIAQpAwCFQgGJNwMAC98aAQN/QQAhBEEAIAIpAwAgASkDAIU3A5AIQQAgAikDCCABKQMIhTcDmAhBACACKQMQIAEpAxCFNwOgCEEAIAIpAxggASkDGIU3A6gIQQAgAikDICABKQMghTcDsAhBACACKQMoIAEpAyiFNwO4CEEAIAIpAzAgASkDMIU3A8AIQQAgAikDOCABKQM4hTcDyAhBACACKQNAIAEpA0CFNwPQCEEAIAIpA0ggASkDSIU3A9gIQQAgAikDUCABKQNQhTcD4AhBACACKQNYIAEpA1iFNwPoCEEAIAIpA2AgASkDYIU3A/AIQQAgAikDaCABKQNohTcD+AhBACACKQNwIAEpA3CFNwOACUEAIAIpA3ggASkDeIU3A4gJQQAgAikDgAEgASkDgAGFNwOQCUEAIAIpA4gBIAEpA4gBhTcDmAlBACACKQOQASABKQOQAYU3A6AJQQAgAikDmAEgASkDmAGFNwOoCUEAIAIpA6ABIAEpA6ABhTcDsAlBACACKQOoASABKQOoAYU3A7gJQQAgAikDsAEgASkDsAGFNwPACUEAIAIpA7gBIAEpA7gBhTcDyAlBACACKQPAASABKQPAAYU3A9AJQQAgAikDyAEgASkD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";
+    hash$k = "e4cdc523";
+    wasmJson$k = {
+      name: name$k,
+      data: data$k,
+      hash: hash$k
+    };
+    name$j = "blake2b";
+    data$j = "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";
+    hash$j = "c6f286e6";
+    wasmJson$j = {
+      name: name$j,
+      data: data$j,
+      hash: hash$j
+    };
+    mutex$k = new Mutex();
+    uint32View = new DataView(new ArrayBuffer(4));
+    validateOptions$3 = (options) => {
+      var _a2;
+      if (!options || typeof options !== "object") {
+        throw new Error("Invalid options parameter. It requires an object.");
+      }
+      if (!options.password) {
+        throw new Error("Password must be specified");
+      }
+      options.password = getUInt8Buffer(options.password);
+      if (options.password.length < 1) {
+        throw new Error("Password must be specified");
+      }
+      if (!options.salt) {
+        throw new Error("Salt must be specified");
+      }
+      options.salt = getUInt8Buffer(options.salt);
+      if (options.salt.length < 8) {
+        throw new Error("Salt should be at least 8 bytes long");
+      }
+      options.secret = getUInt8Buffer((_a2 = options.secret) !== null && _a2 !== void 0 ? _a2 : "");
+      if (!Number.isInteger(options.iterations) || options.iterations < 1) {
+        throw new Error("Iterations should be a positive number");
+      }
+      if (!Number.isInteger(options.parallelism) || options.parallelism < 1) {
+        throw new Error("Parallelism should be a positive number");
+      }
+      if (!Number.isInteger(options.hashLength) || options.hashLength < 4) {
+        throw new Error("Hash length should be at least 4 bytes.");
+      }
+      if (!Number.isInteger(options.memorySize)) {
+        throw new Error("Memory size should be specified.");
+      }
+      if (options.memorySize < 8 * options.parallelism) {
+        throw new Error("Memory size should be at least 8 * parallelism.");
+      }
+      if (options.outputType === void 0) {
+        options.outputType = "hex";
+      }
+      if (!["hex", "binary", "encoded"].includes(options.outputType)) {
+        throw new Error(`Insupported output type ${options.outputType}. Valid values: ['hex', 'binary', 'encoded']`);
+      }
+    };
+    getHashParameters = (password, encoded, secret) => {
+      const regex = /^\$argon2(id|i|d)\$v=([0-9]+)\$((?:[mtp]=[0-9]+,){2}[mtp]=[0-9]+)\$([A-Za-z0-9+/]+)\$([A-Za-z0-9+/]+)$/;
+      const match = encoded.match(regex);
+      if (!match) {
+        throw new Error("Invalid hash");
+      }
+      const [, hashType, version, parameters, salt, hash] = match;
+      if (version !== "19") {
+        throw new Error(`Unsupported version: ${version}`);
+      }
+      const parsedParameters = {};
+      const paramMap = { m: "memorySize", p: "parallelism", t: "iterations" };
+      for (const x of parameters.split(",")) {
+        const [n, v] = x.split("=");
+        parsedParameters[paramMap[n]] = Number(v);
+      }
+      return Object.assign(Object.assign({}, parsedParameters), {
+        password,
+        secret,
+        hashType,
+        salt: decodeBase64(salt),
+        hashLength: getDecodeBase64Length(hash),
+        outputType: "encoded"
+      });
+    };
+    validateVerifyOptions$1 = (options) => {
+      if (!options || typeof options !== "object") {
+        throw new Error("Invalid options parameter. It requires an object.");
+      }
+      if (options.hash === void 0 || typeof options.hash !== "string") {
+        throw new Error("Hash should be specified");
+      }
+    };
+    mutex$j = new Mutex();
+    mutex$i = new Mutex();
+    mutex$h = new Mutex();
+    mutex$g = new Mutex();
+    polyBuffer = new Uint8Array(8);
+    mutex$f = new Mutex();
+    mutex$e = new Mutex();
+    mutex$d = new Mutex();
+    mutex$c = new Mutex();
+    mutex$b = new Mutex();
+    mutex$a = new Mutex();
+    mutex$9 = new Mutex();
+    mutex$8 = new Mutex();
+    mutex$7 = new Mutex();
+    mutex$6 = new Mutex();
+    mutex$5 = new Mutex();
+    seedBuffer$2 = new Uint8Array(8);
+    mutex$4 = new Mutex();
+    seedBuffer$1 = new Uint8Array(8);
+    mutex$3 = new Mutex();
+    seedBuffer = new Uint8Array(8);
+    mutex$2 = new Mutex();
+    mutex$1 = new Mutex();
+    mutex = new Mutex();
+  }
+});
+
 // ../backend/src/services/auth-hash-service.ts
-import argon2 from "argon2";
 var HashService, auth_hash_service_default;
 var init_auth_hash_service = __esm({
   "../backend/src/services/auth-hash-service.ts"() {
     "use strict";
+    init_index_esm();
     HashService = class {
       async hash(password) {
-        return argon2.hash(password, {
-          type: argon2.argon2id,
-          memoryCost: 2 ** 16,
-          timeCost: 3,
-          parallelism: 1
+        return argon2id({
+          password,
+          salt: crypto.getRandomValues(new Uint8Array(16)),
+          parallelism: 1,
+          iterations: 3,
+          memorySize: 2 ** 16,
+          hashLength: 32,
+          outputType: "encoded"
         });
       }
       async verify(password, stored) {
-        return argon2.verify(stored, password);
+        try {
+          return await argon2Verify({ password, hash: stored });
+        } catch {
+          return false;
+        }
       }
     };
     auth_hash_service_default = new HashService();
@@ -369,7 +1047,7 @@ __export(refresh_token_repository_exports, {
   RefreshTokenRepository: () => RefreshTokenRepository,
   default: () => refresh_token_repository_default
 });
-import crypto from "crypto";
+import crypto2 from "crypto";
 var RefreshTokenRepository, refresh_token_repository_default;
 var init_refresh_token_repository = __esm({
   "../backend/src/repositories/refresh-token-repository.ts"() {
@@ -378,19 +1056,19 @@ var init_refresh_token_repository = __esm({
     RefreshTokenRepository = class {
       client = prisma_service_default.getClient();
       async create(userId, token, expiresAt) {
-        const tokenHash = crypto.createHash("sha256").update(token).digest("hex");
+        const tokenHash = crypto2.createHash("sha256").update(token).digest("hex");
         return this.client.refreshToken.create({ data: { userId, tokenHash, expiresAt } });
       }
       async revokeByHash(token) {
-        const tokenHash = crypto.createHash("sha256").update(token).digest("hex");
+        const tokenHash = crypto2.createHash("sha256").update(token).digest("hex");
         return this.client.refreshToken.updateMany({ where: { tokenHash }, data: { revoked: true } });
       }
       async findByHash(token) {
-        const tokenHash = crypto.createHash("sha256").update(token).digest("hex");
+        const tokenHash = crypto2.createHash("sha256").update(token).digest("hex");
         return this.client.refreshToken.findFirst({ where: { tokenHash } });
       }
       async rotate(oldToken, newToken, expiresAt) {
-        const oldHash = crypto.createHash("sha256").update(oldToken).digest("hex");
+        const oldHash = crypto2.createHash("sha256").update(oldToken).digest("hex");
         const old = await this.client.refreshToken.findFirst({ where: { tokenHash: oldHash } });
         if (!old) return null;
         await this.client.refreshToken.updateMany({ where: { tokenHash: oldHash }, data: { revoked: true } });
@@ -402,7 +1080,7 @@ var init_refresh_token_repository = __esm({
 });
 
 // ../backend/src/repositories/password-reset-repository.ts
-import crypto3 from "crypto";
+import crypto4 from "crypto";
 var PasswordResetRepository, password_reset_repository_default;
 var init_password_reset_repository = __esm({
   "../backend/src/repositories/password-reset-repository.ts"() {
@@ -411,11 +1089,11 @@ var init_password_reset_repository = __esm({
     PasswordResetRepository = class {
       client = prisma_service_default.getClient();
       async create(userId, token, expiresAt) {
-        const tokenHash = crypto3.createHash("sha256").update(token).digest("hex");
+        const tokenHash = crypto4.createHash("sha256").update(token).digest("hex");
         return this.client.passwordReset.create({ data: { userId, tokenHash, expiresAt } });
       }
       async findValidByToken(token) {
-        const tokenHash = crypto3.createHash("sha256").update(token).digest("hex");
+        const tokenHash = crypto4.createHash("sha256").update(token).digest("hex");
         return this.client.passwordReset.findFirst({ where: { tokenHash, used: false, expiresAt: { gt: /* @__PURE__ */ new Date() } } });
       }
       async markUsed(id) {
@@ -482,7 +1160,7 @@ var init_auth_reset_service = __esm({
 });
 
 // ../backend/src/repositories/email-verification-repository.ts
-import crypto4 from "crypto";
+import crypto5 from "crypto";
 var EmailVerificationRepository, email_verification_repository_default;
 var init_email_verification_repository = __esm({
   "../backend/src/repositories/email-verification-repository.ts"() {
@@ -491,11 +1169,11 @@ var init_email_verification_repository = __esm({
     EmailVerificationRepository = class {
       client = prisma_service_default.getClient();
       async create(userId, token, expiresAt) {
-        const tokenHash = crypto4.createHash("sha256").update(token).digest("hex");
+        const tokenHash = crypto5.createHash("sha256").update(token).digest("hex");
         return this.client.emailVerification.create({ data: { userId, tokenHash, expiresAt } });
       }
       async verify(token) {
-        const tokenHash = crypto4.createHash("sha256").update(token).digest("hex");
+        const tokenHash = crypto5.createHash("sha256").update(token).digest("hex");
         const rec = await this.client.emailVerification.findFirst({ where: { tokenHash, verified: false, expiresAt: { gt: /* @__PURE__ */ new Date() } } });
         if (!rec) return null;
         await this.client.emailVerification.update({ where: { id: rec.id }, data: { verified: true } });
@@ -549,7 +1227,7 @@ var init_auth_email_verification_service = __esm({
 });
 
 // ../backend/src/api/status.ts
-var HTTP_STATUS = {
+var HTTP_STATUS2 = {
   OK: 200,
   CREATED: 201,
   ACCEPTED: 202,
@@ -572,9 +1250,9 @@ function createMeta(context) {
     locale: context.locale
   };
 }
-function success(data, context) {
+function success2(data, context) {
   return {
-    statusCode: HTTP_STATUS.OK,
+    statusCode: HTTP_STATUS2.OK,
     body: {
       success: true,
       data,
@@ -582,9 +1260,9 @@ function success(data, context) {
     }
   };
 }
-function created(data, context) {
+function created2(data, context) {
   return {
-    statusCode: HTTP_STATUS.CREATED,
+    statusCode: HTTP_STATUS2.CREATED,
     body: {
       success: true,
       data,
@@ -592,9 +1270,9 @@ function created(data, context) {
     }
   };
 }
-function noContent(context) {
+function noContent2(context) {
   return {
-    statusCode: HTTP_STATUS.NO_CONTENT,
+    statusCode: HTTP_STATUS2.NO_CONTENT,
     body: {
       success: true,
       data: null,
@@ -602,20 +1280,23 @@ function noContent(context) {
     }
   };
 }
-function unauthorized(message, context) {
-  return errorResponse("unauthorized", message, HTTP_STATUS.UNAUTHORIZED, context);
+function unauthorized2(message, context) {
+  return errorResponse("unauthorized", message, HTTP_STATUS2.UNAUTHORIZED, context);
 }
 function forbidden(message, context) {
-  return errorResponse("forbidden", message, HTTP_STATUS.FORBIDDEN, context);
+  return errorResponse("forbidden", message, HTTP_STATUS2.FORBIDDEN, context);
 }
-function notFound(message, context) {
-  return errorResponse("not_found", message, HTTP_STATUS.NOT_FOUND, context);
+function notFound2(message, context) {
+  return errorResponse("not_found", message, HTTP_STATUS2.NOT_FOUND, context);
 }
 function conflict(message, context) {
-  return errorResponse("conflict", message, HTTP_STATUS.CONFLICT, context);
+  return errorResponse("conflict", message, HTTP_STATUS2.CONFLICT, context);
 }
-function validationError(message, context) {
-  return errorResponse("validation_error", message, HTTP_STATUS.UNPROCESSABLE_ENTITY, context);
+function validationError2(message, context) {
+  return errorResponse("validation_error", message, HTTP_STATUS2.UNPROCESSABLE_ENTITY, context);
+}
+function internalError(message, context) {
+  return errorResponse("internal_error", message, HTTP_STATUS2.INTERNAL_SERVER_ERROR, context);
 }
 function errorResponse(code, message, statusCode, context) {
   return {
@@ -630,9 +1311,9 @@ function errorResponse(code, message, statusCode, context) {
     }
   };
 }
-function paginated(data, page, limit, total, context) {
+function paginated2(data, page, limit, total, context) {
   return {
-    statusCode: HTTP_STATUS.OK,
+    statusCode: HTTP_STATUS2.OK,
     body: {
       data,
       pagination: {
@@ -816,8 +1497,8 @@ var RouterBuilder = class {
 
 // ../backend/src/routes/resolver.ts
 var RouteResolver = class {
-  resolve(registry, request2) {
-    return registry.findByPath(request2.method, request2.path, request2.version);
+  resolve(registry, request4) {
+    return registry.findByPath(request4.method, request4.path, request4.version);
   }
   resolveByName(registry, name) {
     return registry.findByName(name);
@@ -1011,8 +1692,8 @@ init_auth_constants();
 init_prisma_service();
 var LoginHistoryRepository = class {
   client = prisma_service_default.getClient();
-  async record(userId, email, ip, ua, success2, reason) {
-    return this.client.loginHistory.create({ data: { userId, email, ipAddress: ip, userAgent: ua, success: success2, reason } });
+  async record(userId, email, ip, ua, success3, reason) {
+    return this.client.loginHistory.create({ data: { userId, email, ipAddress: ip, userAgent: ua, success: success3, reason } });
   }
   async recentFailedCountByUser(userId, sinceMinutes = 15) {
     const since = new Date(Date.now() - sinceMinutes * 60 * 1e3);
@@ -1056,8 +1737,8 @@ var AuthAuditService = class {
   loginRepo = login_history_repository_default;
   tokenBlacklist = token_blacklist_repository_default;
   client = prisma_service_default.getClient();
-  async recordLoginAttempt(userId, email, ip, ua, success2 = false, reason) {
-    await this.loginRepo.record(userId, email, ip, ua, success2, reason);
+  async recordLoginAttempt(userId, email, ip, ua, success3 = false, reason) {
+    await this.loginRepo.record(userId, email, ip, ua, success3, reason);
   }
   async lockAccount(userId, reason = "too_many_failed_logins") {
     const meta = JSON.stringify({ type: "account_lock", reason, createdAt: (/* @__PURE__ */ new Date()).toISOString() });
@@ -1067,9 +1748,9 @@ var AuthAuditService = class {
     const rec = await this.client.securityLog.findFirst({ where: { userId, event: "account_locked" }, orderBy: { createdAt: "desc" } });
     if (!rec) return false;
     const ttl = Number(process.env.ACCOUNT_LOCK_TTL_MINUTES ?? 30);
-    const created2 = rec.createdAt;
-    if (!created2) return true;
-    const unlockedAt = new Date(created2.getTime() + ttl * 60 * 1e3);
+    const created3 = rec.createdAt;
+    if (!created3) return true;
+    const unlockedAt = new Date(created3.getTime() + ttl * 60 * 1e3);
     return unlockedAt > /* @__PURE__ */ new Date();
   }
   async blacklistRefreshTokenByHash(userId, tokenHash) {
@@ -1078,11 +1759,227 @@ var AuthAuditService = class {
 };
 var auth_audit_service_default = new AuthAuditService();
 
+// ../backend/src/repositories/base-repository.ts
+init_prisma_service();
+var BaseRepository = class {
+  client = prisma_service_default.getClient();
+  modelName;
+  constructor(modelName) {
+    this.modelName = modelName;
+  }
+  get model() {
+    return this.client[this.modelName];
+  }
+  async findById(id) {
+    const result = await this.model.findUnique({ where: { id } });
+    return result ?? null;
+  }
+  async findMany(filter) {
+    const where = filter ?? {};
+    const results = await this.model.findMany({ where });
+    return results ?? [];
+  }
+  async create(data) {
+    return this.model.create({ data });
+  }
+  async update(id, data) {
+    return this.model.update({ where: { id }, data });
+  }
+  async delete(id) {
+    try {
+      await this.model.update({ where: { id }, data: { deletedAt: /* @__PURE__ */ new Date() } });
+    } catch (err) {
+      await this.model.delete({ where: { id } });
+    }
+  }
+  async restore(id) {
+    return this.model.update({ where: { id }, data: { deletedAt: null } });
+  }
+  async exists(id) {
+    const count = await this.model.count({ where: { id } });
+    return count > 0;
+  }
+  async count(filter) {
+    const where = filter ?? {};
+    return this.model.count({ where });
+  }
+  async paginate(options) {
+    const page = Math.max(1, options.page ?? 1);
+    const limit = Math.max(1, Math.min(100, options.limit ?? 25));
+    const skip = (page - 1) * limit;
+    const rawWhere = options.filters ?? {};
+    const cleanWhere = (obj) => {
+      if (obj == null) return {};
+      if (Array.isArray(obj)) {
+        const arr = obj.map(cleanWhere).filter((x) => {
+          return !(x && typeof x === "object" && Object.keys(x).length === 0);
+        });
+        return arr.length > 0 ? arr : void 0;
+      }
+      if (typeof obj !== "object") return obj;
+      const out = {};
+      for (const [k, v] of Object.entries(obj)) {
+        if (v === void 0) continue;
+        if ((k === "AND" || k === "OR" || k === "NOT") && Array.isArray(v)) {
+          const cleaned = cleanWhere(v);
+          if (cleaned !== void 0 && cleaned.length > 0) out[k] = cleaned;
+        } else if (v && typeof v === "object") {
+          const cleaned = cleanWhere(v);
+          if (cleaned !== void 0 && (typeof cleaned !== "object" || Object.keys(cleaned).length > 0)) {
+            out[k] = cleaned;
+          }
+        } else if (v !== void 0) {
+          out[k] = v;
+        }
+      }
+      return Object.keys(out).length > 0 ? out : void 0;
+    };
+    const where = cleanWhere(rawWhere) ?? {};
+    const orderBy = options.sort && (options.order === "asc" || options.order === "desc") ? { [options.sort]: options.order } : void 0;
+    let data = [];
+    let total = 0;
+    try {
+      const res = await Promise.all([
+        this.model.findMany({ where, skip, take: limit, orderBy }),
+        this.model.count({ where })
+      ]);
+      data = res[0] ?? [];
+      total = res[1] ?? 0;
+    } catch (err) {
+      const debug = { where, orderBy, skip, take: limit };
+      const msg = `paginate_error: ${err?.message ?? "unknown"} -- query: ${JSON.stringify(debug)}`;
+      throw new Error(msg);
+    }
+    return {
+      data,
+      total,
+      page,
+      limit
+    };
+  }
+};
+var base_repository_default = BaseRepository;
+
+// ../backend/src/repositories/exceptions.ts
+var DatabaseException = class extends Error {
+  constructor(message) {
+    super(message ?? "Database error");
+    this.name = "DatabaseException";
+  }
+};
+var NotFoundException = class extends Error {
+  constructor(message) {
+    super(message ?? "Resource not found");
+    this.name = "NotFoundException";
+  }
+};
+var ConflictException = class extends Error {
+  constructor(message) {
+    super(message ?? "Conflict");
+    this.name = "ConflictException";
+  }
+};
+var ValidationException2 = class extends Error {
+  constructor(message) {
+    super(message ?? "Validation failed");
+    this.name = "ValidationException";
+  }
+};
+
+// ../backend/src/repositories/notification-repository.ts
+var NotificationRepository = class extends base_repository_default {
+  constructor() {
+    super("notification");
+  }
+  async createNotification(data) {
+    return this.client.notification.create({
+      data: {
+        userId: data.userId,
+        title: data.title,
+        body: data.body,
+        channel: data.channel ?? "SYSTEM",
+        read: false,
+        payload: data.payload ? JSON.stringify(data.payload) : null
+      }
+    });
+  }
+  async createForManagementUsers(data) {
+    const managementUsers = await this.client.user.findMany({
+      where: {
+        isActive: true,
+        deletedAt: null,
+        roles: {
+          some: {
+            role: {
+              name: { in: ["SUPER_ADMIN", "ADMIN", "MANAGER", "EMPLOYEE"] },
+              deletedAt: null
+            }
+          }
+        }
+      },
+      select: { id: true }
+    });
+    if (managementUsers.length === 0) return 0;
+    const result = await this.client.notification.createMany({
+      data: managementUsers.map((user) => ({
+        userId: user.id,
+        title: data.title,
+        body: data.body,
+        channel: data.channel ?? "admin",
+        read: false,
+        payload: data.payload ? JSON.stringify(data.payload) : null
+      }))
+    });
+    return result.count;
+  }
+  async findUserNotifications(userId, limit = 30) {
+    const [items, unreadCount] = await Promise.all([
+      this.client.notification.findMany({
+        where: { userId },
+        orderBy: { createdAt: "desc" },
+        take: limit
+      }),
+      this.client.notification.count({
+        where: { userId, read: false }
+      })
+    ]);
+    return {
+      items,
+      unreadCount
+    };
+  }
+  async getUnreadCount(userId) {
+    return this.client.notification.count({
+      where: { userId, read: false }
+    });
+  }
+  async markAsRead(notificationId, userId) {
+    const existing = await this.client.notification.findUnique({
+      where: { id: notificationId }
+    });
+    if (!existing || existing.userId !== userId) {
+      throw new NotFoundException("notification_not_found");
+    }
+    return this.client.notification.update({
+      where: { id: notificationId },
+      data: { read: true }
+    });
+  }
+  async markAllAsRead(userId) {
+    const result = await this.client.notification.updateMany({
+      where: { userId, read: false },
+      data: { read: true }
+    });
+    return result.count;
+  }
+};
+var notification_repository_default = NotificationRepository;
+
 // ../backend/src/services/auth-service.ts
 init_rate_limiter();
 init_prisma_service();
 init_errors();
-import crypto2 from "crypto";
+import crypto3 from "crypto";
 var AuthService = class {
   constructor(userLookup) {
     this.userLookup = userLookup;
@@ -1161,6 +2058,15 @@ var AuthService = class {
         }
       });
     });
+    try {
+      await new notification_repository_default().createForManagementUsers({
+        title: "\u0639\u0645\u064A\u0644 \u062C\u062F\u064A\u062F \u0633\u062C\u0644 \u0641\u064A \u0627\u0644\u0645\u062A\u062C\u0631",
+        body: `${name} (${email}) \u0623\u0646\u0634\u0623 \u062D\u0633\u0627\u0628 \u0639\u0645\u064A\u0644 \u062C\u062F\u064A\u062F.`,
+        channel: "admin",
+        payload: { type: "customer_registered", customerEmail: email }
+      });
+    } catch {
+    }
     return this.signIn(email, password);
   }
   async changePassword(userId, currentPassword, newPassword, confirmPassword) {
@@ -1263,7 +2169,7 @@ var AuthService = class {
     if (!v.valid || !v.payload) return;
     const jti = v.payload?.jti;
     const sub = v.payload?.sub;
-    const tokenHash = crypto2.createHash("sha256").update(refreshToken).digest("hex");
+    const tokenHash = crypto3.createHash("sha256").update(refreshToken).digest("hex");
     await token_blacklist_repository_default.addBlacklistByHash(sub ?? null, tokenHash, "logout");
     if (jti) await auth_session_service_default.revokeSession(jti);
     await (await Promise.resolve().then(() => (init_refresh_token_repository(), refresh_token_repository_exports))).default.revokeByHash(refreshToken);
@@ -1277,7 +2183,7 @@ var AuthService = class {
   async refresh(refreshToken, meta) {
     const ip = meta?.ip;
     const ua = meta?.userAgent;
-    const incomingHash = crypto2.createHash("sha256").update(refreshToken).digest("hex");
+    const incomingHash = crypto3.createHash("sha256").update(refreshToken).digest("hex");
     const blacklisted = await token_blacklist_repository_default.isBlacklistedByHash(incomingHash);
     if (blacklisted) throw new UnauthorizedError("token_revoked");
     const v = auth_token_service_default.verify(refreshToken);
@@ -1350,8 +2256,21 @@ var AuthService = class {
     let branch = null;
     let store = null;
     if (Array.isArray(user.roles) && user.roles.length > 0) {
-      const r = user.roles[0];
-      primaryRole = r.role?.name ?? null;
+      const rolePriority = {
+        SUPER_ADMIN: 0,
+        ADMIN: 1,
+        MANAGER: 2,
+        EMPLOYEE: 3,
+        CUSTOMER: 4,
+        USER: 5
+      };
+      const primaryAssignment = [...user.roles].sort((left, right) => {
+        const leftRank = rolePriority[String(left.role?.name ?? "").toUpperCase()] ?? 99;
+        const rightRank = rolePriority[String(right.role?.name ?? "").toUpperCase()] ?? 99;
+        return leftRank - rightRank;
+      })[0];
+      const branchAssignment = user.roles.find((assignment) => assignment.branch) ?? primaryAssignment;
+      primaryRole = primaryAssignment?.role?.name ?? null;
       for (const assignment of user.roles) {
         if (assignment.role?.name) {
           roles.push(String(assignment.role.name));
@@ -1364,10 +2283,10 @@ var AuthService = class {
           }
         }
       }
-      if (r.branch) {
-        branch = { id: r.branch.id, name: r.branch.name };
-        if (r.branch.storeId) {
-          const s = await client.store.findUnique({ where: { id: r.branch.storeId }, select: { id: true, name: true } });
+      if (branchAssignment?.branch) {
+        branch = { id: branchAssignment.branch.id, name: branchAssignment.branch.name };
+        if (branchAssignment.branch.storeId) {
+          const s = await client.store.findUnique({ where: { id: branchAssignment.branch.storeId }, select: { id: true, name: true } });
           if (s) store = { id: s.id, name: s.name };
         }
       }
@@ -1435,95 +2354,95 @@ var AuthController = class _AuthController {
       return client.user.findFirst({ where: { email: identifier } });
     });
   }
-  async signIn(request2) {
-    const ctx = this.createApiContext(request2);
-    const body = request2.body;
+  async signIn(request4) {
+    const ctx = this.createApiContext(request4);
+    const body = request4.body;
     if (!this.isObject(body) || typeof body.identifier !== "string" || !body.identifier || typeof body.password !== "string" || !body.password) {
-      return this.errorResponse("bad_request", "identifier_and_password_required", HTTP_STATUS.BAD_REQUEST, ctx);
+      return this.errorResponse("bad_request", "identifier_and_password_required", HTTP_STATUS2.BAD_REQUEST, ctx);
     }
     try {
-      const result = await this.authService.signIn(body.identifier, body.password, body.deviceId, this.requestMeta(request2));
-      return success(result, ctx);
+      const result = await this.authService.signIn(body.identifier, body.password, body.deviceId, this.requestMeta(request4));
+      return success2(result, ctx);
     } catch (error) {
       return this.mapError(error, ctx);
     }
   }
-  async refresh(request2) {
-    const ctx = this.createApiContext(request2);
-    const body = request2.body;
+  async refresh(request4) {
+    const ctx = this.createApiContext(request4);
+    const body = request4.body;
     if (!this.isObject(body) || typeof body.refreshToken !== "string" || !body.refreshToken) {
-      return this.errorResponse("bad_request", "refresh_token_required", HTTP_STATUS.BAD_REQUEST, ctx);
+      return this.errorResponse("bad_request", "refresh_token_required", HTTP_STATUS2.BAD_REQUEST, ctx);
     }
     try {
-      const result = await this.authService.refresh(body.refreshToken, this.requestMeta(request2));
-      return success(result, ctx);
+      const result = await this.authService.refresh(body.refreshToken, this.requestMeta(request4));
+      return success2(result, ctx);
     } catch (error) {
       return this.mapError(error, ctx);
     }
   }
-  async signOut(request2) {
-    const ctx = this.createApiContext(request2);
-    const body = request2.body;
+  async signOut(request4) {
+    const ctx = this.createApiContext(request4);
+    const body = request4.body;
     if (!this.isObject(body) || typeof body.refreshToken !== "string" || !body.refreshToken) {
-      return this.errorResponse("bad_request", "refresh_token_required", HTTP_STATUS.BAD_REQUEST, ctx);
+      return this.errorResponse("bad_request", "refresh_token_required", HTTP_STATUS2.BAD_REQUEST, ctx);
     }
     try {
-      await this.authService.signOut(body.refreshToken, this.requestMeta(request2));
-      return success(null, ctx);
+      await this.authService.signOut(body.refreshToken, this.requestMeta(request4));
+      return success2(null, ctx);
     } catch (error) {
       return this.mapError(error, ctx);
     }
   }
   // Logout endpoint — invalidates refresh token and session and returns HTTP 204 No Content
-  async logout(request2) {
-    const ctx = this.createApiContext(request2);
-    const body = request2.body;
+  async logout(request4) {
+    const ctx = this.createApiContext(request4);
+    const body = request4.body;
     if (!this.isObject(body) || typeof body.refreshToken !== "string" || !body.refreshToken) {
-      return this.errorResponse("bad_request", "refresh_token_required", HTTP_STATUS.BAD_REQUEST, ctx);
+      return this.errorResponse("bad_request", "refresh_token_required", HTTP_STATUS2.BAD_REQUEST, ctx);
     }
     try {
-      await this.authService.signOut(body.refreshToken, this.requestMeta(request2));
-      return noContent(ctx);
+      await this.authService.signOut(body.refreshToken, this.requestMeta(request4));
+      return noContent2(ctx);
     } catch (error) {
       return this.mapError(error, ctx);
     }
   }
-  async validate(request2) {
-    const ctx = this.createApiContext(request2);
-    const authorization = this.headerValue(request2, "authorization");
+  async validate(request4) {
+    const ctx = this.createApiContext(request4);
+    const authorization = this.headerValue(request4, "authorization");
     const match = authorization?.match(/^Bearer\s+(.+)$/i);
     const token = match?.[1];
     if (!token) {
-      return this.errorResponse("unauthorized", "access_token_required", HTTP_STATUS.UNAUTHORIZED, ctx);
+      return this.errorResponse("unauthorized", "access_token_required", HTTP_STATUS2.UNAUTHORIZED, ctx);
     }
     try {
       const result = await this.authService.validateAccessToken(token);
-      return success({ valid: result.valid }, ctx);
+      return success2({ valid: result.valid }, ctx);
     } catch (error) {
       return this.mapError(error, ctx);
     }
   }
   // GET /auth/me — return current authenticated user
-  async me(request2) {
-    const ctx = this.createApiContext(request2);
-    const authorization = this.headerValue(request2, "authorization");
+  async me(request4) {
+    const ctx = this.createApiContext(request4);
+    const authorization = this.headerValue(request4, "authorization");
     try {
       const payload = await guardRequireAuth(authorization);
       const userId = payload?.sub;
-      if (!userId) return this.errorResponse("unauthorized", "missing_sub", HTTP_STATUS.UNAUTHORIZED, ctx);
+      if (!userId) return this.errorResponse("unauthorized", "missing_sub", HTTP_STATUS2.UNAUTHORIZED, ctx);
       const result = await this.authService.getCurrentUser(userId);
-      if (!result) return this.errorResponse("not_found", "user_not_found", HTTP_STATUS.NOT_FOUND, ctx);
-      return success(result, ctx);
+      if (!result) return this.errorResponse("not_found", "user_not_found", HTTP_STATUS2.NOT_FOUND, ctx);
+      return success2(result, ctx);
     } catch (error) {
       return this.mapError(error, ctx);
     }
   }
   // Public Customer Registration
-  async signUp(request2) {
-    const ctx = this.createApiContext(request2);
-    const body = request2.body;
+  async signUp(request4) {
+    const ctx = this.createApiContext(request4);
+    const body = request4.body;
     if (!this.isObject(body) || typeof body.email !== "string" || typeof body.password !== "string") {
-      return this.errorResponse("bad_request", "email_and_password_required", HTTP_STATUS.BAD_REQUEST, ctx);
+      return this.errorResponse("bad_request", "email_and_password_required", HTTP_STATUS2.BAD_REQUEST, ctx);
     }
     try {
       const result = await this.authService.signUp({
@@ -1533,140 +2452,140 @@ var AuthController = class _AuthController {
         confirmPassword: body.confirmPassword ? String(body.confirmPassword) : void 0,
         phone: body.phone ? String(body.phone) : void 0
       });
-      return success(result, ctx);
+      return success2(result, ctx);
     } catch (error) {
       return this.mapError(error, ctx);
     }
   }
   // Change Password
-  async changePassword(request2) {
-    const ctx = this.createApiContext(request2);
-    const authorization = this.headerValue(request2, "authorization");
-    const body = request2.body;
+  async changePassword(request4) {
+    const ctx = this.createApiContext(request4);
+    const authorization = this.headerValue(request4, "authorization");
+    const body = request4.body;
     if (!this.isObject(body) || typeof body.currentPassword !== "string" || typeof body.newPassword !== "string") {
-      return this.errorResponse("bad_request", "current_and_new_password_required", HTTP_STATUS.BAD_REQUEST, ctx);
+      return this.errorResponse("bad_request", "current_and_new_password_required", HTTP_STATUS2.BAD_REQUEST, ctx);
     }
     try {
       const payload = await guardRequireAuth(authorization);
       const userId = payload?.sub;
-      if (!userId) return this.errorResponse("unauthorized", "missing_sub", HTTP_STATUS.UNAUTHORIZED, ctx);
+      if (!userId) return this.errorResponse("unauthorized", "missing_sub", HTTP_STATUS2.UNAUTHORIZED, ctx);
       await this.authService.changePassword(userId, String(body.currentPassword), String(body.newPassword), body.confirmPassword ? String(body.confirmPassword) : void 0);
-      return success({ message: "password_changed_successfully" }, ctx);
+      return success2({ message: "password_changed_successfully" }, ctx);
     } catch (error) {
       return this.mapError(error, ctx);
     }
   }
   // Forgot Password — Request reset link
-  async forgotPassword(request2) {
-    const ctx = this.createApiContext(request2);
-    const body = request2.body;
+  async forgotPassword(request4) {
+    const ctx = this.createApiContext(request4);
+    const body = request4.body;
     if (!this.isObject(body) || typeof body.email !== "string" || !body.email) {
-      return this.errorResponse("bad_request", "email_required", HTTP_STATUS.BAD_REQUEST, ctx);
+      return this.errorResponse("bad_request", "email_required", HTTP_STATUS2.BAD_REQUEST, ctx);
     }
     try {
       const { default: resetService } = await Promise.resolve().then(() => (init_auth_reset_service(), auth_reset_service_exports));
       await resetService.generateResetTokenByEmail(String(body.email));
-      return success({ message: "If the email exists, a password reset token has been generated." }, ctx);
+      return success2({ message: "If the email exists, a password reset token has been generated." }, ctx);
     } catch (error) {
       return this.mapError(error, ctx);
     }
   }
   // Reset Password — Submit reset token & new password
-  async resetPassword(request2) {
-    const ctx = this.createApiContext(request2);
-    const body = request2.body;
+  async resetPassword(request4) {
+    const ctx = this.createApiContext(request4);
+    const body = request4.body;
     if (!this.isObject(body) || typeof body.token !== "string" || typeof body.newPassword !== "string") {
-      return this.errorResponse("bad_request", "token_and_new_password_required", HTTP_STATUS.BAD_REQUEST, ctx);
+      return this.errorResponse("bad_request", "token_and_new_password_required", HTTP_STATUS2.BAD_REQUEST, ctx);
     }
     try {
       const { default: resetService } = await Promise.resolve().then(() => (init_auth_reset_service(), auth_reset_service_exports));
       await resetService.resetPassword(String(body.token), String(body.newPassword));
-      return success({ message: "password_reset_successfully" }, ctx);
+      return success2({ message: "password_reset_successfully" }, ctx);
     } catch (error) {
       return this.mapError(error, ctx);
     }
   }
   // Update Profile
-  async updateProfile(request2) {
-    const ctx = this.createApiContext(request2);
-    const authorization = this.headerValue(request2, "authorization");
-    const body = request2.body;
+  async updateProfile(request4) {
+    const ctx = this.createApiContext(request4);
+    const authorization = this.headerValue(request4, "authorization");
+    const body = request4.body;
     if (!this.isObject(body)) {
-      return this.errorResponse("bad_request", "body_required", HTTP_STATUS.BAD_REQUEST, ctx);
+      return this.errorResponse("bad_request", "body_required", HTTP_STATUS2.BAD_REQUEST, ctx);
     }
     try {
       const payload = await guardRequireAuth(authorization);
       const userId = payload?.sub;
-      if (!userId) return this.errorResponse("unauthorized", "missing_sub", HTTP_STATUS.UNAUTHORIZED, ctx);
+      if (!userId) return this.errorResponse("unauthorized", "missing_sub", HTTP_STATUS2.UNAUTHORIZED, ctx);
       const result = await this.authService.updateProfile(userId, {
         name: body.name ? String(body.name) : void 0,
         displayName: body.displayName ? String(body.displayName) : void 0,
         phone: body.phone ? String(body.phone) : void 0
       });
-      return success(result, ctx);
+      return success2(result, ctx);
     } catch (error) {
       return this.mapError(error, ctx);
     }
   }
   // Email Verification: Send verification token
-  async sendVerification(request2) {
-    const ctx = this.createApiContext(request2);
-    const authorization = this.headerValue(request2, "authorization");
+  async sendVerification(request4) {
+    const ctx = this.createApiContext(request4);
+    const authorization = this.headerValue(request4, "authorization");
     try {
       const payload = await guardRequireAuth(authorization);
       const userId = payload?.sub;
-      if (!userId) return this.errorResponse("unauthorized", "missing_sub", HTTP_STATUS.UNAUTHORIZED, ctx);
+      if (!userId) return this.errorResponse("unauthorized", "missing_sub", HTTP_STATUS2.UNAUTHORIZED, ctx);
       const { default: emailVerificationService } = await Promise.resolve().then(() => (init_auth_email_verification_service(), auth_email_verification_service_exports));
       await emailVerificationService.generateVerificationToken(userId);
-      return success({ message: "verification_token_sent" }, ctx);
+      return success2({ message: "verification_token_sent" }, ctx);
     } catch (error) {
       return this.mapError(error, ctx);
     }
   }
   // Email Verification: Verify token
-  async verifyEmail(request2) {
-    const ctx = this.createApiContext(request2);
-    const body = request2.body;
+  async verifyEmail(request4) {
+    const ctx = this.createApiContext(request4);
+    const body = request4.body;
     if (!this.isObject(body) || typeof body.token !== "string" || !body.token) {
-      return this.errorResponse("bad_request", "token_required", HTTP_STATUS.BAD_REQUEST, ctx);
+      return this.errorResponse("bad_request", "token_required", HTTP_STATUS2.BAD_REQUEST, ctx);
     }
     try {
       const { default: emailVerificationService } = await Promise.resolve().then(() => (init_auth_email_verification_service(), auth_email_verification_service_exports));
       const ok = await emailVerificationService.activateAccount(String(body.token));
-      if (!ok) return this.errorResponse("bad_request", "invalid_or_expired_token", HTTP_STATUS.BAD_REQUEST, ctx);
-      return success({ message: "email_verified_successfully" }, ctx);
+      if (!ok) return this.errorResponse("bad_request", "invalid_or_expired_token", HTTP_STATUS2.BAD_REQUEST, ctx);
+      return success2({ message: "email_verified_successfully" }, ctx);
     } catch (error) {
       return this.mapError(error, ctx);
     }
   }
-  requestMeta(request2) {
+  requestMeta(request4) {
     return {
-      ip: this.headerValue(request2, "x-forwarded-for") ?? this.headerValue(request2, "x-real-ip"),
-      userAgent: this.headerValue(request2, "user-agent")
+      ip: this.headerValue(request4, "x-forwarded-for") ?? this.headerValue(request4, "x-real-ip"),
+      userAgent: this.headerValue(request4, "user-agent")
     };
   }
-  createApiContext(request2) {
+  createApiContext(request4) {
     return {
-      timestamp: request2.context?.metadata?.timestamp ?? (/* @__PURE__ */ new Date()).toISOString(),
-      requestId: request2.context?.metadata?.requestId,
-      version: request2.context?.metadata?.version ?? "v1",
-      locale: request2.context?.metadata?.locale
+      timestamp: request4.context?.metadata?.timestamp ?? (/* @__PURE__ */ new Date()).toISOString(),
+      requestId: request4.context?.metadata?.requestId,
+      version: request4.context?.metadata?.version ?? "v1",
+      locale: request4.context?.metadata?.locale
     };
   }
-  headerValue(request2, name) {
-    const value = request2.headers?.[name.toLowerCase()];
+  headerValue(request4, name) {
+    const value = request4.headers?.[name.toLowerCase()];
     if (Array.isArray(value)) return value[0];
     return value;
   }
   mapError(error, ctx) {
     if (error instanceof ValidationException) {
-      return this.errorResponse("bad_request", error.message || "bad_request", HTTP_STATUS.BAD_REQUEST, ctx);
+      return this.errorResponse("bad_request", error.message || "bad_request", HTTP_STATUS2.BAD_REQUEST, ctx);
     }
     if (error instanceof UnauthorizedError) {
-      return this.errorResponse("unauthorized", error.message || "unauthorized", HTTP_STATUS.UNAUTHORIZED, ctx);
+      return this.errorResponse("unauthorized", error.message || "unauthorized", HTTP_STATUS2.UNAUTHORIZED, ctx);
     }
     if (error instanceof InvalidTokenError) {
-      return this.errorResponse("unauthorized", error.message || "invalid_token", HTTP_STATUS.UNAUTHORIZED, ctx);
+      return this.errorResponse("unauthorized", error.message || "invalid_token", HTTP_STATUS2.UNAUTHORIZED, ctx);
     }
     if (error instanceof AccountLockedError) {
       return this.errorResponse("account_locked", error.message || "account_locked", 423, ctx);
@@ -1674,7 +2593,7 @@ var AuthController = class _AuthController {
     if (error instanceof RateLimitError) {
       return this.errorResponse("rate_limited", error.message || "rate_limited", 429, ctx);
     }
-    return this.errorResponse("internal_error", error instanceof Error ? error.message : "internal_error", HTTP_STATUS.INTERNAL_SERVER_ERROR, ctx);
+    return this.errorResponse("internal_error", error instanceof Error ? error.message : "internal_error", HTTP_STATUS2.INTERNAL_SERVER_ERROR, ctx);
   }
   errorResponse(code, message, statusCode, ctx) {
     return {
@@ -1961,7 +2880,8 @@ var MODULE_SCOPES = {
   settings: "tenant",
   audit: "tenant",
   notifications: "tenant",
-  carts: "tenant"
+  carts: "tenant",
+  delivery: "tenant"
 };
 function createPermissionDefinition(module, action, description) {
   return {
@@ -2100,6 +3020,13 @@ var PERMISSION_DEFINITIONS = {
     update: "Update cart items",
     delete: "Delete cart items",
     list: "List cart items"
+  }),
+  delivery: createPermissionMap("delivery", {
+    create: "Create delivery records",
+    read: "Read delivery records",
+    update: "Update delivery records",
+    delete: "Delete delivery records",
+    list: "List delivery records"
   })
 };
 var PERMISSION_GROUPS = Object.entries(PERMISSION_DEFINITIONS).map(
@@ -2139,12 +3066,13 @@ function getPermissionsForModuleActions(module, actions) {
 var ROLE_DEFINITIONS = [
   createRoleDefinition("SUPER_ADMIN", "Full access across every module", [...ALL_PERMISSIONS]),
   createRoleDefinition("ADMIN", "Administrative access with audit excluded", ALL_PERMISSIONS.filter((permission) => !permission.startsWith("audit:"))),
-  createRoleDefinition("MANAGER", "Operational access for products, inventory, orders, and customers", getPermissionsForModules(["products", "inventory", "orders", "customers"])),
+  createRoleDefinition("MANAGER", "Operational access for products, inventory, orders, customers, and delivery", getPermissionsForModules(["products", "inventory", "orders", "customers", "delivery"])),
   createRoleDefinition("EMPLOYEE", "Staff operational access for reading products, customers, inventory, and updating orders", [
     ...getPermissionsForModuleActions("products", ["read", "list"]),
     ...getPermissionsForModuleActions("customers", ["read", "list"]),
     ...getPermissionsForModuleActions("orders", ["read", "list", "update"]),
-    ...getPermissionsForModuleActions("inventory", ["read", "list"])
+    ...getPermissionsForModuleActions("inventory", ["read", "list"]),
+    ...getPermissionsForModuleActions("delivery", ["read", "list", "update"])
   ]),
   createRoleDefinition("CUSTOMER", "Read and create access for self-service orders and customer profile", [
     ...getPermissionsForModuleActions("customers", ["read", "list"]),
@@ -2358,12 +3286,12 @@ function normalizePermissions2(permissions) {
 function normalizeRoles(roles) {
   return (roles ?? []).map((role) => role.toString().toUpperCase());
 }
-function buildAuthorizationContext(user, request2) {
+function buildAuthorizationContext(user, request4) {
   return {
     roles: user?.roles,
     permissions: user?.permissions,
     scope: user?.scope,
-    requiredScope: request2?.requiredScope,
+    requiredScope: request4?.requiredScope,
     actorId: user?.id,
     tenantId: user?.tenantId,
     storeId: user?.storeId,
@@ -2376,60 +3304,60 @@ var PermissionMiddleware = class {
   constructor(authorizationService = service_default) {
     this.authorizationService = authorizationService;
   }
-  requirePermission(user, request2) {
-    const context = buildAuthorizationContext(user, request2);
+  requirePermission(user, request4) {
+    const context = buildAuthorizationContext(user, request4);
     const result = this.authorizationService.evaluate(context, {
-      requiredPermissions: request2.requiredPermissions,
-      requiredRoles: request2.requiredRoles,
-      requiredScope: request2.requiredScope,
-      requireAllPermissions: request2.requireAllPermissions
+      requiredPermissions: request4.requiredPermissions,
+      requiredRoles: request4.requiredRoles,
+      requiredScope: request4.requiredScope,
+      requireAllPermissions: request4.requireAllPermissions
     });
     return {
       ...result,
-      requiredPermissions: normalizePermissions2(request2.requiredPermissions)
+      requiredPermissions: normalizePermissions2(request4.requiredPermissions)
     };
   }
-  requireAnyPermission(user, permissions, request2 = {}) {
-    const context = buildAuthorizationContext(user, request2);
+  requireAnyPermission(user, permissions, request4 = {}) {
+    const context = buildAuthorizationContext(user, request4);
     const result = this.authorizationService.hasAnyPermission(context, permissions, {
-      requiredRoles: request2.requiredRoles,
-      requiredScope: request2.requiredScope
+      requiredRoles: request4.requiredRoles,
+      requiredScope: request4.requiredScope
     });
     return {
       ...result,
       requiredPermissions: normalizePermissions2(permissions)
     };
   }
-  requireAllPermissions(user, permissions, request2 = {}) {
-    const context = buildAuthorizationContext(user, request2);
+  requireAllPermissions(user, permissions, request4 = {}) {
+    const context = buildAuthorizationContext(user, request4);
     const result = this.authorizationService.hasAllPermissions(context, permissions, {
-      requiredRoles: request2.requiredRoles,
-      requiredScope: request2.requiredScope
+      requiredRoles: request4.requiredRoles,
+      requiredScope: request4.requiredScope
     });
     return {
       ...result,
       requiredPermissions: normalizePermissions2(permissions)
     };
   }
-  requireRole(user, role, request2 = {}) {
-    const context = buildAuthorizationContext(user, request2);
-    const result = this.authorizationService.hasRole(context, role, { requiredScope: request2.requiredScope });
+  requireRole(user, role, request4 = {}) {
+    const context = buildAuthorizationContext(user, request4);
+    const result = this.authorizationService.hasRole(context, role, { requiredScope: request4.requiredScope });
     return {
       ...result,
       requiredPermissions: []
     };
   }
-  requireAnyRole(user, roles, request2 = {}) {
-    const context = buildAuthorizationContext(user, request2);
-    const result = this.authorizationService.hasAnyRole(context, roles, { requiredScope: request2.requiredScope });
+  requireAnyRole(user, roles, request4 = {}) {
+    const context = buildAuthorizationContext(user, request4);
+    const result = this.authorizationService.hasAnyRole(context, roles, { requiredScope: request4.requiredScope });
     return {
       ...result,
       requiredPermissions: []
     };
   }
-  requireSuperAdmin(user, request2 = {}) {
-    const context = buildAuthorizationContext(user, request2);
-    const result = this.authorizationService.isSuperAdmin(context, { requiredScope: request2.requiredScope });
+  requireSuperAdmin(user, request4 = {}) {
+    const context = buildAuthorizationContext(user, request4);
+    const result = this.authorizationService.isSuperAdmin(context, { requiredScope: request4.requiredScope });
     return {
       ...result,
       requiredPermissions: []
@@ -2614,16 +3542,16 @@ var SystemController = class {
     this.service = service;
   }
   getHealth() {
-    return success(this.service.getHealth(), this.createApiContext());
+    return success2(this.service.getHealth(), this.createApiContext());
   }
   getReady() {
-    return success(this.service.getReady(), this.createApiContext());
+    return success2(this.service.getReady(), this.createApiContext());
   }
   getLive() {
-    return success(this.service.getLive(), this.createApiContext());
+    return success2(this.service.getLive(), this.createApiContext());
   }
   getVersion() {
-    return success(this.service.getVersion(), this.createApiContext());
+    return success2(this.service.getVersion(), this.createApiContext());
   }
   createApiContext() {
     return {
@@ -2705,107 +3633,6 @@ function createSystemRoutes(controller = new SystemController()) {
   });
   return builder.build();
 }
-
-// ../backend/src/repositories/base-repository.ts
-init_prisma_service();
-var BaseRepository = class {
-  client = prisma_service_default.getClient();
-  modelName;
-  constructor(modelName) {
-    this.modelName = modelName;
-  }
-  get model() {
-    return this.client[this.modelName];
-  }
-  async findById(id) {
-    const result = await this.model.findUnique({ where: { id } });
-    return result ?? null;
-  }
-  async findMany(filter) {
-    const where = filter ?? {};
-    const results = await this.model.findMany({ where });
-    return results ?? [];
-  }
-  async create(data) {
-    return this.model.create({ data });
-  }
-  async update(id, data) {
-    return this.model.update({ where: { id }, data });
-  }
-  async delete(id) {
-    try {
-      await this.model.update({ where: { id }, data: { deletedAt: /* @__PURE__ */ new Date() } });
-    } catch (err) {
-      await this.model.delete({ where: { id } });
-    }
-  }
-  async restore(id) {
-    return this.model.update({ where: { id }, data: { deletedAt: null } });
-  }
-  async exists(id) {
-    const count = await this.model.count({ where: { id } });
-    return count > 0;
-  }
-  async count(filter) {
-    const where = filter ?? {};
-    return this.model.count({ where });
-  }
-  async paginate(options) {
-    const page = Math.max(1, options.page ?? 1);
-    const limit = Math.max(1, Math.min(100, options.limit ?? 25));
-    const skip = (page - 1) * limit;
-    const rawWhere = options.filters ?? {};
-    const cleanWhere = (obj) => {
-      if (obj == null) return {};
-      if (Array.isArray(obj)) {
-        const arr = obj.map(cleanWhere).filter((x) => {
-          return !(x && typeof x === "object" && Object.keys(x).length === 0);
-        });
-        return arr.length > 0 ? arr : void 0;
-      }
-      if (typeof obj !== "object") return obj;
-      const out = {};
-      for (const [k, v] of Object.entries(obj)) {
-        if (v === void 0) continue;
-        if ((k === "AND" || k === "OR" || k === "NOT") && Array.isArray(v)) {
-          const cleaned = cleanWhere(v);
-          if (cleaned !== void 0 && cleaned.length > 0) out[k] = cleaned;
-        } else if (v && typeof v === "object") {
-          const cleaned = cleanWhere(v);
-          if (cleaned !== void 0 && (typeof cleaned !== "object" || Object.keys(cleaned).length > 0)) {
-            out[k] = cleaned;
-          }
-        } else if (v !== void 0) {
-          out[k] = v;
-        }
-      }
-      return Object.keys(out).length > 0 ? out : void 0;
-    };
-    const where = cleanWhere(rawWhere) ?? {};
-    const orderBy = options.sort && (options.order === "asc" || options.order === "desc") ? { [options.sort]: options.order } : void 0;
-    let data = [];
-    let total = 0;
-    try {
-      const res = await Promise.all([
-        this.model.findMany({ where, skip, take: limit, orderBy }),
-        this.model.count({ where })
-      ]);
-      data = res[0] ?? [];
-      total = res[1] ?? 0;
-    } catch (err) {
-      const debug = { where, orderBy, skip, take: limit };
-      const msg = `paginate_error: ${err?.message ?? "unknown"} -- query: ${JSON.stringify(debug)}`;
-      throw new Error(msg);
-    }
-    return {
-      data,
-      total,
-      page,
-      limit
-    };
-  }
-};
-var base_repository_default = BaseRepository;
 
 // ../backend/src/repositories/tenant-repository.ts
 var TenantRepository = class extends base_repository_default {
@@ -3572,32 +4399,6 @@ var CartRepository = class extends base_repository_default {
 };
 var cart_repository_default = CartRepository;
 
-// ../backend/src/repositories/exceptions.ts
-var DatabaseException = class extends Error {
-  constructor(message) {
-    super(message ?? "Database error");
-    this.name = "DatabaseException";
-  }
-};
-var NotFoundException = class extends Error {
-  constructor(message) {
-    super(message ?? "Resource not found");
-    this.name = "NotFoundException";
-  }
-};
-var ConflictException = class extends Error {
-  constructor(message) {
-    super(message ?? "Conflict");
-    this.name = "ConflictException";
-  }
-};
-var ValidationException2 = class extends Error {
-  constructor(message) {
-    super(message ?? "Validation failed");
-    this.name = "ValidationException";
-  }
-};
-
 // ../backend/src/repositories/order-repository.ts
 var ALLOWED_TRANSITIONS = {
   DRAFT: ["PENDING", "CONFIRMED", "CANCELED"],
@@ -3740,6 +4541,20 @@ var OrderRepository = class extends base_repository_default {
     const orderResult = createdOrder;
     if (cacheKey) {
       idempotencyStore.set(cacheKey, { order: orderResult, createdAt: Date.now() });
+    }
+    try {
+      await new notification_repository_default().createForManagementUsers({
+        title: "\u0637\u0644\u0628 \u062C\u062F\u064A\u062F \u0648\u0635\u0644",
+        body: `\u0627\u0644\u0637\u0644\u0628 ${orderResult.code} \u0628\u0642\u064A\u0645\u0629 ${Number(orderResult.total).toLocaleString("ar-YE")} \u0631.\u064A.`,
+        channel: "admin",
+        payload: {
+          type: "order_created",
+          orderId: orderResult.id,
+          orderCode: orderResult.code,
+          total: orderResult.total
+        }
+      });
+    } catch {
     }
     return orderResult;
   }
@@ -3948,66 +4763,6 @@ var PaymentRepository = class extends base_repository_default {
   }
 };
 var payment_repository_default = PaymentRepository;
-
-// ../backend/src/repositories/notification-repository.ts
-var NotificationRepository = class extends base_repository_default {
-  constructor() {
-    super("notification");
-  }
-  async createNotification(data) {
-    return this.client.notification.create({
-      data: {
-        userId: data.userId,
-        title: data.title,
-        body: data.body,
-        channel: data.channel ?? "SYSTEM",
-        read: false,
-        payload: data.payload ? JSON.stringify(data.payload) : null
-      }
-    });
-  }
-  async findUserNotifications(userId, limit = 30) {
-    const [items, unreadCount] = await Promise.all([
-      this.client.notification.findMany({
-        where: { userId },
-        orderBy: { createdAt: "desc" },
-        take: limit
-      }),
-      this.client.notification.count({
-        where: { userId, read: false }
-      })
-    ]);
-    return {
-      items,
-      unreadCount
-    };
-  }
-  async getUnreadCount(userId) {
-    return this.client.notification.count({
-      where: { userId, read: false }
-    });
-  }
-  async markAsRead(notificationId, userId) {
-    const existing = await this.client.notification.findUnique({
-      where: { id: notificationId }
-    });
-    if (!existing || existing.userId !== userId) {
-      throw new NotFoundException("notification_not_found");
-    }
-    return this.client.notification.update({
-      where: { id: notificationId },
-      data: { read: true }
-    });
-  }
-  async markAllAsRead(userId) {
-    const result = await this.client.notification.updateMany({
-      where: { userId, read: false },
-      data: { read: true }
-    });
-    return result.count;
-  }
-};
-var notification_repository_default = NotificationRepository;
 
 // ../backend/src/repositories/audit-repository.ts
 var SENSITIVE_KEYS = ["password", "passwordHash", "token", "jwt", "secret", "creditCard"];
@@ -5136,12 +5891,12 @@ var ServiceFactory = {
 // ../backend/src/modules/users/controller.ts
 var UsersController = class {
   userService = ServiceFactory.createUserService();
-  createApiContext(request2) {
+  createApiContext(request4) {
     return {
-      timestamp: request2.context?.metadata?.timestamp ?? (/* @__PURE__ */ new Date()).toISOString(),
-      requestId: request2.context?.metadata?.requestId,
-      version: request2.context?.metadata?.version ?? "v1",
-      locale: request2.context?.metadata?.locale
+      timestamp: request4.context?.metadata?.timestamp ?? (/* @__PURE__ */ new Date()).toISOString(),
+      requestId: request4.context?.metadata?.requestId,
+      version: request4.context?.metadata?.version ?? "v1",
+      locale: request4.context?.metadata?.locale
     };
   }
   mapToDto(entity) {
@@ -5155,9 +5910,9 @@ var UsersController = class {
       deletedAt: entity.deletedAt ? new Date(entity.deletedAt).toISOString() : null
     };
   }
-  async list(request2) {
-    const ctx = this.createApiContext(request2);
-    const q = request2.query ?? {};
+  async list(request4) {
+    const ctx = this.createApiContext(request4);
+    const q = request4.query ?? {};
     const page = Number(q.page ?? 1);
     const limit = Number(q.limit ?? 25);
     const rawSort = q.sort ?? void 0;
@@ -5195,127 +5950,127 @@ var UsersController = class {
       }
       const resultAny = await this.userService.paginate(options);
       const data = (resultAny.data ?? []).map((e) => this.mapToDto(e));
-      return paginated(data, resultAny.page ?? page, resultAny.limit ?? limit, resultAny.total ?? 0, ctx);
+      return paginated2(data, resultAny.page ?? page, resultAny.limit ?? limit, resultAny.total ?? 0, ctx);
     } catch (err) {
-      return { statusCode: HTTP_STATUS.INTERNAL_SERVER_ERROR, body: { success: false, error: { code: "internal_error", message: err?.message ?? "internal_error" }, meta: ctx } };
+      return { statusCode: HTTP_STATUS2.INTERNAL_SERVER_ERROR, body: { success: false, error: { code: "internal_error", message: err?.message ?? "internal_error" }, meta: ctx } };
     }
   }
-  async get(request2) {
-    const ctx = this.createApiContext(request2);
-    const id = request2.params?.id;
-    if (!id) return { statusCode: HTTP_STATUS.BAD_REQUEST, body: { success: false, error: { code: "bad_request", message: "id_required" }, meta: ctx } };
+  async get(request4) {
+    const ctx = this.createApiContext(request4);
+    const id = request4.params?.id;
+    if (!id) return { statusCode: HTTP_STATUS2.BAD_REQUEST, body: { success: false, error: { code: "bad_request", message: "id_required" }, meta: ctx } };
     try {
       const result = await this.userService.findById(id);
-      if (!result) return { statusCode: HTTP_STATUS.NOT_FOUND, body: { success: false, error: { code: "not_found", message: "user_not_found" }, meta: ctx } };
-      return success(this.mapToDto(result), ctx);
+      if (!result) return { statusCode: HTTP_STATUS2.NOT_FOUND, body: { success: false, error: { code: "not_found", message: "user_not_found" }, meta: ctx } };
+      return success2(this.mapToDto(result), ctx);
     } catch (err) {
-      return { statusCode: HTTP_STATUS.INTERNAL_SERVER_ERROR, body: { success: false, error: { code: "internal_error", message: err?.message ?? "internal_error" }, meta: ctx } };
+      return { statusCode: HTTP_STATUS2.INTERNAL_SERVER_ERROR, body: { success: false, error: { code: "internal_error", message: err?.message ?? "internal_error" }, meta: ctx } };
     }
   }
-  async create(request2) {
-    const ctx = this.createApiContext(request2);
-    const body = request2.body;
+  async create(request4) {
+    const ctx = this.createApiContext(request4);
+    const body = request4.body;
     if (!body || typeof body !== "object" || typeof body.email !== "string" || !body.email) {
-      return { statusCode: HTTP_STATUS.BAD_REQUEST, body: { success: false, error: { code: "bad_request", message: "email_required" }, meta: ctx } };
+      return { statusCode: HTTP_STATUS2.BAD_REQUEST, body: { success: false, error: { code: "bad_request", message: "email_required" }, meta: ctx } };
     }
     try {
       const createdUser = await this.userService.create(body);
-      return created(this.mapToDto(createdUser), ctx);
+      return created2(this.mapToDto(createdUser), ctx);
     } catch (err) {
       if (err instanceof ValidationException) {
-        return { statusCode: HTTP_STATUS.UNPROCESSABLE_ENTITY, body: { success: false, error: { code: "validation_error", message: err.message }, meta: ctx } };
+        return { statusCode: HTTP_STATUS2.UNPROCESSABLE_ENTITY, body: { success: false, error: { code: "validation_error", message: err.message }, meta: ctx } };
       }
-      return { statusCode: HTTP_STATUS.INTERNAL_SERVER_ERROR, body: { success: false, error: { code: "internal_error", message: err?.message ?? "internal_error" }, meta: ctx } };
+      return { statusCode: HTTP_STATUS2.INTERNAL_SERVER_ERROR, body: { success: false, error: { code: "internal_error", message: err?.message ?? "internal_error" }, meta: ctx } };
     }
   }
-  async update(request2) {
-    const ctx = this.createApiContext(request2);
-    const id = request2.params?.id;
-    const body = request2.body;
-    if (!id) return { statusCode: HTTP_STATUS.BAD_REQUEST, body: { success: false, error: { code: "bad_request", message: "id_required" }, meta: ctx } };
-    if (!body || typeof body !== "object") return { statusCode: HTTP_STATUS.BAD_REQUEST, body: { success: false, error: { code: "bad_request", message: "data_required" }, meta: ctx } };
+  async update(request4) {
+    const ctx = this.createApiContext(request4);
+    const id = request4.params?.id;
+    const body = request4.body;
+    if (!id) return { statusCode: HTTP_STATUS2.BAD_REQUEST, body: { success: false, error: { code: "bad_request", message: "id_required" }, meta: ctx } };
+    if (!body || typeof body !== "object") return { statusCode: HTTP_STATUS2.BAD_REQUEST, body: { success: false, error: { code: "bad_request", message: "data_required" }, meta: ctx } };
     try {
       const updated = await this.userService.update(id, body);
-      return success(this.mapToDto(updated), ctx);
+      return success2(this.mapToDto(updated), ctx);
     } catch (err) {
       if (err instanceof ValidationException) {
-        return { statusCode: HTTP_STATUS.UNPROCESSABLE_ENTITY, body: { success: false, error: { code: "validation_error", message: err.message }, meta: ctx } };
+        return { statusCode: HTTP_STATUS2.UNPROCESSABLE_ENTITY, body: { success: false, error: { code: "validation_error", message: err.message }, meta: ctx } };
       }
-      return { statusCode: HTTP_STATUS.INTERNAL_SERVER_ERROR, body: { success: false, error: { code: "internal_error", message: err?.message ?? "internal_error" }, meta: ctx } };
+      return { statusCode: HTTP_STATUS2.INTERNAL_SERVER_ERROR, body: { success: false, error: { code: "internal_error", message: err?.message ?? "internal_error" }, meta: ctx } };
     }
   }
-  async remove(request2) {
-    const ctx = this.createApiContext(request2);
-    const id = request2.params?.id;
-    if (!id) return { statusCode: HTTP_STATUS.BAD_REQUEST, body: { success: false, error: { code: "bad_request", message: "id_required" }, meta: ctx } };
+  async remove(request4) {
+    const ctx = this.createApiContext(request4);
+    const id = request4.params?.id;
+    if (!id) return { statusCode: HTTP_STATUS2.BAD_REQUEST, body: { success: false, error: { code: "bad_request", message: "id_required" }, meta: ctx } };
     try {
       await this.userService.delete(id);
-      return noContent(ctx);
+      return noContent2(ctx);
     } catch (err) {
-      return { statusCode: HTTP_STATUS.INTERNAL_SERVER_ERROR, body: { success: false, error: { code: "internal_error", message: err?.message ?? "internal_error" }, meta: ctx } };
+      return { statusCode: HTTP_STATUS2.INTERNAL_SERVER_ERROR, body: { success: false, error: { code: "internal_error", message: err?.message ?? "internal_error" }, meta: ctx } };
     }
   }
-  async restore(request2) {
-    const ctx = this.createApiContext(request2);
-    const id = request2.params?.id;
-    if (!id) return { statusCode: HTTP_STATUS.BAD_REQUEST, body: { success: false, error: { code: "bad_request", message: "id_required" }, meta: ctx } };
+  async restore(request4) {
+    const ctx = this.createApiContext(request4);
+    const id = request4.params?.id;
+    if (!id) return { statusCode: HTTP_STATUS2.BAD_REQUEST, body: { success: false, error: { code: "bad_request", message: "id_required" }, meta: ctx } };
     try {
       const restored = await this.userService.restore(id);
-      return success(this.mapToDto(restored), ctx);
+      return success2(this.mapToDto(restored), ctx);
     } catch (err) {
-      return { statusCode: HTTP_STATUS.INTERNAL_SERVER_ERROR, body: { success: false, error: { code: "internal_error", message: err?.message ?? "internal_error" }, meta: ctx } };
+      return { statusCode: HTTP_STATUS2.INTERNAL_SERVER_ERROR, body: { success: false, error: { code: "internal_error", message: err?.message ?? "internal_error" }, meta: ctx } };
     }
   }
-  async listRoles(request2) {
-    const ctx = this.createApiContext(request2);
-    const userId = request2.params?.userId;
-    if (!userId) return { statusCode: HTTP_STATUS.BAD_REQUEST, body: { success: false, error: { code: "bad_request", message: "user_id_required" }, meta: ctx } };
+  async listRoles(request4) {
+    const ctx = this.createApiContext(request4);
+    const userId = request4.params?.userId;
+    if (!userId) return { statusCode: HTTP_STATUS2.BAD_REQUEST, body: { success: false, error: { code: "bad_request", message: "user_id_required" }, meta: ctx } };
     try {
       const result = await this.userService.listRoles(userId);
       const roles = (result.roles ?? []).map((assignment) => assignment.role ?? assignment);
-      return success({ userId: result.userId, roles }, ctx);
+      return success2({ userId: result.userId, roles }, ctx);
     } catch (err) {
       return this.relationshipError(err, ctx);
     }
   }
-  async assignRole(request2) {
-    const ctx = this.createApiContext(request2);
-    const userId = request2.params?.userId;
-    const roleId = request2.body?.roleId;
-    if (!userId || !roleId) return { statusCode: HTTP_STATUS.BAD_REQUEST, body: { success: false, error: { code: "bad_request", message: "user_id_and_role_id_required" }, meta: ctx } };
+  async assignRole(request4) {
+    const ctx = this.createApiContext(request4);
+    const userId = request4.params?.userId;
+    const roleId = request4.body?.roleId;
+    if (!userId || !roleId) return { statusCode: HTTP_STATUS2.BAD_REQUEST, body: { success: false, error: { code: "bad_request", message: "user_id_and_role_id_required" }, meta: ctx } };
     try {
-      return created(await this.userService.assignRole(userId, roleId), ctx);
+      return created2(await this.userService.assignRole(userId, roleId), ctx);
     } catch (err) {
       return this.relationshipError(err, ctx);
     }
   }
-  async removeRole(request2) {
-    const ctx = this.createApiContext(request2);
-    const userId = request2.params?.userId;
-    const roleId = request2.params?.roleId;
-    if (!userId || !roleId) return { statusCode: HTTP_STATUS.BAD_REQUEST, body: { success: false, error: { code: "bad_request", message: "user_id_and_role_id_required" }, meta: ctx } };
+  async removeRole(request4) {
+    const ctx = this.createApiContext(request4);
+    const userId = request4.params?.userId;
+    const roleId = request4.params?.roleId;
+    if (!userId || !roleId) return { statusCode: HTTP_STATUS2.BAD_REQUEST, body: { success: false, error: { code: "bad_request", message: "user_id_and_role_id_required" }, meta: ctx } };
     try {
       await this.userService.removeRole(userId, roleId);
-      return noContent(ctx);
+      return noContent2(ctx);
     } catch (err) {
       return this.relationshipError(err, ctx);
     }
   }
-  async checkRole(request2) {
-    const ctx = this.createApiContext(request2);
-    const userId = request2.params?.userId;
-    const roleId = request2.params?.roleId;
-    if (!userId || !roleId) return { statusCode: HTTP_STATUS.BAD_REQUEST, body: { success: false, error: { code: "bad_request", message: "user_id_and_role_id_required" }, meta: ctx } };
+  async checkRole(request4) {
+    const ctx = this.createApiContext(request4);
+    const userId = request4.params?.userId;
+    const roleId = request4.params?.roleId;
+    if (!userId || !roleId) return { statusCode: HTTP_STATUS2.BAD_REQUEST, body: { success: false, error: { code: "bad_request", message: "user_id_and_role_id_required" }, meta: ctx } };
     try {
-      return success({ assigned: await this.userService.checkRole(userId, roleId) }, ctx);
+      return success2({ assigned: await this.userService.checkRole(userId, roleId) }, ctx);
     } catch (err) {
       return this.relationshipError(err, ctx);
     }
   }
   relationshipError(err, ctx) {
-    if (err instanceof ConflictException) return { statusCode: HTTP_STATUS.CONFLICT, body: { success: false, error: { code: "conflict", message: err.message }, meta: ctx } };
-    if (err instanceof NotFoundException) return { statusCode: HTTP_STATUS.NOT_FOUND, body: { success: false, error: { code: "not_found", message: err.message }, meta: ctx } };
-    return { statusCode: HTTP_STATUS.INTERNAL_SERVER_ERROR, body: { success: false, error: { code: "internal_error", message: err?.message ?? "internal_error" }, meta: ctx } };
+    if (err instanceof ConflictException) return { statusCode: HTTP_STATUS2.CONFLICT, body: { success: false, error: { code: "conflict", message: err.message }, meta: ctx } };
+    if (err instanceof NotFoundException) return { statusCode: HTTP_STATUS2.NOT_FOUND, body: { success: false, error: { code: "not_found", message: err.message }, meta: ctx } };
+    return { statusCode: HTTP_STATUS2.INTERNAL_SERVER_ERROR, body: { success: false, error: { code: "internal_error", message: err?.message ?? "internal_error" }, meta: ctx } };
   }
 };
 var controller_default = UsersController;
@@ -5512,12 +6267,12 @@ function createUserRoutes(controller = new controller_default()) {
 // ../backend/src/modules/roles/controller.ts
 var RolesController = class {
   roleService = ServiceFactory.createRoleService();
-  createApiContext(request2) {
+  createApiContext(request4) {
     return {
-      timestamp: request2.context?.metadata?.timestamp ?? (/* @__PURE__ */ new Date()).toISOString(),
-      requestId: request2.context?.metadata?.requestId,
-      version: request2.context?.metadata?.version ?? "v1",
-      locale: request2.context?.metadata?.locale
+      timestamp: request4.context?.metadata?.timestamp ?? (/* @__PURE__ */ new Date()).toISOString(),
+      requestId: request4.context?.metadata?.requestId,
+      version: request4.context?.metadata?.version ?? "v1",
+      locale: request4.context?.metadata?.locale
     };
   }
   mapToDto(entity) {
@@ -5532,9 +6287,9 @@ var RolesController = class {
       deletedAt: entity.deletedAt ? new Date(entity.deletedAt).toISOString() : null
     };
   }
-  async list(request2) {
-    const ctx = this.createApiContext(request2);
-    const q = request2.query ?? {};
+  async list(request4) {
+    const ctx = this.createApiContext(request4);
+    const q = request4.query ?? {};
     const page = Number(q.page ?? 1);
     const limit = Number(q.limit ?? 25);
     const rawSort = q.sort ?? void 0;
@@ -5572,28 +6327,28 @@ var RolesController = class {
       }
       const resultAny = await this.roleService.paginate(options);
       const data = (resultAny.data ?? []).map((e) => this.mapToDto(e));
-      return paginated(data, resultAny.page ?? page, resultAny.limit ?? limit, resultAny.total ?? 0, ctx);
+      return paginated2(data, resultAny.page ?? page, resultAny.limit ?? limit, resultAny.total ?? 0, ctx);
     } catch (err) {
-      return { statusCode: HTTP_STATUS.INTERNAL_SERVER_ERROR, body: { success: false, error: { code: "internal_error", message: err?.message ?? "internal_error" }, meta: ctx } };
+      return { statusCode: HTTP_STATUS2.INTERNAL_SERVER_ERROR, body: { success: false, error: { code: "internal_error", message: err?.message ?? "internal_error" }, meta: ctx } };
     }
   }
-  async get(request2) {
-    const ctx = this.createApiContext(request2);
-    const id = request2.params?.id;
-    if (!id) return { statusCode: HTTP_STATUS.BAD_REQUEST, body: { success: false, error: { code: "bad_request", message: "id_required" }, meta: ctx } };
+  async get(request4) {
+    const ctx = this.createApiContext(request4);
+    const id = request4.params?.id;
+    if (!id) return { statusCode: HTTP_STATUS2.BAD_REQUEST, body: { success: false, error: { code: "bad_request", message: "id_required" }, meta: ctx } };
     try {
       const result = await this.roleService.findById(id);
-      if (!result) return { statusCode: HTTP_STATUS.NOT_FOUND, body: { success: false, error: { code: "not_found", message: "role_not_found" }, meta: ctx } };
-      return success(this.mapToDto(result), ctx);
+      if (!result) return { statusCode: HTTP_STATUS2.NOT_FOUND, body: { success: false, error: { code: "not_found", message: "role_not_found" }, meta: ctx } };
+      return success2(this.mapToDto(result), ctx);
     } catch (err) {
-      return { statusCode: HTTP_STATUS.INTERNAL_SERVER_ERROR, body: { success: false, error: { code: "internal_error", message: err?.message ?? "internal_error" }, meta: ctx } };
+      return { statusCode: HTTP_STATUS2.INTERNAL_SERVER_ERROR, body: { success: false, error: { code: "internal_error", message: err?.message ?? "internal_error" }, meta: ctx } };
     }
   }
-  async create(request2) {
-    const ctx = this.createApiContext(request2);
-    const body = request2.body;
+  async create(request4) {
+    const ctx = this.createApiContext(request4);
+    const body = request4.body;
     if (!body || typeof body !== "object" || typeof body.name !== "string" || !body.name) {
-      return { statusCode: HTTP_STATUS.BAD_REQUEST, body: { success: false, error: { code: "bad_request", message: "name_required" }, meta: ctx } };
+      return { statusCode: HTTP_STATUS2.BAD_REQUEST, body: { success: false, error: { code: "bad_request", message: "name_required" }, meta: ctx } };
     }
     try {
       const payload = {
@@ -5601,52 +6356,52 @@ var RolesController = class {
       };
       if (body.description !== void 0) payload.description = body.description;
       const createdRole = await this.roleService.create(payload);
-      return created(this.mapToDto(createdRole), ctx);
+      return created2(this.mapToDto(createdRole), ctx);
     } catch (err) {
       if (err instanceof ValidationException) {
-        return { statusCode: HTTP_STATUS.UNPROCESSABLE_ENTITY, body: { success: false, error: { code: "validation_error", message: err.message }, meta: ctx } };
+        return { statusCode: HTTP_STATUS2.UNPROCESSABLE_ENTITY, body: { success: false, error: { code: "validation_error", message: err.message }, meta: ctx } };
       }
-      return { statusCode: HTTP_STATUS.INTERNAL_SERVER_ERROR, body: { success: false, error: { code: "internal_error", message: err?.message ?? "internal_error" }, meta: ctx } };
+      return { statusCode: HTTP_STATUS2.INTERNAL_SERVER_ERROR, body: { success: false, error: { code: "internal_error", message: err?.message ?? "internal_error" }, meta: ctx } };
     }
   }
-  async update(request2) {
-    const ctx = this.createApiContext(request2);
-    const id = request2.params?.id;
-    const body = request2.body;
-    if (!id) return { statusCode: HTTP_STATUS.BAD_REQUEST, body: { success: false, error: { code: "bad_request", message: "id_required" }, meta: ctx } };
-    if (!body || typeof body !== "object") return { statusCode: HTTP_STATUS.BAD_REQUEST, body: { success: false, error: { code: "bad_request", message: "data_required" }, meta: ctx } };
+  async update(request4) {
+    const ctx = this.createApiContext(request4);
+    const id = request4.params?.id;
+    const body = request4.body;
+    if (!id) return { statusCode: HTTP_STATUS2.BAD_REQUEST, body: { success: false, error: { code: "bad_request", message: "id_required" }, meta: ctx } };
+    if (!body || typeof body !== "object") return { statusCode: HTTP_STATUS2.BAD_REQUEST, body: { success: false, error: { code: "bad_request", message: "data_required" }, meta: ctx } };
     try {
       const payload = {};
       if (body.description !== void 0) payload.description = body.description;
       const updated = await this.roleService.update(id, payload);
-      return success(this.mapToDto(updated), ctx);
+      return success2(this.mapToDto(updated), ctx);
     } catch (err) {
       if (err instanceof ValidationException) {
-        return { statusCode: HTTP_STATUS.UNPROCESSABLE_ENTITY, body: { success: false, error: { code: "validation_error", message: err.message }, meta: ctx } };
+        return { statusCode: HTTP_STATUS2.UNPROCESSABLE_ENTITY, body: { success: false, error: { code: "validation_error", message: err.message }, meta: ctx } };
       }
-      return { statusCode: HTTP_STATUS.INTERNAL_SERVER_ERROR, body: { success: false, error: { code: "internal_error", message: err?.message ?? "internal_error" }, meta: ctx } };
+      return { statusCode: HTTP_STATUS2.INTERNAL_SERVER_ERROR, body: { success: false, error: { code: "internal_error", message: err?.message ?? "internal_error" }, meta: ctx } };
     }
   }
-  async remove(request2) {
-    const ctx = this.createApiContext(request2);
-    const id = request2.params?.id;
-    if (!id) return { statusCode: HTTP_STATUS.BAD_REQUEST, body: { success: false, error: { code: "bad_request", message: "id_required" }, meta: ctx } };
+  async remove(request4) {
+    const ctx = this.createApiContext(request4);
+    const id = request4.params?.id;
+    if (!id) return { statusCode: HTTP_STATUS2.BAD_REQUEST, body: { success: false, error: { code: "bad_request", message: "id_required" }, meta: ctx } };
     try {
       await this.roleService.delete(id);
-      return noContent(ctx);
+      return noContent2(ctx);
     } catch (err) {
-      return { statusCode: HTTP_STATUS.INTERNAL_SERVER_ERROR, body: { success: false, error: { code: "internal_error", message: err?.message ?? "internal_error" }, meta: ctx } };
+      return { statusCode: HTTP_STATUS2.INTERNAL_SERVER_ERROR, body: { success: false, error: { code: "internal_error", message: err?.message ?? "internal_error" }, meta: ctx } };
     }
   }
-  async restore(request2) {
-    const ctx = this.createApiContext(request2);
-    const id = request2.params?.id;
-    if (!id) return { statusCode: HTTP_STATUS.BAD_REQUEST, body: { success: false, error: { code: "bad_request", message: "id_required" }, meta: ctx } };
+  async restore(request4) {
+    const ctx = this.createApiContext(request4);
+    const id = request4.params?.id;
+    if (!id) return { statusCode: HTTP_STATUS2.BAD_REQUEST, body: { success: false, error: { code: "bad_request", message: "id_required" }, meta: ctx } };
     try {
       const restored = await this.roleService.restore(id);
-      return success(this.mapToDto(restored), ctx);
+      return success2(this.mapToDto(restored), ctx);
     } catch (err) {
-      return { statusCode: HTTP_STATUS.INTERNAL_SERVER_ERROR, body: { success: false, error: { code: "internal_error", message: err?.message ?? "internal_error" }, meta: ctx } };
+      return { statusCode: HTTP_STATUS2.INTERNAL_SERVER_ERROR, body: { success: false, error: { code: "internal_error", message: err?.message ?? "internal_error" }, meta: ctx } };
     }
   }
   mapPermissionEntity(entity) {
@@ -5665,65 +6420,65 @@ var RolesController = class {
       } : null
     };
   }
-  async listPermissions(request2) {
-    const ctx = this.createApiContext(request2);
-    const roleId = request2.params?.roleId;
-    if (!roleId) return { statusCode: HTTP_STATUS.BAD_REQUEST, body: { success: false, error: { code: "bad_request", message: "role_id_required" }, meta: ctx } };
+  async listPermissions(request4) {
+    const ctx = this.createApiContext(request4);
+    const roleId = request4.params?.roleId;
+    if (!roleId) return { statusCode: HTTP_STATUS2.BAD_REQUEST, body: { success: false, error: { code: "bad_request", message: "role_id_required" }, meta: ctx } };
     try {
       const result = await this.roleService.listPermissions(roleId);
       const dto = {
         role: this.mapToDto(result.role),
         permissions: (result.permissions ?? []).map((e) => this.mapPermissionEntity(e))
       };
-      return success(dto, ctx);
+      return success2(dto, ctx);
     } catch (err) {
-      if (err instanceof NotFoundException) return { statusCode: HTTP_STATUS.NOT_FOUND, body: { success: false, error: { code: "not_found", message: err.message }, meta: ctx } };
-      return { statusCode: HTTP_STATUS.INTERNAL_SERVER_ERROR, body: { success: false, error: { code: "internal_error", message: err?.message ?? "internal_error" }, meta: ctx } };
+      if (err instanceof NotFoundException) return { statusCode: HTTP_STATUS2.NOT_FOUND, body: { success: false, error: { code: "not_found", message: err.message }, meta: ctx } };
+      return { statusCode: HTTP_STATUS2.INTERNAL_SERVER_ERROR, body: { success: false, error: { code: "internal_error", message: err?.message ?? "internal_error" }, meta: ctx } };
     }
   }
-  async assignPermission(request2) {
-    const ctx = this.createApiContext(request2);
-    const roleId = request2.params?.roleId;
-    const body = request2.body;
-    if (!roleId) return { statusCode: HTTP_STATUS.BAD_REQUEST, body: { success: false, error: { code: "bad_request", message: "role_id_required" }, meta: ctx } };
+  async assignPermission(request4) {
+    const ctx = this.createApiContext(request4);
+    const roleId = request4.params?.roleId;
+    const body = request4.body;
+    if (!roleId) return { statusCode: HTTP_STATUS2.BAD_REQUEST, body: { success: false, error: { code: "bad_request", message: "role_id_required" }, meta: ctx } };
     if (!body || typeof body !== "object" || typeof body.permissionId !== "string" || !body.permissionId) {
-      return { statusCode: HTTP_STATUS.BAD_REQUEST, body: { success: false, error: { code: "bad_request", message: "permission_id_required" }, meta: ctx } };
+      return { statusCode: HTTP_STATUS2.BAD_REQUEST, body: { success: false, error: { code: "bad_request", message: "permission_id_required" }, meta: ctx } };
     }
     try {
       const result = await this.roleService.assignPermission(roleId, body.permissionId);
-      return created(this.mapPermissionEntity(result), ctx);
+      return created2(this.mapPermissionEntity(result), ctx);
     } catch (err) {
-      if (err instanceof NotFoundException) return { statusCode: HTTP_STATUS.NOT_FOUND, body: { success: false, error: { code: "not_found", message: err.message }, meta: ctx } };
-      if (err instanceof ConflictException) return { statusCode: HTTP_STATUS.CONFLICT, body: { success: false, error: { code: "conflict", message: err.message }, meta: ctx } };
-      return { statusCode: HTTP_STATUS.INTERNAL_SERVER_ERROR, body: { success: false, error: { code: "internal_error", message: err?.message ?? "internal_error" }, meta: ctx } };
+      if (err instanceof NotFoundException) return { statusCode: HTTP_STATUS2.NOT_FOUND, body: { success: false, error: { code: "not_found", message: err.message }, meta: ctx } };
+      if (err instanceof ConflictException) return { statusCode: HTTP_STATUS2.CONFLICT, body: { success: false, error: { code: "conflict", message: err.message }, meta: ctx } };
+      return { statusCode: HTTP_STATUS2.INTERNAL_SERVER_ERROR, body: { success: false, error: { code: "internal_error", message: err?.message ?? "internal_error" }, meta: ctx } };
     }
   }
-  async removePermission(request2) {
-    const ctx = this.createApiContext(request2);
-    const roleId = request2.params?.roleId;
-    const permissionId = request2.params?.permissionId;
-    if (!roleId) return { statusCode: HTTP_STATUS.BAD_REQUEST, body: { success: false, error: { code: "bad_request", message: "role_id_required" }, meta: ctx } };
-    if (!permissionId) return { statusCode: HTTP_STATUS.BAD_REQUEST, body: { success: false, error: { code: "bad_request", message: "permission_id_required" }, meta: ctx } };
+  async removePermission(request4) {
+    const ctx = this.createApiContext(request4);
+    const roleId = request4.params?.roleId;
+    const permissionId = request4.params?.permissionId;
+    if (!roleId) return { statusCode: HTTP_STATUS2.BAD_REQUEST, body: { success: false, error: { code: "bad_request", message: "role_id_required" }, meta: ctx } };
+    if (!permissionId) return { statusCode: HTTP_STATUS2.BAD_REQUEST, body: { success: false, error: { code: "bad_request", message: "permission_id_required" }, meta: ctx } };
     try {
       await this.roleService.removePermission(roleId, permissionId);
-      return noContent(ctx);
+      return noContent2(ctx);
     } catch (err) {
-      if (err instanceof NotFoundException) return { statusCode: HTTP_STATUS.NOT_FOUND, body: { success: false, error: { code: "not_found", message: err.message }, meta: ctx } };
-      return { statusCode: HTTP_STATUS.INTERNAL_SERVER_ERROR, body: { success: false, error: { code: "internal_error", message: err?.message ?? "internal_error" }, meta: ctx } };
+      if (err instanceof NotFoundException) return { statusCode: HTTP_STATUS2.NOT_FOUND, body: { success: false, error: { code: "not_found", message: err.message }, meta: ctx } };
+      return { statusCode: HTTP_STATUS2.INTERNAL_SERVER_ERROR, body: { success: false, error: { code: "internal_error", message: err?.message ?? "internal_error" }, meta: ctx } };
     }
   }
-  async checkPermission(request2) {
-    const ctx = this.createApiContext(request2);
-    const roleId = request2.params?.roleId;
-    const permissionId = request2.params?.permissionId;
-    if (!roleId) return { statusCode: HTTP_STATUS.BAD_REQUEST, body: { success: false, error: { code: "bad_request", message: "role_id_required" }, meta: ctx } };
-    if (!permissionId) return { statusCode: HTTP_STATUS.BAD_REQUEST, body: { success: false, error: { code: "bad_request", message: "permission_id_required" }, meta: ctx } };
+  async checkPermission(request4) {
+    const ctx = this.createApiContext(request4);
+    const roleId = request4.params?.roleId;
+    const permissionId = request4.params?.permissionId;
+    if (!roleId) return { statusCode: HTTP_STATUS2.BAD_REQUEST, body: { success: false, error: { code: "bad_request", message: "role_id_required" }, meta: ctx } };
+    if (!permissionId) return { statusCode: HTTP_STATUS2.BAD_REQUEST, body: { success: false, error: { code: "bad_request", message: "permission_id_required" }, meta: ctx } };
     try {
       const exists = await this.roleService.checkPermission(roleId, permissionId);
-      return success({ assigned: exists }, ctx);
+      return success2({ assigned: exists }, ctx);
     } catch (err) {
-      if (err instanceof NotFoundException) return { statusCode: HTTP_STATUS.NOT_FOUND, body: { success: false, error: { code: "not_found", message: err.message }, meta: ctx } };
-      return { statusCode: HTTP_STATUS.INTERNAL_SERVER_ERROR, body: { success: false, error: { code: "internal_error", message: err?.message ?? "internal_error" }, meta: ctx } };
+      if (err instanceof NotFoundException) return { statusCode: HTTP_STATUS2.NOT_FOUND, body: { success: false, error: { code: "not_found", message: err.message }, meta: ctx } };
+      return { statusCode: HTTP_STATUS2.INTERNAL_SERVER_ERROR, body: { success: false, error: { code: "internal_error", message: err?.message ?? "internal_error" }, meta: ctx } };
     }
   }
 };
@@ -5922,12 +6677,12 @@ function createRoleRoutes(controller = new controller_default2()) {
 var PERMISSION_ACTIONS = ["CREATE", "READ", "UPDATE", "DELETE", "LIST", "EXECUTE"];
 var PermissionsController = class {
   permissionService = ServiceFactory.createPermissionService();
-  createApiContext(request2) {
+  createApiContext(request4) {
     return {
-      timestamp: request2.context?.metadata?.timestamp ?? (/* @__PURE__ */ new Date()).toISOString(),
-      requestId: request2.context?.metadata?.requestId,
-      version: request2.context?.metadata?.version ?? "v1",
-      locale: request2.context?.metadata?.locale
+      timestamp: request4.context?.metadata?.timestamp ?? (/* @__PURE__ */ new Date()).toISOString(),
+      requestId: request4.context?.metadata?.requestId,
+      version: request4.context?.metadata?.version ?? "v1",
+      locale: request4.context?.metadata?.locale
     };
   }
   mapToDto(entity) {
@@ -5942,9 +6697,9 @@ var PermissionsController = class {
       deletedAt: entity.deletedAt ? new Date(entity.deletedAt).toISOString() : null
     };
   }
-  async list(request2) {
-    const ctx = this.createApiContext(request2);
-    const q = request2.query ?? {};
+  async list(request4) {
+    const ctx = this.createApiContext(request4);
+    const q = request4.query ?? {};
     const page = Number(q.page ?? 1);
     const limit = Number(q.limit ?? 25);
     const rawSort = q.sort ?? void 0;
@@ -5978,31 +6733,31 @@ var PermissionsController = class {
     try {
       const resultAny = await this.permissionService.paginate(options);
       const data = (resultAny.data ?? []).map((e) => this.mapToDto(e));
-      return paginated(data, resultAny.page ?? page, resultAny.limit ?? limit, resultAny.total ?? 0, ctx);
+      return paginated2(data, resultAny.page ?? page, resultAny.limit ?? limit, resultAny.total ?? 0, ctx);
     } catch (err) {
-      return { statusCode: HTTP_STATUS.INTERNAL_SERVER_ERROR, body: { success: false, error: { code: "internal_error", message: err?.message ?? "internal_error" }, meta: ctx } };
+      return { statusCode: HTTP_STATUS2.INTERNAL_SERVER_ERROR, body: { success: false, error: { code: "internal_error", message: err?.message ?? "internal_error" }, meta: ctx } };
     }
   }
-  async get(request2) {
-    const ctx = this.createApiContext(request2);
-    const id = request2.params?.id;
-    if (!id) return { statusCode: HTTP_STATUS.BAD_REQUEST, body: { success: false, error: { code: "bad_request", message: "id_required" }, meta: ctx } };
+  async get(request4) {
+    const ctx = this.createApiContext(request4);
+    const id = request4.params?.id;
+    if (!id) return { statusCode: HTTP_STATUS2.BAD_REQUEST, body: { success: false, error: { code: "bad_request", message: "id_required" }, meta: ctx } };
     try {
       const result = await this.permissionService.findById(id);
-      if (!result) return { statusCode: HTTP_STATUS.NOT_FOUND, body: { success: false, error: { code: "not_found", message: "permission_not_found" }, meta: ctx } };
-      return success(this.mapToDto(result), ctx);
+      if (!result) return { statusCode: HTTP_STATUS2.NOT_FOUND, body: { success: false, error: { code: "not_found", message: "permission_not_found" }, meta: ctx } };
+      return success2(this.mapToDto(result), ctx);
     } catch (err) {
-      return { statusCode: HTTP_STATUS.INTERNAL_SERVER_ERROR, body: { success: false, error: { code: "internal_error", message: err?.message ?? "internal_error" }, meta: ctx } };
+      return { statusCode: HTTP_STATUS2.INTERNAL_SERVER_ERROR, body: { success: false, error: { code: "internal_error", message: err?.message ?? "internal_error" }, meta: ctx } };
     }
   }
-  async create(request2) {
-    const ctx = this.createApiContext(request2);
-    const body = request2.body;
+  async create(request4) {
+    const ctx = this.createApiContext(request4);
+    const body = request4.body;
     if (!body || typeof body !== "object" || typeof body.resource !== "string" || !body.resource) {
-      return { statusCode: HTTP_STATUS.BAD_REQUEST, body: { success: false, error: { code: "bad_request", message: "resource_required" }, meta: ctx } };
+      return { statusCode: HTTP_STATUS2.BAD_REQUEST, body: { success: false, error: { code: "bad_request", message: "resource_required" }, meta: ctx } };
     }
     if (typeof body.action !== "string" || !PERMISSION_ACTIONS.includes(body.action)) {
-      return { statusCode: HTTP_STATUS.UNPROCESSABLE_ENTITY, body: { success: false, error: { code: "validation_error", message: "action_invalid" }, meta: ctx } };
+      return { statusCode: HTTP_STATUS2.UNPROCESSABLE_ENTITY, body: { success: false, error: { code: "validation_error", message: "action_invalid" }, meta: ctx } };
     }
     try {
       const payload = {
@@ -6011,22 +6766,22 @@ var PermissionsController = class {
       };
       if (body.description !== void 0) payload.description = body.description;
       const createdPermission = await this.permissionService.create(payload);
-      return created(this.mapToDto(createdPermission), ctx);
+      return created2(this.mapToDto(createdPermission), ctx);
     } catch (err) {
       if (err instanceof ValidationException) {
-        return { statusCode: HTTP_STATUS.UNPROCESSABLE_ENTITY, body: { success: false, error: { code: "validation_error", message: err.message }, meta: ctx } };
+        return { statusCode: HTTP_STATUS2.UNPROCESSABLE_ENTITY, body: { success: false, error: { code: "validation_error", message: err.message }, meta: ctx } };
       }
-      return { statusCode: HTTP_STATUS.INTERNAL_SERVER_ERROR, body: { success: false, error: { code: "internal_error", message: err?.message ?? "internal_error" }, meta: ctx } };
+      return { statusCode: HTTP_STATUS2.INTERNAL_SERVER_ERROR, body: { success: false, error: { code: "internal_error", message: err?.message ?? "internal_error" }, meta: ctx } };
     }
   }
-  async update(request2) {
-    const ctx = this.createApiContext(request2);
-    const id = request2.params?.id;
-    const body = request2.body;
-    if (!id) return { statusCode: HTTP_STATUS.BAD_REQUEST, body: { success: false, error: { code: "bad_request", message: "id_required" }, meta: ctx } };
-    if (!body || typeof body !== "object") return { statusCode: HTTP_STATUS.BAD_REQUEST, body: { success: false, error: { code: "bad_request", message: "data_required" }, meta: ctx } };
+  async update(request4) {
+    const ctx = this.createApiContext(request4);
+    const id = request4.params?.id;
+    const body = request4.body;
+    if (!id) return { statusCode: HTTP_STATUS2.BAD_REQUEST, body: { success: false, error: { code: "bad_request", message: "id_required" }, meta: ctx } };
+    if (!body || typeof body !== "object") return { statusCode: HTTP_STATUS2.BAD_REQUEST, body: { success: false, error: { code: "bad_request", message: "data_required" }, meta: ctx } };
     if (body.action !== void 0 && (typeof body.action !== "string" || !PERMISSION_ACTIONS.includes(body.action))) {
-      return { statusCode: HTTP_STATUS.UNPROCESSABLE_ENTITY, body: { success: false, error: { code: "validation_error", message: "action_invalid" }, meta: ctx } };
+      return { statusCode: HTTP_STATUS2.UNPROCESSABLE_ENTITY, body: { success: false, error: { code: "validation_error", message: "action_invalid" }, meta: ctx } };
     }
     try {
       const payload = {};
@@ -6034,34 +6789,34 @@ var PermissionsController = class {
       if (body.action !== void 0) payload.action = body.action;
       if (body.description !== void 0) payload.description = body.description;
       const updated = await this.permissionService.update(id, payload);
-      return success(this.mapToDto(updated), ctx);
+      return success2(this.mapToDto(updated), ctx);
     } catch (err) {
       if (err instanceof ValidationException) {
-        return { statusCode: HTTP_STATUS.UNPROCESSABLE_ENTITY, body: { success: false, error: { code: "validation_error", message: err.message }, meta: ctx } };
+        return { statusCode: HTTP_STATUS2.UNPROCESSABLE_ENTITY, body: { success: false, error: { code: "validation_error", message: err.message }, meta: ctx } };
       }
-      return { statusCode: HTTP_STATUS.INTERNAL_SERVER_ERROR, body: { success: false, error: { code: "internal_error", message: err?.message ?? "internal_error" }, meta: ctx } };
+      return { statusCode: HTTP_STATUS2.INTERNAL_SERVER_ERROR, body: { success: false, error: { code: "internal_error", message: err?.message ?? "internal_error" }, meta: ctx } };
     }
   }
-  async remove(request2) {
-    const ctx = this.createApiContext(request2);
-    const id = request2.params?.id;
-    if (!id) return { statusCode: HTTP_STATUS.BAD_REQUEST, body: { success: false, error: { code: "bad_request", message: "id_required" }, meta: ctx } };
+  async remove(request4) {
+    const ctx = this.createApiContext(request4);
+    const id = request4.params?.id;
+    if (!id) return { statusCode: HTTP_STATUS2.BAD_REQUEST, body: { success: false, error: { code: "bad_request", message: "id_required" }, meta: ctx } };
     try {
       await this.permissionService.delete(id);
-      return noContent(ctx);
+      return noContent2(ctx);
     } catch (err) {
-      return { statusCode: HTTP_STATUS.INTERNAL_SERVER_ERROR, body: { success: false, error: { code: "internal_error", message: err?.message ?? "internal_error" }, meta: ctx } };
+      return { statusCode: HTTP_STATUS2.INTERNAL_SERVER_ERROR, body: { success: false, error: { code: "internal_error", message: err?.message ?? "internal_error" }, meta: ctx } };
     }
   }
-  async restore(request2) {
-    const ctx = this.createApiContext(request2);
-    const id = request2.params?.id;
-    if (!id) return { statusCode: HTTP_STATUS.BAD_REQUEST, body: { success: false, error: { code: "bad_request", message: "id_required" }, meta: ctx } };
+  async restore(request4) {
+    const ctx = this.createApiContext(request4);
+    const id = request4.params?.id;
+    if (!id) return { statusCode: HTTP_STATUS2.BAD_REQUEST, body: { success: false, error: { code: "bad_request", message: "id_required" }, meta: ctx } };
     try {
       const restored = await this.permissionService.restore(id);
-      return success(this.mapToDto(restored), ctx);
+      return success2(this.mapToDto(restored), ctx);
     } catch (err) {
-      return { statusCode: HTTP_STATUS.INTERNAL_SERVER_ERROR, body: { success: false, error: { code: "internal_error", message: err?.message ?? "internal_error" }, meta: ctx } };
+      return { statusCode: HTTP_STATUS2.INTERNAL_SERVER_ERROR, body: { success: false, error: { code: "internal_error", message: err?.message ?? "internal_error" }, meta: ctx } };
     }
   }
 };
@@ -6195,12 +6950,12 @@ function createPermissionRoutes(controller = new controller_default3()) {
 // ../backend/src/modules/products/controller.ts
 var ProductsController = class {
   productService = ServiceFactory.createProductService();
-  context(request2) {
+  context(request4) {
     return {
-      timestamp: request2.context?.metadata?.timestamp ?? (/* @__PURE__ */ new Date()).toISOString(),
-      requestId: request2.context?.metadata?.requestId,
-      version: request2.context?.metadata?.version ?? "v1",
-      locale: request2.context?.metadata?.locale
+      timestamp: request4.context?.metadata?.timestamp ?? (/* @__PURE__ */ new Date()).toISOString(),
+      requestId: request4.context?.metadata?.requestId,
+      version: request4.context?.metadata?.version ?? "v1",
+      locale: request4.context?.metadata?.locale
     };
   }
   mapToDto(entity) {
@@ -6241,9 +6996,9 @@ var ProductsController = class {
       throw new ValidationException("filters_invalid");
     }
   }
-  async list(request2) {
-    const ctx = this.context(request2);
-    const q = request2.query ?? {};
+  async list(request4) {
+    const ctx = this.context(request4);
+    const q = request4.query ?? {};
     try {
       const page = this.parsePositiveInteger(this.queryValue(q.page), 1);
       const limit = this.parsePositiveInteger(this.queryValue(q.limit), 25, 100);
@@ -6263,70 +7018,70 @@ var ProductsController = class {
       const where = search ? Object.keys(filters).length > 0 ? { AND: [filters, searchCondition] } : searchCondition : filters;
       const result = await this.productService.paginate({ page, limit, sort, order, filters: where });
       const data = result.data.map((entity) => this.mapToDto(entity));
-      return paginated(data, result.page ?? page, result.limit ?? limit, result.total ?? 0, ctx);
+      return paginated2(data, result.page ?? page, result.limit ?? limit, result.total ?? 0, ctx);
     } catch (err) {
       return this.error(err, ctx);
     }
   }
-  async get(request2) {
-    const ctx = this.context(request2);
-    const id = request2.params?.id;
-    if (!id) return validationError("id_required", ctx);
+  async get(request4) {
+    const ctx = this.context(request4);
+    const id = request4.params?.id;
+    if (!id) return validationError2("id_required", ctx);
     try {
       const product = await this.productService.findById(id);
-      return product ? success(this.mapToDto(product), ctx) : notFound("product_not_found", ctx);
+      return product ? success2(this.mapToDto(product), ctx) : notFound2("product_not_found", ctx);
     } catch (err) {
       return this.error(err, ctx);
     }
   }
-  async create(request2) {
-    const ctx = this.context(request2);
+  async create(request4) {
+    const ctx = this.context(request4);
     try {
-      const product = await this.productService.create(request2.body);
-      return created(this.mapToDto(product), ctx);
+      const product = await this.productService.create(request4.body);
+      return created2(this.mapToDto(product), ctx);
     } catch (err) {
       return this.error(err, ctx);
     }
   }
-  async update(request2) {
-    const ctx = this.context(request2);
-    const id = request2.params?.id;
-    if (!id) return validationError("id_required", ctx);
+  async update(request4) {
+    const ctx = this.context(request4);
+    const id = request4.params?.id;
+    if (!id) return validationError2("id_required", ctx);
     try {
-      const product = await this.productService.update(id, request2.body);
-      return success(this.mapToDto(product), ctx);
+      const product = await this.productService.update(id, request4.body);
+      return success2(this.mapToDto(product), ctx);
     } catch (err) {
       return this.error(err, ctx);
     }
   }
-  async remove(request2) {
-    const ctx = this.context(request2);
-    const id = request2.params?.id;
-    if (!id) return validationError("id_required", ctx);
+  async remove(request4) {
+    const ctx = this.context(request4);
+    const id = request4.params?.id;
+    if (!id) return validationError2("id_required", ctx);
     try {
       await this.productService.delete(id);
-      return noContent(ctx);
+      return noContent2(ctx);
     } catch (err) {
       return this.error(err, ctx);
     }
   }
-  async restore(request2) {
-    const ctx = this.context(request2);
-    const id = request2.params?.id;
-    if (!id) return validationError("id_required", ctx);
+  async restore(request4) {
+    const ctx = this.context(request4);
+    const id = request4.params?.id;
+    if (!id) return validationError2("id_required", ctx);
     try {
       const product = await this.productService.restore(id);
-      return success(this.mapToDto(product), ctx);
+      return success2(this.mapToDto(product), ctx);
     } catch (err) {
       return this.error(err, ctx);
     }
   }
   error(err, ctx) {
-    if (err instanceof ValidationException) return validationError(err.message, ctx);
-    if (err instanceof NotFoundException) return notFound(err.message, ctx);
+    if (err instanceof ValidationException) return validationError2(err.message, ctx);
+    if (err instanceof NotFoundException) return notFound2(err.message, ctx);
     if (err instanceof ConflictException) return conflict(err.message, ctx);
     return {
-      statusCode: HTTP_STATUS.INTERNAL_SERVER_ERROR,
+      statusCode: HTTP_STATUS2.INTERNAL_SERVER_ERROR,
       body: { success: false, error: { code: "internal_error", message: err instanceof Error ? err.message : "internal_error" }, meta: ctx }
     };
   }
@@ -6357,7 +7112,7 @@ function createProductRoutes(controller = new controller_default4()) {
   const register = (definition) => {
     builder.register({ ...definition, handler: adapt5(definition.handler) });
   };
-  const privateOptions = (permission) => ({
+  const privateOptions2 = (permission) => ({
     mode: "private",
     publicRoute: false,
     privateRoute: true,
@@ -6367,24 +7122,24 @@ function createProductRoutes(controller = new controller_default4()) {
     tags: ["products"],
     middleware: []
   });
-  register({ name: "products-list", method: "GET", path: "/products", version: "v1", handler: (ctx) => controller.list(toControllerRequest5(ctx)), options: privateOptions("products:read") });
-  register({ name: "products-get", method: "GET", path: "/products/:id", version: "v1", handler: (ctx) => controller.get(toControllerRequest5(ctx)), options: privateOptions("products:read") });
-  register({ name: "products-create", method: "POST", path: "/products", version: "v1", handler: (ctx) => controller.create(toControllerRequest5(ctx)), options: privateOptions("products:create") });
-  register({ name: "products-update", method: "PUT", path: "/products/:id", version: "v1", handler: (ctx) => controller.update(toControllerRequest5(ctx)), options: privateOptions("products:update") });
-  register({ name: "products-delete", method: "DELETE", path: "/products/:id", version: "v1", handler: (ctx) => controller.remove(toControllerRequest5(ctx)), options: privateOptions("products:delete") });
-  register({ name: "products-restore", method: "PATCH", path: "/products/:id/restore", version: "v1", handler: (ctx) => controller.restore(toControllerRequest5(ctx)), options: privateOptions("products:update") });
+  register({ name: "products-list", method: "GET", path: "/products", version: "v1", handler: (ctx) => controller.list(toControllerRequest5(ctx)), options: privateOptions2("products:read") });
+  register({ name: "products-get", method: "GET", path: "/products/:id", version: "v1", handler: (ctx) => controller.get(toControllerRequest5(ctx)), options: privateOptions2("products:read") });
+  register({ name: "products-create", method: "POST", path: "/products", version: "v1", handler: (ctx) => controller.create(toControllerRequest5(ctx)), options: privateOptions2("products:create") });
+  register({ name: "products-update", method: "PUT", path: "/products/:id", version: "v1", handler: (ctx) => controller.update(toControllerRequest5(ctx)), options: privateOptions2("products:update") });
+  register({ name: "products-delete", method: "DELETE", path: "/products/:id", version: "v1", handler: (ctx) => controller.remove(toControllerRequest5(ctx)), options: privateOptions2("products:delete") });
+  register({ name: "products-restore", method: "PATCH", path: "/products/:id/restore", version: "v1", handler: (ctx) => controller.restore(toControllerRequest5(ctx)), options: privateOptions2("products:update") });
   return builder.build();
 }
 
 // ../backend/src/modules/customers/controller.ts
 var CustomersController = class {
   service = ServiceFactory.createCustomerService();
-  context(request2) {
+  context(request4) {
     return {
-      timestamp: request2.context?.metadata?.timestamp ?? (/* @__PURE__ */ new Date()).toISOString(),
-      requestId: request2.context?.metadata?.requestId,
-      version: request2.context?.metadata?.version ?? "v1",
-      locale: request2.context?.metadata?.locale
+      timestamp: request4.context?.metadata?.timestamp ?? (/* @__PURE__ */ new Date()).toISOString(),
+      requestId: request4.context?.metadata?.requestId,
+      version: request4.context?.metadata?.version ?? "v1",
+      locale: request4.context?.metadata?.locale
     };
   }
   value(value) {
@@ -6427,9 +7182,9 @@ var CustomersController = class {
       updatedAt: entity.updatedAt.toISOString()
     };
   }
-  async list(request2) {
-    const ctx = this.context(request2);
-    const query = request2.query ?? {};
+  async list(request4) {
+    const ctx = this.context(request4);
+    const query = request4.query ?? {};
     try {
       const page = this.integer(this.value(query.page), 1, 1e5);
       const limit = this.integer(this.value(query.limit), 25, 100);
@@ -6443,13 +7198,13 @@ var CustomersController = class {
       if (search && search.length > 255) throw new ValidationException("search_too_long");
       const where = search ? { AND: [filters, { OR: [{ customerCode: { contains: search } }, { firstName: { contains: search } }, { lastName: { contains: search } }, { fullName: { contains: search } }, { email: { contains: search } }, { phone: { contains: search } }] }] } : filters;
       const result = await this.service.paginate({ page, limit, sort, order, filters: where });
-      return paginated(result.data.map((entry) => this.mapCustomer(entry)), result.page, result.limit, result.total, ctx);
+      return paginated2(result.data.map((entry) => this.mapCustomer(entry)), result.page, result.limit, result.total, ctx);
     } catch (error) {
       return this.error(error, ctx);
     }
   }
-  async checkOwnershipOrAdmin(request2, targetCustomerId) {
-    const user = request2.context?.user;
+  async checkOwnershipOrAdmin(request4, targetCustomerId) {
+    const user = request4.context?.user;
     if (!user) return true;
     const userRoles = (user.roles || []).map(
       (r) => typeof r === "string" ? r : r.name || r.role?.name || ""
@@ -6462,95 +7217,95 @@ var CustomersController = class {
     if (!customer) return false;
     return customer.userId === user.id || customer.id === user.id;
   }
-  async get(request2) {
-    const ctx = this.context(request2);
+  async get(request4) {
+    const ctx = this.context(request4);
     try {
-      const id = request2.params?.id ?? "";
-      const allowed = await this.checkOwnershipOrAdmin(request2, id);
+      const id = request4.params?.id ?? "";
+      const allowed = await this.checkOwnershipOrAdmin(request4, id);
       if (!allowed) return forbidden("authorization_denied", ctx);
       const entity = await this.service.findById(id);
-      return entity ? success(this.mapCustomer(entity), ctx) : notFound("customer_not_found", ctx);
+      return entity ? success2(this.mapCustomer(entity), ctx) : notFound2("customer_not_found", ctx);
     } catch (error) {
       return this.error(error, ctx);
     }
   }
-  async create(request2) {
-    const ctx = this.context(request2);
+  async create(request4) {
+    const ctx = this.context(request4);
     try {
-      const entity = await this.service.create(request2.body);
-      return created(this.mapCustomer(entity), ctx);
+      const entity = await this.service.create(request4.body);
+      return created2(this.mapCustomer(entity), ctx);
     } catch (error) {
       return this.error(error, ctx);
     }
   }
-  async update(request2) {
-    const ctx = this.context(request2);
+  async update(request4) {
+    const ctx = this.context(request4);
     try {
-      const id = request2.params?.id ?? "";
-      const allowed = await this.checkOwnershipOrAdmin(request2, id);
+      const id = request4.params?.id ?? "";
+      const allowed = await this.checkOwnershipOrAdmin(request4, id);
       if (!allowed) return forbidden("authorization_denied", ctx);
-      const entity = await this.service.update(id, request2.body);
-      return success(this.mapCustomer(entity), ctx);
+      const entity = await this.service.update(id, request4.body);
+      return success2(this.mapCustomer(entity), ctx);
     } catch (error) {
       return this.error(error, ctx);
     }
   }
-  async remove(request2) {
-    const ctx = this.context(request2);
+  async remove(request4) {
+    const ctx = this.context(request4);
     try {
-      const id = request2.params?.id ?? "";
-      const allowed = await this.checkOwnershipOrAdmin(request2, id);
+      const id = request4.params?.id ?? "";
+      const allowed = await this.checkOwnershipOrAdmin(request4, id);
       if (!allowed) return forbidden("authorization_denied", ctx);
       await this.service.delete(id);
-      return noContent(ctx);
+      return noContent2(ctx);
     } catch (error) {
       return this.error(error, ctx);
     }
   }
-  async listAddresses(request2) {
-    const ctx = this.context(request2);
+  async listAddresses(request4) {
+    const ctx = this.context(request4);
     try {
-      const id = request2.params?.id ?? "";
-      const allowed = await this.checkOwnershipOrAdmin(request2, id);
+      const id = request4.params?.id ?? "";
+      const allowed = await this.checkOwnershipOrAdmin(request4, id);
       if (!allowed) return forbidden("authorization_denied", ctx);
       const addresses = await this.service.listAddresses(id);
-      return success(addresses.map((entry) => this.mapAddress(entry)), ctx);
+      return success2(addresses.map((entry) => this.mapAddress(entry)), ctx);
     } catch (error) {
       return this.error(error, ctx);
     }
   }
-  async createAddress(request2) {
-    const ctx = this.context(request2);
+  async createAddress(request4) {
+    const ctx = this.context(request4);
     try {
-      const id = request2.params?.id ?? "";
-      const allowed = await this.checkOwnershipOrAdmin(request2, id);
+      const id = request4.params?.id ?? "";
+      const allowed = await this.checkOwnershipOrAdmin(request4, id);
       if (!allowed) return forbidden("authorization_denied", ctx);
-      const address = await this.service.createAddress(id, request2.body);
-      return created(this.mapAddress(address), ctx);
+      const address = await this.service.createAddress(id, request4.body);
+      return created2(this.mapAddress(address), ctx);
     } catch (error) {
       return this.error(error, ctx);
     }
   }
-  async updateAddress(request2) {
-    const ctx = this.context(request2);
+  async updateAddress(request4) {
+    const ctx = this.context(request4);
     try {
-      const id = request2.params?.id ?? "";
-      const allowed = await this.checkOwnershipOrAdmin(request2, id);
+      const id = request4.params?.id ?? "";
+      const allowed = await this.checkOwnershipOrAdmin(request4, id);
       if (!allowed) return forbidden("authorization_denied", ctx);
-      const address = await this.service.updateAddress(id, request2.params?.addressId ?? "", request2.body);
-      return success(this.mapAddress(address), ctx);
+      const address = await this.service.updateAddress(id, request4.params?.addressId ?? "", request4.body);
+      return success2(this.mapAddress(address), ctx);
     } catch (error) {
       return this.error(error, ctx);
     }
   }
-  async removeAddress(request2) {
-    const ctx = this.context(request2);
+  async removeAddress(request4) {
+    const ctx = this.context(request4);
     try {
-      const id = request2.params?.id ?? "";
-      const allowed = await this.checkOwnershipOrAdmin(request2, id);
+      const id = request4.params?.id ?? "";
+      const allowed = await this.checkOwnershipOrAdmin(request4, id);
       if (!allowed) return forbidden("authorization_denied", ctx);
-      await this.service.deleteAddress(id, request2.params?.addressId ?? "");
-      return noContent(ctx);
+      await this.service.deleteAddress(id, request4.params?.addressId ?? "");
+      return noContent2(ctx);
     } catch (error) {
       return this.error(error, ctx);
     }
@@ -6577,10 +7332,10 @@ var CustomersController = class {
     return parsed;
   }
   error(error, ctx) {
-    if (error instanceof ValidationException) return validationError(error.message, ctx);
-    if (error instanceof NotFoundException) return notFound(error.message, ctx);
+    if (error instanceof ValidationException) return validationError2(error.message, ctx);
+    if (error instanceof NotFoundException) return notFound2(error.message, ctx);
     if (error instanceof ConflictException) return conflict(error.message, ctx);
-    return { statusCode: HTTP_STATUS.INTERNAL_SERVER_ERROR, body: { success: false, error: { code: "internal_error", message: "internal_error" }, meta: ctx } };
+    return { statusCode: HTTP_STATUS2.INTERNAL_SERVER_ERROR, body: { success: false, error: { code: "internal_error", message: "internal_error" }, meta: ctx } };
   }
 };
 var controller_default5 = CustomersController;
@@ -6617,16 +7372,16 @@ function createCustomerRoutes(controller = new controller_default5()) {
 // ../backend/src/modules/cart/controller.ts
 var CartController = class {
   service = ServiceFactory.createCartService();
-  context(request2) {
+  context(request4) {
     return {
-      timestamp: request2.context?.metadata?.timestamp ?? (/* @__PURE__ */ new Date()).toISOString(),
-      requestId: request2.context?.metadata?.requestId,
-      version: request2.context?.metadata?.version ?? "v1",
-      locale: request2.context?.metadata?.locale
+      timestamp: request4.context?.metadata?.timestamp ?? (/* @__PURE__ */ new Date()).toISOString(),
+      requestId: request4.context?.metadata?.requestId,
+      version: request4.context?.metadata?.version ?? "v1",
+      locale: request4.context?.metadata?.locale
     };
   }
-  getUserInfo(request2) {
-    const user = request2.context?.user;
+  getUserInfo(request4) {
+    const user = request4.context?.user;
     if (!user || typeof user !== "object" || !user.id) {
       throw new ValidationException2("authentication_required");
     }
@@ -6635,64 +7390,64 @@ var CartController = class {
       email: user.email ? String(user.email) : void 0
     };
   }
-  async getCart(request2) {
-    const ctx = this.context(request2);
+  async getCart(request4) {
+    const ctx = this.context(request4);
     try {
-      const user = this.getUserInfo(request2);
+      const user = this.getUserInfo(request4);
       const cart = await this.service.getCartForUser(user.id, user.email);
-      return success(cart, ctx);
+      return success2(cart, ctx);
     } catch (error) {
       return this.error(error, ctx);
     }
   }
-  async addItem(request2) {
-    const ctx = this.context(request2);
+  async addItem(request4) {
+    const ctx = this.context(request4);
     try {
-      const user = this.getUserInfo(request2);
-      const cart = await this.service.addItem(user.id, request2.body, user.email);
-      return success(cart, ctx);
+      const user = this.getUserInfo(request4);
+      const cart = await this.service.addItem(user.id, request4.body, user.email);
+      return success2(cart, ctx);
     } catch (error) {
       return this.error(error, ctx);
     }
   }
-  async updateItem(request2) {
-    const ctx = this.context(request2);
+  async updateItem(request4) {
+    const ctx = this.context(request4);
     try {
-      const user = this.getUserInfo(request2);
-      const itemId = request2.params?.id ?? "";
-      const cart = await this.service.updateItemQuantity(user.id, itemId, request2.body, user.email);
-      return success(cart, ctx);
+      const user = this.getUserInfo(request4);
+      const itemId = request4.params?.id ?? "";
+      const cart = await this.service.updateItemQuantity(user.id, itemId, request4.body, user.email);
+      return success2(cart, ctx);
     } catch (error) {
       return this.error(error, ctx);
     }
   }
-  async removeItem(request2) {
-    const ctx = this.context(request2);
+  async removeItem(request4) {
+    const ctx = this.context(request4);
     try {
-      const user = this.getUserInfo(request2);
-      const itemId = request2.params?.id ?? "";
+      const user = this.getUserInfo(request4);
+      const itemId = request4.params?.id ?? "";
       const cart = await this.service.removeItem(user.id, itemId, user.email);
-      return success(cart, ctx);
+      return success2(cart, ctx);
     } catch (error) {
       return this.error(error, ctx);
     }
   }
-  async clearCart(request2) {
-    const ctx = this.context(request2);
+  async clearCart(request4) {
+    const ctx = this.context(request4);
     try {
-      const user = this.getUserInfo(request2);
+      const user = this.getUserInfo(request4);
       const cart = await this.service.clearCart(user.id, user.email);
-      return success(cart, ctx);
+      return success2(cart, ctx);
     } catch (error) {
       return this.error(error, ctx);
     }
   }
   error(error, ctx) {
-    if (error instanceof ValidationException2) return validationError(error.message, ctx);
-    if (error instanceof NotFoundException || error?.code === "not_found") return notFound(error instanceof Error ? error.message : "not_found", ctx);
+    if (error instanceof ValidationException2) return validationError2(error.message, ctx);
+    if (error instanceof NotFoundException || error?.code === "not_found") return notFound2(error instanceof Error ? error.message : "not_found", ctx);
     if (error instanceof ForbiddenError || error?.code === "forbidden") return forbidden(error instanceof Error ? error.message : "forbidden", ctx);
     return {
-      statusCode: HTTP_STATUS.INTERNAL_SERVER_ERROR,
+      statusCode: HTTP_STATUS2.INTERNAL_SERVER_ERROR,
       body: { success: false, error: { code: "internal_error", message: error instanceof Error ? error.message : "internal_error" }, meta: ctx }
     };
   }
@@ -6720,7 +7475,7 @@ function createCartRoutes(controller = new controller_default6()) {
   const register = (definition) => {
     builder.register({ ...definition, handler: adapt6(definition.handler) });
   };
-  const privateOptions = (permission) => ({
+  const privateOptions2 = (permission) => ({
     mode: "private",
     publicRoute: false,
     privateRoute: true,
@@ -6730,11 +7485,11 @@ function createCartRoutes(controller = new controller_default6()) {
     tags: ["carts"],
     middleware: []
   });
-  register({ name: "cart-get", method: "GET", path: "/cart", version: "v1", handler: (ctx) => controller.getCart(toControllerRequest6(ctx)), options: privateOptions("carts:read") });
-  register({ name: "cart-items-add", method: "POST", path: "/cart/items", version: "v1", handler: (ctx) => controller.addItem(toControllerRequest6(ctx)), options: privateOptions("carts:create") });
-  register({ name: "cart-items-update", method: "PUT", path: "/cart/items/:id", version: "v1", handler: (ctx) => controller.updateItem(toControllerRequest6(ctx)), options: privateOptions("carts:update") });
-  register({ name: "cart-items-remove", method: "DELETE", path: "/cart/items/:id", version: "v1", handler: (ctx) => controller.removeItem(toControllerRequest6(ctx)), options: privateOptions("carts:delete") });
-  register({ name: "cart-clear", method: "DELETE", path: "/cart", version: "v1", handler: (ctx) => controller.clearCart(toControllerRequest6(ctx)), options: privateOptions("carts:delete") });
+  register({ name: "cart-get", method: "GET", path: "/cart", version: "v1", handler: (ctx) => controller.getCart(toControllerRequest6(ctx)), options: privateOptions2("carts:read") });
+  register({ name: "cart-items-add", method: "POST", path: "/cart/items", version: "v1", handler: (ctx) => controller.addItem(toControllerRequest6(ctx)), options: privateOptions2("carts:create") });
+  register({ name: "cart-items-update", method: "PUT", path: "/cart/items/:id", version: "v1", handler: (ctx) => controller.updateItem(toControllerRequest6(ctx)), options: privateOptions2("carts:update") });
+  register({ name: "cart-items-remove", method: "DELETE", path: "/cart/items/:id", version: "v1", handler: (ctx) => controller.removeItem(toControllerRequest6(ctx)), options: privateOptions2("carts:delete") });
+  register({ name: "cart-clear", method: "DELETE", path: "/cart", version: "v1", handler: (ctx) => controller.clearCart(toControllerRequest6(ctx)), options: privateOptions2("carts:delete") });
   return builder.build();
 }
 
@@ -6743,19 +7498,19 @@ init_errors();
 var OrderController = class {
   orderRepo = new OrderRepository();
   cartRepo = new cart_repository_default();
-  async createOrder(request2) {
-    const ctx = this.createApiContext(request2);
+  async createOrder(request4) {
+    const ctx = this.createApiContext(request4);
     try {
-      const user = request2.user;
+      const user = request4.user;
       if (!user || !user.id) {
-        return this.errorResponse("unauthorized", "authentication_required", HTTP_STATUS.UNAUTHORIZED, ctx);
+        return this.errorResponse("unauthorized", "authentication_required", HTTP_STATUS2.UNAUTHORIZED, ctx);
       }
       let customer = await this.cartRepo.findCustomerByUserIdOrEmail(user.id, user.email);
       if (!customer) {
         customer = await this.cartRepo.createCustomerForUser(user.id, user.email);
       }
-      const body = request2.body || {};
-      const headers = request2.headers || {};
+      const body = request4.body || {};
+      const headers = request4.headers || {};
       const idempotencyKey = headers["idempotency-key"] || headers["x-idempotency-key"] || body.idempotencyKey || void 0;
       const tenantId = user.tenantId || body.tenantId || void 0;
       const storeId = user.storeId || body.storeId || void 0;
@@ -6768,25 +7523,25 @@ var OrderController = class {
         storeId,
         branchId
       });
-      return created(order, ctx);
+      return created2(order, ctx);
     } catch (error) {
       return this.mapError(error, ctx);
     }
   }
-  async listOrders(request2) {
-    const ctx = this.createApiContext(request2);
+  async listOrders(request4) {
+    const ctx = this.createApiContext(request4);
     try {
-      const user = request2.user;
+      const user = request4.user;
       if (!user || !user.id) {
-        return this.errorResponse("unauthorized", "authentication_required", HTTP_STATUS.UNAUTHORIZED, ctx);
+        return this.errorResponse("unauthorized", "authentication_required", HTTP_STATUS2.UNAUTHORIZED, ctx);
       }
-      const query = request2.query || {};
+      const query = request4.query || {};
       const isCustomerOnly = user.role === "CUSTOMER" && !this.hasManagementPermissions(user);
       let customerIdFilter = void 0;
       if (isCustomerOnly) {
         const customer = await this.cartRepo.findCustomerByUserIdOrEmail(user.id, user.email);
         if (!customer) {
-          return success({ items: [], total: 0, page: 1, limit: 10, totalPages: 0 }, ctx);
+          return success2({ items: [], total: 0, page: 1, limit: 10, totalPages: 0 }, ctx);
         }
         customerIdFilter = customer.id;
       } else if (query.customerId) {
@@ -6801,71 +7556,71 @@ var OrderController = class {
         sort: query.sort ? String(query.sort) : "createdAt",
         order: query.order === "asc" ? "asc" : "desc"
       });
-      return success(result, ctx);
+      return success2(result, ctx);
     } catch (error) {
       return this.mapError(error, ctx);
     }
   }
-  async getOrderById(request2) {
-    const ctx = this.createApiContext(request2);
+  async getOrderById(request4) {
+    const ctx = this.createApiContext(request4);
     try {
-      const user = request2.user;
+      const user = request4.user;
       if (!user || !user.id) {
-        return this.errorResponse("unauthorized", "authentication_required", HTTP_STATUS.UNAUTHORIZED, ctx);
+        return this.errorResponse("unauthorized", "authentication_required", HTTP_STATUS2.UNAUTHORIZED, ctx);
       }
-      const orderId = request2.params?.id;
+      const orderId = request4.params?.id;
       if (!orderId) {
-        return this.errorResponse("bad_request", "order_id_required", HTTP_STATUS.BAD_REQUEST, ctx);
+        return this.errorResponse("bad_request", "order_id_required", HTTP_STATUS2.BAD_REQUEST, ctx);
       }
       const isCustomerOnly = user.role === "CUSTOMER" && !this.hasManagementPermissions(user);
       let customerIdCheck = void 0;
       if (isCustomerOnly) {
         const customer = await this.cartRepo.findCustomerByUserIdOrEmail(user.id, user.email);
         if (!customer) {
-          return this.errorResponse("not_found", "order_not_found", HTTP_STATUS.NOT_FOUND, ctx);
+          return this.errorResponse("not_found", "order_not_found", HTTP_STATUS2.NOT_FOUND, ctx);
         }
         customerIdCheck = customer.id;
       }
       const order = await this.orderRepo.findOrderById(orderId, customerIdCheck);
       if (!order) {
-        return this.errorResponse("not_found", "order_not_found", HTTP_STATUS.NOT_FOUND, ctx);
+        return this.errorResponse("not_found", "order_not_found", HTTP_STATUS2.NOT_FOUND, ctx);
       }
-      return success(order, ctx);
+      return success2(order, ctx);
     } catch (error) {
       return this.mapError(error, ctx);
     }
   }
-  async updateStatus(request2) {
-    const ctx = this.createApiContext(request2);
+  async updateStatus(request4) {
+    const ctx = this.createApiContext(request4);
     try {
-      const user = request2.user;
+      const user = request4.user;
       if (!user || !user.id) {
-        return this.errorResponse("unauthorized", "authentication_required", HTTP_STATUS.UNAUTHORIZED, ctx);
+        return this.errorResponse("unauthorized", "authentication_required", HTTP_STATUS2.UNAUTHORIZED, ctx);
       }
-      const orderId = request2.params?.id;
-      const status = request2.body?.status;
+      const orderId = request4.params?.id;
+      const status = request4.body?.status;
       if (!orderId || !status) {
-        return this.errorResponse("bad_request", "order_id_and_status_required", HTTP_STATUS.BAD_REQUEST, ctx);
+        return this.errorResponse("bad_request", "order_id_and_status_required", HTTP_STATUS2.BAD_REQUEST, ctx);
       }
       const isCustomerOnly = user.role === "CUSTOMER" && !this.hasManagementPermissions(user);
       let customerIdCheck = void 0;
       if (isCustomerOnly) {
         const customer = await this.cartRepo.findCustomerByUserIdOrEmail(user.id, user.email);
         if (!customer) {
-          return this.errorResponse("not_found", "order_not_found", HTTP_STATUS.NOT_FOUND, ctx);
+          return this.errorResponse("not_found", "order_not_found", HTTP_STATUS2.NOT_FOUND, ctx);
         }
         customerIdCheck = customer.id;
       }
       const updatedOrder = await this.orderRepo.updateOrderStatus(orderId, status, customerIdCheck);
-      return success(updatedOrder, ctx);
+      return success2(updatedOrder, ctx);
     } catch (error) {
       return this.mapError(error, ctx);
     }
   }
-  async cancelOrder(request2) {
+  async cancelOrder(request4) {
     const cancelReq = {
-      ...request2,
-      body: { ...request2.body || {}, status: "CANCELED" }
+      ...request4,
+      body: { ...request4.body || {}, status: "CANCELED" }
     };
     return this.updateStatus(cancelReq);
   }
@@ -6876,25 +7631,25 @@ var OrderController = class {
       return formatted === "orders:update" || formatted === "orders:delete" || formatted === "*";
     });
   }
-  createApiContext(request2) {
+  createApiContext(request4) {
     return {
-      timestamp: request2.context?.metadata?.timestamp ?? (/* @__PURE__ */ new Date()).toISOString(),
-      requestId: request2.context?.metadata?.requestId,
-      version: request2.context?.metadata?.version ?? "v1",
-      locale: request2.context?.metadata?.locale
+      timestamp: request4.context?.metadata?.timestamp ?? (/* @__PURE__ */ new Date()).toISOString(),
+      requestId: request4.context?.metadata?.requestId,
+      version: request4.context?.metadata?.version ?? "v1",
+      locale: request4.context?.metadata?.locale
     };
   }
   mapError(error, ctx) {
     if (error instanceof ValidationException) {
-      return this.errorResponse("bad_request", error.message || "bad_request", HTTP_STATUS.BAD_REQUEST, ctx);
+      return this.errorResponse("bad_request", error.message || "bad_request", HTTP_STATUS2.BAD_REQUEST, ctx);
     }
     if (error instanceof UnauthorizedError) {
-      return this.errorResponse("unauthorized", error.message || "unauthorized", HTTP_STATUS.UNAUTHORIZED, ctx);
+      return this.errorResponse("unauthorized", error.message || "unauthorized", HTTP_STATUS2.UNAUTHORIZED, ctx);
     }
     return this.errorResponse(
       "internal_error",
       error instanceof Error ? error.message : "internal_error",
-      HTTP_STATUS.INTERNAL_SERVER_ERROR,
+      HTTP_STATUS2.INTERNAL_SERVER_ERROR,
       ctx
     );
   }
@@ -7023,40 +7778,40 @@ function createOrderRoutes(controller = new OrderController()) {
 init_errors();
 var InventoryController = class {
   inventoryRepo = new InventoryRepository();
-  async listInventory(request2) {
-    const ctx = this.createApiContext(request2);
+  async listInventory(request4) {
+    const ctx = this.createApiContext(request4);
     try {
-      const user = request2.user;
+      const user = request4.user;
       if (!user || !user.id) {
-        return this.errorResponse("unauthorized", "authentication_required", HTTP_STATUS.UNAUTHORIZED, ctx);
+        return this.errorResponse("unauthorized", "authentication_required", HTTP_STATUS2.UNAUTHORIZED, ctx);
       }
-      const query = request2.query || {};
+      const query = request4.query || {};
       const result = await this.inventoryRepo.findInventoryList({
         status: query.status ? String(query.status) : void 0,
         search: query.search ? String(query.search) : void 0,
         page: query.page ? Number(query.page) : 1,
         limit: query.limit ? Number(query.limit) : 10
       });
-      return success(result, ctx);
+      return success2(result, ctx);
     } catch (error) {
       return this.mapError(error, ctx);
     }
   }
-  async adjustStock(request2) {
-    const ctx = this.createApiContext(request2);
+  async adjustStock(request4) {
+    const ctx = this.createApiContext(request4);
     try {
-      const user = request2.user;
+      const user = request4.user;
       if (!user || !user.id) {
-        return this.errorResponse("unauthorized", "authentication_required", HTTP_STATUS.UNAUTHORIZED, ctx);
+        return this.errorResponse("unauthorized", "authentication_required", HTTP_STATUS2.UNAUTHORIZED, ctx);
       }
-      const body = request2.body || {};
+      const body = request4.body || {};
       const { productId, type, quantity, reason } = body;
       if (!productId || !type || quantity === void 0) {
-        return this.errorResponse("bad_request", "product_id_type_and_quantity_required", HTTP_STATUS.BAD_REQUEST, ctx);
+        return this.errorResponse("bad_request", "product_id_type_and_quantity_required", HTTP_STATUS2.BAD_REQUEST, ctx);
       }
       const validTypes = ["IN", "OUT", "ADJUSTMENT"];
       if (!validTypes.includes(type)) {
-        return this.errorResponse("bad_request", "invalid_movement_type", HTTP_STATUS.BAD_REQUEST, ctx);
+        return this.errorResponse("bad_request", "invalid_movement_type", HTTP_STATUS2.BAD_REQUEST, ctx);
       }
       const updated = await this.inventoryRepo.adjustStock(
         productId,
@@ -7065,45 +7820,45 @@ var InventoryController = class {
         reason ? String(reason) : void 0,
         user.id
       );
-      return success(updated, ctx);
+      return success2(updated, ctx);
     } catch (error) {
       return this.mapError(error, ctx);
     }
   }
-  async listMovements(request2) {
-    const ctx = this.createApiContext(request2);
+  async listMovements(request4) {
+    const ctx = this.createApiContext(request4);
     try {
-      const user = request2.user;
+      const user = request4.user;
       if (!user || !user.id) {
-        return this.errorResponse("unauthorized", "authentication_required", HTTP_STATUS.UNAUTHORIZED, ctx);
+        return this.errorResponse("unauthorized", "authentication_required", HTTP_STATUS2.UNAUTHORIZED, ctx);
       }
-      const query = request2.query || {};
+      const query = request4.query || {};
       const inventoryId = query.inventoryId ? String(query.inventoryId) : void 0;
       const movements = await this.inventoryRepo.findMovements(inventoryId);
-      return success({ movements }, ctx);
+      return success2({ movements }, ctx);
     } catch (error) {
       return this.mapError(error, ctx);
     }
   }
-  createApiContext(request2) {
+  createApiContext(request4) {
     return {
-      timestamp: request2.context?.metadata?.timestamp ?? (/* @__PURE__ */ new Date()).toISOString(),
-      requestId: request2.context?.metadata?.requestId,
-      version: request2.context?.metadata?.version ?? "v1",
-      locale: request2.context?.metadata?.locale
+      timestamp: request4.context?.metadata?.timestamp ?? (/* @__PURE__ */ new Date()).toISOString(),
+      requestId: request4.context?.metadata?.requestId,
+      version: request4.context?.metadata?.version ?? "v1",
+      locale: request4.context?.metadata?.locale
     };
   }
   mapError(error, ctx) {
     if (error instanceof ValidationException) {
-      return this.errorResponse("bad_request", error.message || "bad_request", HTTP_STATUS.BAD_REQUEST, ctx);
+      return this.errorResponse("bad_request", error.message || "bad_request", HTTP_STATUS2.BAD_REQUEST, ctx);
     }
     if (error instanceof UnauthorizedError) {
-      return this.errorResponse("unauthorized", error.message || "unauthorized", HTTP_STATUS.UNAUTHORIZED, ctx);
+      return this.errorResponse("unauthorized", error.message || "unauthorized", HTTP_STATUS2.UNAUTHORIZED, ctx);
     }
     return this.errorResponse(
       "internal_error",
       error instanceof Error ? error.message : "internal_error",
-      HTTP_STATUS.INTERNAL_SERVER_ERROR,
+      HTTP_STATUS2.INTERNAL_SERVER_ERROR,
       ctx
     );
   }
@@ -7196,29 +7951,431 @@ function createInventoryRoutes(controller = new InventoryController()) {
   return builder.build();
 }
 
+// ../backend/src/repositories/delivery-driver-repository.ts
+var DeliveryDriverRepository = class extends base_repository_default {
+  constructor() {
+    super("deliveryDriver");
+  }
+  async list(options = {}) {
+    const page = Math.max(1, Math.floor(options.page ?? 1));
+    const limit = Math.max(1, Math.min(100, Math.floor(options.limit ?? 25)));
+    const search = options.search?.trim();
+    const where = {
+      tenantId: options.tenantId ?? null
+    };
+    if (search) {
+      where.OR = [
+        { name: { contains: search, mode: "insensitive" } },
+        { phone: { contains: search, mode: "insensitive" } },
+        { vehicleInfo: { contains: search, mode: "insensitive" } }
+      ];
+    }
+    const [data, total] = await Promise.all([
+      this.model.findMany({
+        where,
+        orderBy: { createdAt: "desc" },
+        skip: (page - 1) * limit,
+        take: limit,
+        include: { _count: { select: { deliveries: true } } }
+      }),
+      this.model.count({ where })
+    ]);
+    return { data, total, page, limit };
+  }
+  async findByIdForTenant(id, tenantId) {
+    return this.model.findFirst({
+      where: { id, tenantId: tenantId ?? null },
+      include: { _count: { select: { deliveries: true } } }
+    });
+  }
+  async createForTenant(payload) {
+    return this.model.create({
+      data: {
+        tenantId: payload.tenantId ?? null,
+        name: payload.name,
+        phone: payload.phone ?? null,
+        vehicleInfo: payload.vehicleInfo ?? null
+      },
+      include: { _count: { select: { deliveries: true } } }
+    });
+  }
+  async updateForTenant(id, tenantId, payload) {
+    const existing = await this.findByIdForTenant(id, tenantId);
+    if (!existing) return null;
+    return this.model.update({
+      where: { id },
+      data: {
+        ...payload.name !== void 0 ? { name: payload.name } : {},
+        ...payload.phone !== void 0 ? { phone: payload.phone } : {},
+        ...payload.vehicleInfo !== void 0 ? { vehicleInfo: payload.vehicleInfo } : {}
+      },
+      include: { _count: { select: { deliveries: true } } }
+    });
+  }
+  async deleteForTenant(id, tenantId) {
+    const existing = await this.findByIdForTenant(id, tenantId);
+    if (!existing) return false;
+    await this.model.delete({ where: { id } });
+    return true;
+  }
+};
+var delivery_driver_repository_default = DeliveryDriverRepository;
+
+// ../backend/src/modules/delivery/controller.ts
+var DeliveryController = class {
+  driverRepo = new delivery_driver_repository_default();
+  context(request4) {
+    return {
+      timestamp: request4.context?.metadata?.timestamp ?? (/* @__PURE__ */ new Date()).toISOString(),
+      requestId: request4.context?.metadata?.requestId,
+      version: request4.context?.metadata?.version ?? "v1",
+      locale: request4.context?.metadata?.locale
+    };
+  }
+  tenantId(request4) {
+    return request4.context?.user?.tenantId ?? null;
+  }
+  value(value) {
+    return Array.isArray(value) ? value[0] : value;
+  }
+  mapDriver(entity) {
+    return {
+      id: entity.id,
+      name: entity.name,
+      phone: entity.phone,
+      vehicleInfo: entity.vehicleInfo,
+      deliveriesCount: entity._count?.deliveries ?? 0,
+      createdAt: entity.createdAt?.toISOString?.() ?? entity.createdAt
+    };
+  }
+  async list(request4) {
+    const ctx = this.context(request4);
+    try {
+      this.requireUser(request4);
+      const query = request4.query ?? {};
+      const page = this.integer(this.value(query.page), 1, 1e5);
+      const limit = this.integer(this.value(query.limit), 25, 100);
+      const search = this.value(query.search)?.trim();
+      if (search && search.length > 120) throw new ValidationException("search_too_long");
+      const result = await this.driverRepo.list({ tenantId: this.tenantId(request4), search, page, limit });
+      return paginated(result.data.map((entry) => this.mapDriver(entry)), result.page, result.limit, result.total, ctx);
+    } catch (error) {
+      return this.error(error, ctx);
+    }
+  }
+  async get(request4) {
+    const ctx = this.context(request4);
+    try {
+      this.requireUser(request4);
+      const id = request4.params?.id ?? "";
+      if (!id) throw new ValidationException("driver_id_required");
+      const entity = await this.driverRepo.findByIdForTenant(id, this.tenantId(request4));
+      return entity ? success(this.mapDriver(entity), ctx) : notFound("driver_not_found", ctx);
+    } catch (error) {
+      return this.error(error, ctx);
+    }
+  }
+  async create(request4) {
+    const ctx = this.context(request4);
+    try {
+      this.requireUser(request4);
+      const body = request4.body ?? {};
+      const name = this.text(body.name, "driver_name_required", 120);
+      const phone = this.optionalText(body.phone, 40);
+      const vehicleInfo = this.optionalText(body.vehicleInfo, 160);
+      const entity = await this.driverRepo.createForTenant({ tenantId: this.tenantId(request4), name, phone, vehicleInfo });
+      return created(this.mapDriver(entity), ctx);
+    } catch (error) {
+      return this.error(error, ctx);
+    }
+  }
+  async update(request4) {
+    const ctx = this.context(request4);
+    try {
+      this.requireUser(request4);
+      const id = request4.params?.id ?? "";
+      if (!id) throw new ValidationException("driver_id_required");
+      const body = request4.body ?? {};
+      const payload = {
+        ...body.name !== void 0 ? { name: this.text(body.name, "driver_name_required", 120) } : {},
+        ...body.phone !== void 0 ? { phone: this.optionalText(body.phone, 40) } : {},
+        ...body.vehicleInfo !== void 0 ? { vehicleInfo: this.optionalText(body.vehicleInfo, 160) } : {}
+      };
+      if (Object.keys(payload).length === 0) throw new ValidationException("driver_update_empty");
+      const entity = await this.driverRepo.updateForTenant(id, this.tenantId(request4), payload);
+      return entity ? success(this.mapDriver(entity), ctx) : notFound("driver_not_found", ctx);
+    } catch (error) {
+      return this.error(error, ctx);
+    }
+  }
+  async remove(request4) {
+    const ctx = this.context(request4);
+    try {
+      this.requireUser(request4);
+      const id = request4.params?.id ?? "";
+      if (!id) throw new ValidationException("driver_id_required");
+      const removed = await this.driverRepo.deleteForTenant(id, this.tenantId(request4));
+      if (!removed) throw new NotFoundException("driver_not_found");
+      return noContent(ctx);
+    } catch (error) {
+      return this.error(error, ctx);
+    }
+  }
+  requireUser(request4) {
+    if (!request4.context?.user?.id) throw new Error("authentication_required");
+  }
+  text(value, errorCode, maxLength) {
+    if (typeof value !== "string" || !value.trim() || value.trim().length > maxLength) throw new ValidationException(errorCode);
+    return value.trim();
+  }
+  optionalText(value, maxLength) {
+    if (value === null || value === void 0 || value === "") return null;
+    if (typeof value !== "string" || value.trim().length > maxLength) throw new ValidationException("driver_field_invalid");
+    return value.trim();
+  }
+  integer(value, fallback, max) {
+    if (value === void 0) return fallback;
+    const parsed = Number(value);
+    if (!Number.isInteger(parsed) || parsed < 1 || parsed > max) throw new ValidationException("pagination_invalid");
+    return parsed;
+  }
+  error(error, ctx) {
+    if (error instanceof ValidationException) return validationError(error.message, ctx);
+    if (error instanceof NotFoundException) return notFound(error.message, ctx);
+    if (error instanceof Error && error.message === "authentication_required") return unauthorized("authentication_required", ctx);
+    return { statusCode: HTTP_STATUS.INTERNAL_SERVER_ERROR, body: { success: false, error: { code: "internal_error", message: "internal_error" }, meta: ctx } };
+  }
+};
+var controller_default7 = DeliveryController;
+
+// ../backend/src/modules/delivery/routes.ts
+function request2(ctx) {
+  return {
+    body: ctx.body,
+    headers: ctx.headers,
+    params: ctx.params,
+    query: ctx.query,
+    context: {
+      user: ctx.user,
+      metadata: { timestamp: (/* @__PURE__ */ new Date()).toISOString(), version: "v1" }
+    }
+  };
+}
+function createDeliveryRoutes(controller = new controller_default7()) {
+  const builder = new RouterBuilder();
+  const options = (permission) => ({
+    mode: "private",
+    publicRoute: false,
+    privateRoute: true,
+    authenticationRequired: true,
+    authorizationRequired: true,
+    requiredPermissions: [permission],
+    tags: ["delivery"],
+    middleware: []
+  });
+  const register = (name, method, path3, permission, handler2) => builder.register({ name, method, path: path3, version: "v1", handler: handler2, options: options(permission) });
+  register("delivery-drivers-list", "GET", "/delivery/drivers", "delivery:read", (ctx) => controller.list(request2(ctx)));
+  register("delivery-drivers-get", "GET", "/delivery/drivers/:id", "delivery:read", (ctx) => controller.get(request2(ctx)));
+  register("delivery-drivers-create", "POST", "/delivery/drivers", "delivery:create", (ctx) => controller.create(request2(ctx)));
+  register("delivery-drivers-update", "PUT", "/delivery/drivers/:id", "delivery:update", (ctx) => controller.update(request2(ctx)));
+  register("delivery-drivers-delete", "DELETE", "/delivery/drivers/:id", "delivery:delete", (ctx) => controller.remove(request2(ctx)));
+  return builder.build();
+}
+
+// ../backend/src/repositories/supplier-admin-repository.ts
+var SupplierAdminRepository = class extends base_repository_default {
+  constructor() {
+    super("supplier");
+  }
+  where(options = {}) {
+    const where = { tenantId: options.tenantId ?? null, deletedAt: null };
+    if (options.search?.trim()) {
+      const search = options.search.trim();
+      where.OR = [
+        { name: { contains: search, mode: "insensitive" } },
+        { code: { contains: search, mode: "insensitive" } }
+      ];
+    }
+    return where;
+  }
+  async list(options = {}) {
+    const page = Math.max(1, Math.floor(options.page ?? 1));
+    const limit = Math.max(1, Math.min(100, Math.floor(options.limit ?? 25)));
+    const where = this.where(options);
+    const [data, total] = await Promise.all([
+      this.model.findMany({
+        where,
+        orderBy: { createdAt: "desc" },
+        skip: (page - 1) * limit,
+        take: limit,
+        include: {
+          _count: { select: { contacts: true, addresses: true, purchaseOrders: true } }
+        }
+      }),
+      this.model.count({ where })
+    ]);
+    return { data, total, page, limit };
+  }
+  async findByIdForTenant(id, tenantId) {
+    return this.model.findFirst({
+      where: { id, tenantId: tenantId ?? null, deletedAt: null },
+      include: { contacts: true, addresses: { include: { address: true } }, _count: { select: { purchaseOrders: true } } }
+    });
+  }
+  async createForTenant(data) {
+    return this.model.create({
+      data: { tenantId: data.tenantId ?? null, name: data.name, code: data.code ?? null },
+      include: { _count: { select: { contacts: true, addresses: true, purchaseOrders: true } } }
+    });
+  }
+  async updateForTenant(id, tenantId, data) {
+    const existing = await this.findByIdForTenant(id, tenantId);
+    if (!existing) return null;
+    return this.model.update({ where: { id }, data, include: { _count: { select: { contacts: true, addresses: true, purchaseOrders: true } } } });
+  }
+  async softDeleteForTenant(id, tenantId) {
+    const existing = await this.findByIdForTenant(id, tenantId);
+    if (!existing) return false;
+    await this.model.update({ where: { id }, data: { deletedAt: /* @__PURE__ */ new Date() } });
+    return true;
+  }
+};
+var supplier_admin_repository_default = SupplierAdminRepository;
+
+// ../backend/src/modules/suppliers-admin/controller.ts
+var SupplierAdminController = class {
+  repository = new supplier_admin_repository_default();
+  context(request4) {
+    return { timestamp: request4.context?.metadata?.timestamp ?? (/* @__PURE__ */ new Date()).toISOString(), requestId: request4.context?.metadata?.requestId, version: "v1", locale: request4.context?.metadata?.locale };
+  }
+  tenantId(request4) {
+    return request4.context?.user?.tenantId ?? null;
+  }
+  value(value) {
+    return Array.isArray(value) ? value[0] : value;
+  }
+  map(entity) {
+    return { id: entity.id, name: entity.name, code: entity.code, contactsCount: entity._count?.contacts ?? entity.contacts?.length ?? 0, addressesCount: entity._count?.addresses ?? entity.addresses?.length ?? 0, purchaseOrdersCount: entity._count?.purchaseOrders ?? 0, createdAt: entity.createdAt?.toISOString?.() ?? entity.createdAt, updatedAt: entity.updatedAt?.toISOString?.() ?? entity.updatedAt };
+  }
+  async list(request4) {
+    const ctx = this.context(request4);
+    try {
+      const query = request4.query ?? {};
+      const page = this.integer(this.value(query.page), 1, 1e5);
+      const limit = this.integer(this.value(query.limit), 25, 100);
+      const search = this.value(query.search)?.trim();
+      if (search && search.length > 120) throw new ValidationException("search_too_long");
+      const result = await this.repository.list({ tenantId: this.tenantId(request4), search, page, limit });
+      return paginated(result.data.map((entry) => this.map(entry)), result.page, result.limit, result.total, ctx);
+    } catch (error) {
+      return this.error(error, ctx);
+    }
+  }
+  async get(request4) {
+    const ctx = this.context(request4);
+    try {
+      const entity = await this.repository.findByIdForTenant(request4.params?.id ?? "", this.tenantId(request4));
+      return entity ? success(this.map(entity), ctx) : notFound("supplier_not_found", ctx);
+    } catch (error) {
+      return this.error(error, ctx);
+    }
+  }
+  async create(request4) {
+    const ctx = this.context(request4);
+    try {
+      const body = request4.body ?? {};
+      const name = this.text(body.name, "supplier_name_required", 160);
+      const code = this.optionalText(body.code, 80);
+      const entity = await this.repository.createForTenant({ tenantId: this.tenantId(request4), name, code });
+      return created(this.map(entity), ctx);
+    } catch (error) {
+      return this.error(error, ctx);
+    }
+  }
+  async update(request4) {
+    const ctx = this.context(request4);
+    try {
+      const body = request4.body ?? {};
+      const data = { ...body.name !== void 0 ? { name: this.text(body.name, "supplier_name_required", 160) } : {}, ...body.code !== void 0 ? { code: this.optionalText(body.code, 80) } : {} };
+      if (!Object.keys(data).length) throw new ValidationException("supplier_update_empty");
+      const entity = await this.repository.updateForTenant(request4.params?.id ?? "", this.tenantId(request4), data);
+      return entity ? success(this.map(entity), ctx) : notFound("supplier_not_found", ctx);
+    } catch (error) {
+      return this.error(error, ctx);
+    }
+  }
+  async remove(request4) {
+    const ctx = this.context(request4);
+    try {
+      const removed = await this.repository.softDeleteForTenant(request4.params?.id ?? "", this.tenantId(request4));
+      if (!removed) throw new NotFoundException("supplier_not_found");
+      return noContent(ctx);
+    } catch (error) {
+      return this.error(error, ctx);
+    }
+  }
+  text(value, code, max) {
+    if (typeof value !== "string" || !value.trim() || value.trim().length > max) throw new ValidationException(code);
+    return value.trim();
+  }
+  optionalText(value, max) {
+    if (value === void 0 || value === null || value === "") return null;
+    if (typeof value !== "string" || value.trim().length > max) throw new ValidationException("supplier_field_invalid");
+    return value.trim();
+  }
+  integer(value, fallback, max) {
+    if (value === void 0) return fallback;
+    const parsed = Number(value);
+    if (!Number.isInteger(parsed) || parsed < 1 || parsed > max) throw new ValidationException("pagination_invalid");
+    return parsed;
+  }
+  error(error, ctx) {
+    if (error instanceof ValidationException) return validationError(error.message, ctx);
+    if (error instanceof NotFoundException) return notFound(error.message, ctx);
+    return { statusCode: HTTP_STATUS.INTERNAL_SERVER_ERROR, body: { success: false, error: { code: "internal_error", message: "internal_error" }, meta: ctx } };
+  }
+};
+var controller_default8 = SupplierAdminController;
+
+// ../backend/src/modules/suppliers-admin/routes.ts
+function request3(ctx) {
+  return { body: ctx.body, headers: ctx.headers, params: ctx.params, query: ctx.query, context: { user: ctx.user, metadata: { timestamp: (/* @__PURE__ */ new Date()).toISOString(), version: "v1" } } };
+}
+function createSupplierAdminRoutes(controller = new controller_default8()) {
+  const builder = new RouterBuilder();
+  const options = (permission) => ({ mode: "private", publicRoute: false, privateRoute: true, authenticationRequired: true, authorizationRequired: true, requiredPermissions: [permission], tags: ["suppliers"], middleware: [] });
+  const register = (name, method, path3, permission, handler2) => builder.register({ name, method, path: path3, version: "v1", handler: handler2, options: options(permission) });
+  register("suppliers-admin-list", "GET", "/admin/suppliers", "suppliers:read", (ctx) => controller.list(request3(ctx)));
+  register("suppliers-admin-get", "GET", "/admin/suppliers/:id", "suppliers:read", (ctx) => controller.get(request3(ctx)));
+  register("suppliers-admin-create", "POST", "/admin/suppliers", "suppliers:create", (ctx) => controller.create(request3(ctx)));
+  register("suppliers-admin-update", "PUT", "/admin/suppliers/:id", "suppliers:update", (ctx) => controller.update(request3(ctx)));
+  register("suppliers-admin-delete", "DELETE", "/admin/suppliers/:id", "suppliers:delete", (ctx) => controller.remove(request3(ctx)));
+  return builder.build();
+}
+
 // ../backend/src/modules/payments/controller.ts
 init_errors();
 var PaymentController = class {
   paymentRepo = new PaymentRepository();
   cartRepo = new cart_repository_default();
-  async createPayment(request2) {
-    const ctx = this.createApiContext(request2);
+  async createPayment(request4) {
+    const ctx = this.createApiContext(request4);
     try {
-      const user = request2.user;
+      const user = request4.user;
       if (!user || !user.id) {
-        return this.errorResponse("unauthorized", "authentication_required", HTTP_STATUS.UNAUTHORIZED, ctx);
+        return this.errorResponse("unauthorized", "authentication_required", HTTP_STATUS2.UNAUTHORIZED, ctx);
       }
-      const body = request2.body || {};
+      const body = request4.body || {};
       const { orderId, paymentMethod, idempotencyKey } = body;
       if (!orderId || !paymentMethod) {
-        return this.errorResponse("bad_request", "order_id_and_payment_method_required", HTTP_STATUS.BAD_REQUEST, ctx);
+        return this.errorResponse("bad_request", "order_id_and_payment_method_required", HTTP_STATUS2.BAD_REQUEST, ctx);
       }
       const isCustomerOnly = user.role === "CUSTOMER";
       let customerIdCheck = void 0;
       if (isCustomerOnly) {
         const customer = await this.cartRepo.findCustomerByUserIdOrEmail(user.id, user.email);
         if (!customer) {
-          return this.errorResponse("not_found", "order_not_found", HTTP_STATUS.NOT_FOUND, ctx);
+          return this.errorResponse("not_found", "order_not_found", HTTP_STATUS2.NOT_FOUND, ctx);
         }
         customerIdCheck = customer.id;
       }
@@ -7228,84 +8385,84 @@ var PaymentController = class {
         idempotencyKey: idempotencyKey ? String(idempotencyKey) : void 0,
         customerIdCheck
       });
-      return created(transaction, ctx);
+      return created2(transaction, ctx);
     } catch (error) {
       return this.mapError(error, ctx);
     }
   }
-  async getPaymentForOrder(request2) {
-    const ctx = this.createApiContext(request2);
+  async getPaymentForOrder(request4) {
+    const ctx = this.createApiContext(request4);
     try {
-      const user = request2.user;
+      const user = request4.user;
       if (!user || !user.id) {
-        return this.errorResponse("unauthorized", "authentication_required", HTTP_STATUS.UNAUTHORIZED, ctx);
+        return this.errorResponse("unauthorized", "authentication_required", HTTP_STATUS2.UNAUTHORIZED, ctx);
       }
-      const orderId = request2.params?.orderId;
+      const orderId = request4.params?.orderId;
       if (!orderId) {
-        return this.errorResponse("bad_request", "order_id_required", HTTP_STATUS.BAD_REQUEST, ctx);
+        return this.errorResponse("bad_request", "order_id_required", HTTP_STATUS2.BAD_REQUEST, ctx);
       }
       const isCustomerOnly = user.role === "CUSTOMER";
       let customerIdCheck = void 0;
       if (isCustomerOnly) {
         const customer = await this.cartRepo.findCustomerByUserIdOrEmail(user.id, user.email);
         if (!customer) {
-          return this.errorResponse("not_found", "payment_not_found", HTTP_STATUS.NOT_FOUND, ctx);
+          return this.errorResponse("not_found", "payment_not_found", HTTP_STATUS2.NOT_FOUND, ctx);
         }
         customerIdCheck = customer.id;
       }
       const payment = await this.paymentRepo.findPaymentByOrderId(orderId, customerIdCheck);
       if (!payment) {
-        return this.errorResponse("not_found", "payment_not_found", HTTP_STATUS.NOT_FOUND, ctx);
+        return this.errorResponse("not_found", "payment_not_found", HTTP_STATUS2.NOT_FOUND, ctx);
       }
-      return success(payment, ctx);
+      return success2(payment, ctx);
     } catch (error) {
       return this.mapError(error, ctx);
     }
   }
-  async verifyPayment(request2) {
-    const ctx = this.createApiContext(request2);
+  async verifyPayment(request4) {
+    const ctx = this.createApiContext(request4);
     try {
-      const user = request2.user;
+      const user = request4.user;
       if (!user || !user.id) {
-        return this.errorResponse("unauthorized", "authentication_required", HTTP_STATUS.UNAUTHORIZED, ctx);
+        return this.errorResponse("unauthorized", "authentication_required", HTTP_STATUS2.UNAUTHORIZED, ctx);
       }
-      const body = request2.body || {};
+      const body = request4.body || {};
       const { paymentId, status, providerReference } = body;
       if (!paymentId) {
-        return this.errorResponse("bad_request", "payment_id_required", HTTP_STATUS.BAD_REQUEST, ctx);
+        return this.errorResponse("bad_request", "payment_id_required", HTTP_STATUS2.BAD_REQUEST, ctx);
       }
       const verified = await this.paymentRepo.verifyPaymentTransaction(
         String(paymentId),
         status ? String(status) : "COMPLETED",
         providerReference ? String(providerReference) : void 0
       );
-      return success(verified, ctx);
+      return success2(verified, ctx);
     } catch (error) {
       return this.mapError(error, ctx);
     }
   }
-  createApiContext(request2) {
+  createApiContext(request4) {
     return {
-      timestamp: request2.context?.metadata?.timestamp ?? (/* @__PURE__ */ new Date()).toISOString(),
-      requestId: request2.context?.metadata?.requestId,
-      version: request2.context?.metadata?.version ?? "v1",
-      locale: request2.context?.metadata?.locale
+      timestamp: request4.context?.metadata?.timestamp ?? (/* @__PURE__ */ new Date()).toISOString(),
+      requestId: request4.context?.metadata?.requestId,
+      version: request4.context?.metadata?.version ?? "v1",
+      locale: request4.context?.metadata?.locale
     };
   }
   mapError(error, ctx) {
     if (error instanceof NotFoundException) {
-      return this.errorResponse("not_found", error.message || "not_found", HTTP_STATUS.NOT_FOUND, ctx);
+      return this.errorResponse("not_found", error.message || "not_found", HTTP_STATUS2.NOT_FOUND, ctx);
     }
     if (error instanceof ValidationException) {
-      return this.errorResponse("bad_request", error.message || "bad_request", HTTP_STATUS.BAD_REQUEST, ctx);
+      return this.errorResponse("bad_request", error.message || "bad_request", HTTP_STATUS2.BAD_REQUEST, ctx);
     }
     if (error instanceof UnauthorizedError) {
-      return this.errorResponse("unauthorized", error.message || "unauthorized", HTTP_STATUS.UNAUTHORIZED, ctx);
+      return this.errorResponse("unauthorized", error.message || "unauthorized", HTTP_STATUS2.UNAUTHORIZED, ctx);
     }
     return this.errorResponse(
       "internal_error",
       error instanceof Error ? error.message : "internal_error",
-      HTTP_STATUS.INTERNAL_SERVER_ERROR,
+      HTTP_STATUS2.INTERNAL_SERVER_ERROR,
       ctx
     );
   }
@@ -7486,61 +8643,61 @@ var settings_repository_default = SettingsRepository;
 // ../backend/src/modules/settings/controller.ts
 var SettingsController = class {
   settingsRepo = new SettingsRepository();
-  async getPublicSettings(request2) {
-    const ctx = this.createApiContext(request2);
+  async getPublicSettings(request4) {
+    const ctx = this.createApiContext(request4);
     try {
       const publicSettings = await this.settingsRepo.getPublicSettings();
-      return success(publicSettings, ctx);
+      return success2(publicSettings, ctx);
     } catch (error) {
       return this.mapError(error, ctx);
     }
   }
-  async getAdminSettings(request2) {
-    const ctx = this.createApiContext(request2);
+  async getAdminSettings(request4) {
+    const ctx = this.createApiContext(request4);
     try {
-      const user = request2.user;
+      const user = request4.user;
       if (!user || !user.id) {
-        return this.errorResponse("unauthorized", "authentication_required", HTTP_STATUS.UNAUTHORIZED, ctx);
+        return this.errorResponse("unauthorized", "authentication_required", HTTP_STATUS2.UNAUTHORIZED, ctx);
       }
       const allSettings = await this.settingsRepo.getAllSettings();
-      return success(allSettings, ctx);
+      return success2(allSettings, ctx);
     } catch (error) {
       return this.mapError(error, ctx);
     }
   }
-  async updateAdminSettings(request2) {
-    const ctx = this.createApiContext(request2);
+  async updateAdminSettings(request4) {
+    const ctx = this.createApiContext(request4);
     try {
-      const user = request2.user;
+      const user = request4.user;
       if (!user || !user.id) {
-        return this.errorResponse("unauthorized", "authentication_required", HTTP_STATUS.UNAUTHORIZED, ctx);
+        return this.errorResponse("unauthorized", "authentication_required", HTTP_STATUS2.UNAUTHORIZED, ctx);
       }
-      const body = request2.body || {};
+      const body = request4.body || {};
       const updated = await this.settingsRepo.updateSettings(body);
-      return success(updated, ctx);
+      return success2(updated, ctx);
     } catch (error) {
       return this.mapError(error, ctx);
     }
   }
-  createApiContext(request2) {
+  createApiContext(request4) {
     return {
-      timestamp: request2.context?.metadata?.timestamp ?? (/* @__PURE__ */ new Date()).toISOString(),
-      requestId: request2.context?.metadata?.requestId,
-      version: request2.context?.metadata?.version ?? "v1",
-      locale: request2.context?.metadata?.locale
+      timestamp: request4.context?.metadata?.timestamp ?? (/* @__PURE__ */ new Date()).toISOString(),
+      requestId: request4.context?.metadata?.requestId,
+      version: request4.context?.metadata?.version ?? "v1",
+      locale: request4.context?.metadata?.locale
     };
   }
   mapError(error, ctx) {
     if (error instanceof ValidationException) {
-      return this.errorResponse("bad_request", error.message || "bad_request", HTTP_STATUS.BAD_REQUEST, ctx);
+      return this.errorResponse("bad_request", error.message || "bad_request", HTTP_STATUS2.BAD_REQUEST, ctx);
     }
     if (error instanceof UnauthorizedError) {
-      return this.errorResponse("unauthorized", error.message || "unauthorized", HTTP_STATUS.UNAUTHORIZED, ctx);
+      return this.errorResponse("unauthorized", error.message || "unauthorized", HTTP_STATUS2.UNAUTHORIZED, ctx);
     }
     return this.errorResponse(
       "internal_error",
       error instanceof Error ? error.message : "internal_error",
-      HTTP_STATUS.INTERNAL_SERVER_ERROR,
+      HTTP_STATUS2.INTERNAL_SERVER_ERROR,
       ctx
     );
   }
@@ -7637,68 +8794,68 @@ function createSettingsRoutes(controller = new SettingsController()) {
 init_errors();
 var NotificationsController = class {
   notificationRepo = new NotificationRepository();
-  async listUserNotifications(request2) {
-    const ctx = this.createApiContext(request2);
+  async listUserNotifications(request4) {
+    const ctx = this.createApiContext(request4);
     try {
-      const user = request2.user;
+      const user = request4.user;
       if (!user || !user.id) {
-        return this.errorResponse("unauthorized", "authentication_required", HTTP_STATUS.UNAUTHORIZED, ctx);
+        return this.errorResponse("unauthorized", "authentication_required", HTTP_STATUS2.UNAUTHORIZED, ctx);
       }
       const result = await this.notificationRepo.findUserNotifications(user.id);
-      return success(result, ctx);
+      return success2(result, ctx);
     } catch (error) {
       return this.mapError(error, ctx);
     }
   }
-  async markAsRead(request2) {
-    const ctx = this.createApiContext(request2);
+  async markAsRead(request4) {
+    const ctx = this.createApiContext(request4);
     try {
-      const user = request2.user;
+      const user = request4.user;
       if (!user || !user.id) {
-        return this.errorResponse("unauthorized", "authentication_required", HTTP_STATUS.UNAUTHORIZED, ctx);
+        return this.errorResponse("unauthorized", "authentication_required", HTTP_STATUS2.UNAUTHORIZED, ctx);
       }
-      const notificationId = request2.params?.id;
+      const notificationId = request4.params?.id;
       if (!notificationId) {
-        return this.errorResponse("bad_request", "notification_id_required", HTTP_STATUS.BAD_REQUEST, ctx);
+        return this.errorResponse("bad_request", "notification_id_required", HTTP_STATUS2.BAD_REQUEST, ctx);
       }
       const updated = await this.notificationRepo.markAsRead(notificationId, user.id);
-      return success(updated, ctx);
+      return success2(updated, ctx);
     } catch (error) {
       return this.mapError(error, ctx);
     }
   }
-  async markAllAsRead(request2) {
-    const ctx = this.createApiContext(request2);
+  async markAllAsRead(request4) {
+    const ctx = this.createApiContext(request4);
     try {
-      const user = request2.user;
+      const user = request4.user;
       if (!user || !user.id) {
-        return this.errorResponse("unauthorized", "authentication_required", HTTP_STATUS.UNAUTHORIZED, ctx);
+        return this.errorResponse("unauthorized", "authentication_required", HTTP_STATUS2.UNAUTHORIZED, ctx);
       }
       const count = await this.notificationRepo.markAllAsRead(user.id);
-      return success({ count }, ctx);
+      return success2({ count }, ctx);
     } catch (error) {
       return this.mapError(error, ctx);
     }
   }
-  createApiContext(request2) {
+  createApiContext(request4) {
     return {
-      timestamp: request2.context?.metadata?.timestamp ?? (/* @__PURE__ */ new Date()).toISOString(),
-      requestId: request2.context?.metadata?.requestId,
-      version: request2.context?.metadata?.version ?? "v1",
-      locale: request2.context?.metadata?.locale
+      timestamp: request4.context?.metadata?.timestamp ?? (/* @__PURE__ */ new Date()).toISOString(),
+      requestId: request4.context?.metadata?.requestId,
+      version: request4.context?.metadata?.version ?? "v1",
+      locale: request4.context?.metadata?.locale
     };
   }
   mapError(error, ctx) {
     if (error instanceof ValidationException) {
-      return this.errorResponse("bad_request", error.message || "bad_request", HTTP_STATUS.BAD_REQUEST, ctx);
+      return this.errorResponse("bad_request", error.message || "bad_request", HTTP_STATUS2.BAD_REQUEST, ctx);
     }
     if (error instanceof UnauthorizedError) {
-      return this.errorResponse("unauthorized", error.message || "unauthorized", HTTP_STATUS.UNAUTHORIZED, ctx);
+      return this.errorResponse("unauthorized", error.message || "unauthorized", HTTP_STATUS2.UNAUTHORIZED, ctx);
     }
     return this.errorResponse(
       "internal_error",
       error instanceof Error ? error.message : "internal_error",
-      HTTP_STATUS.INTERNAL_SERVER_ERROR,
+      HTTP_STATUS2.INTERNAL_SERVER_ERROR,
       ctx
     );
   }
@@ -7914,26 +9071,26 @@ var support_repository_default = SupportRepository;
 var SupportController = class {
   supportRepo = new SupportRepository();
   cartRepo = new cart_repository_default();
-  async getSupportContacts(request2) {
-    const ctx = this.createApiContext(request2);
+  async getSupportContacts(request4) {
+    const ctx = this.createApiContext(request4);
     try {
       const contacts = await this.supportRepo.getSupportContacts();
-      return success(contacts, ctx);
+      return success2(contacts, ctx);
     } catch (error) {
       return this.mapError(error, ctx);
     }
   }
-  async createTicket(request2) {
-    const ctx = this.createApiContext(request2);
+  async createTicket(request4) {
+    const ctx = this.createApiContext(request4);
     try {
-      const user = request2.user;
+      const user = request4.user;
       if (!user || !user.id) {
-        return this.errorResponse("unauthorized", "authentication_required", HTTP_STATUS.UNAUTHORIZED, ctx);
+        return this.errorResponse("unauthorized", "authentication_required", HTTP_STATUS2.UNAUTHORIZED, ctx);
       }
-      const body = request2.body || {};
+      const body = request4.body || {};
       const { subject, description, priority } = body;
       if (!subject || !description) {
-        return this.errorResponse("bad_request", "subject_and_description_required", HTTP_STATUS.BAD_REQUEST, ctx);
+        return this.errorResponse("bad_request", "subject_and_description_required", HTTP_STATUS2.BAD_REQUEST, ctx);
       }
       const ticket = await this.supportRepo.createTicket({
         customerId: user.id,
@@ -7943,17 +9100,17 @@ var SupportController = class {
         description: String(description),
         priority: priority ? String(priority) : "MEDIUM"
       });
-      return created(ticket, ctx);
+      return created2(ticket, ctx);
     } catch (error) {
       return this.mapError(error, ctx);
     }
   }
-  async listTickets(request2) {
-    const ctx = this.createApiContext(request2);
+  async listTickets(request4) {
+    const ctx = this.createApiContext(request4);
     try {
-      const user = request2.user;
+      const user = request4.user;
       if (!user || !user.id) {
-        return this.errorResponse("unauthorized", "authentication_required", HTTP_STATUS.UNAUTHORIZED, ctx);
+        return this.errorResponse("unauthorized", "authentication_required", HTTP_STATUS2.UNAUTHORIZED, ctx);
       }
       const isStaffOrAdmin = user.role === "ADMIN" || user.role === "MANAGER" || user.role === "EMPLOYEE";
       let tickets;
@@ -7962,21 +9119,21 @@ var SupportController = class {
       } else {
         tickets = await this.supportRepo.findCustomerTickets(user.id);
       }
-      return success({ tickets }, ctx);
+      return success2({ tickets }, ctx);
     } catch (error) {
       return this.mapError(error, ctx);
     }
   }
-  async getTicketById(request2) {
-    const ctx = this.createApiContext(request2);
+  async getTicketById(request4) {
+    const ctx = this.createApiContext(request4);
     try {
-      const user = request2.user;
+      const user = request4.user;
       if (!user || !user.id) {
-        return this.errorResponse("unauthorized", "authentication_required", HTTP_STATUS.UNAUTHORIZED, ctx);
+        return this.errorResponse("unauthorized", "authentication_required", HTTP_STATUS2.UNAUTHORIZED, ctx);
       }
-      const ticketId = request2.params?.id;
+      const ticketId = request4.params?.id;
       if (!ticketId) {
-        return this.errorResponse("bad_request", "ticket_id_required", HTTP_STATUS.BAD_REQUEST, ctx);
+        return this.errorResponse("bad_request", "ticket_id_required", HTTP_STATUS2.BAD_REQUEST, ctx);
       }
       const isStaffOrAdmin = user.role === "ADMIN" || user.role === "MANAGER" || user.role === "EMPLOYEE";
       const ticket = await this.supportRepo.findTicketById(
@@ -7984,29 +9141,29 @@ var SupportController = class {
         isStaffOrAdmin ? void 0 : user.id
       );
       if (!ticket) {
-        return this.errorResponse("not_found", "ticket_not_found", HTTP_STATUS.NOT_FOUND, ctx);
+        return this.errorResponse("not_found", "ticket_not_found", HTTP_STATUS2.NOT_FOUND, ctx);
       }
-      return success(ticket, ctx);
+      return success2(ticket, ctx);
     } catch (error) {
       return this.mapError(error, ctx);
     }
   }
-  async replyTicket(request2) {
-    const ctx = this.createApiContext(request2);
+  async replyTicket(request4) {
+    const ctx = this.createApiContext(request4);
     try {
-      const user = request2.user;
+      const user = request4.user;
       if (!user || !user.id) {
-        return this.errorResponse("unauthorized", "authentication_required", HTTP_STATUS.UNAUTHORIZED, ctx);
+        return this.errorResponse("unauthorized", "authentication_required", HTTP_STATUS2.UNAUTHORIZED, ctx);
       }
-      const ticketId = request2.params?.id;
-      const message = request2.body?.message;
+      const ticketId = request4.params?.id;
+      const message = request4.body?.message;
       if (!ticketId || !message) {
-        return this.errorResponse("bad_request", "ticket_id_and_message_required", HTTP_STATUS.BAD_REQUEST, ctx);
+        return this.errorResponse("bad_request", "ticket_id_and_message_required", HTTP_STATUS2.BAD_REQUEST, ctx);
       }
       const isStaffOrAdmin = user.role === "ADMIN" || user.role === "MANAGER" || user.role === "EMPLOYEE";
       const ticketCheck = await this.supportRepo.findTicketById(ticketId, isStaffOrAdmin ? void 0 : user.id);
       if (!ticketCheck) {
-        return this.errorResponse("not_found", "ticket_not_found", HTTP_STATUS.NOT_FOUND, ctx);
+        return this.errorResponse("not_found", "ticket_not_found", HTTP_STATUS2.NOT_FOUND, ctx);
       }
       const updated = await this.supportRepo.replyToTicket({
         ticketId,
@@ -8015,51 +9172,51 @@ var SupportController = class {
         senderRole: user.role ?? "CUSTOMER",
         message: String(message)
       });
-      return success(updated, ctx);
+      return success2(updated, ctx);
     } catch (error) {
       return this.mapError(error, ctx);
     }
   }
-  async updateTicketStatus(request2) {
-    const ctx = this.createApiContext(request2);
+  async updateTicketStatus(request4) {
+    const ctx = this.createApiContext(request4);
     try {
-      const user = request2.user;
+      const user = request4.user;
       if (!user || !user.id) {
-        return this.errorResponse("unauthorized", "authentication_required", HTTP_STATUS.UNAUTHORIZED, ctx);
+        return this.errorResponse("unauthorized", "authentication_required", HTTP_STATUS2.UNAUTHORIZED, ctx);
       }
-      const ticketId = request2.params?.id;
-      const status = request2.body?.status;
+      const ticketId = request4.params?.id;
+      const status = request4.body?.status;
       if (!ticketId || !status) {
-        return this.errorResponse("bad_request", "ticket_id_and_status_required", HTTP_STATUS.BAD_REQUEST, ctx);
+        return this.errorResponse("bad_request", "ticket_id_and_status_required", HTTP_STATUS2.BAD_REQUEST, ctx);
       }
       const updated = await this.supportRepo.updateTicketStatus(ticketId, status);
-      return success(updated, ctx);
+      return success2(updated, ctx);
     } catch (error) {
       return this.mapError(error, ctx);
     }
   }
-  createApiContext(request2) {
+  createApiContext(request4) {
     return {
-      timestamp: request2.context?.metadata?.timestamp ?? (/* @__PURE__ */ new Date()).toISOString(),
-      requestId: request2.context?.metadata?.requestId,
-      version: request2.context?.metadata?.version ?? "v1",
-      locale: request2.context?.metadata?.locale
+      timestamp: request4.context?.metadata?.timestamp ?? (/* @__PURE__ */ new Date()).toISOString(),
+      requestId: request4.context?.metadata?.requestId,
+      version: request4.context?.metadata?.version ?? "v1",
+      locale: request4.context?.metadata?.locale
     };
   }
   mapError(error, ctx) {
     if (error instanceof NotFoundException) {
-      return this.errorResponse("not_found", error.message || "not_found", HTTP_STATUS.NOT_FOUND, ctx);
+      return this.errorResponse("not_found", error.message || "not_found", HTTP_STATUS2.NOT_FOUND, ctx);
     }
     if (error instanceof ValidationException) {
-      return this.errorResponse("bad_request", error.message || "bad_request", HTTP_STATUS.BAD_REQUEST, ctx);
+      return this.errorResponse("bad_request", error.message || "bad_request", HTTP_STATUS2.BAD_REQUEST, ctx);
     }
     if (error instanceof UnauthorizedError) {
-      return this.errorResponse("unauthorized", error.message || "unauthorized", HTTP_STATUS.UNAUTHORIZED, ctx);
+      return this.errorResponse("unauthorized", error.message || "unauthorized", HTTP_STATUS2.UNAUTHORIZED, ctx);
     }
     return this.errorResponse(
       "internal_error",
       error instanceof Error ? error.message : "internal_error",
-      HTTP_STATUS.INTERNAL_SERVER_ERROR,
+      HTTP_STATUS2.INTERNAL_SERVER_ERROR,
       ctx
     );
   }
@@ -8392,108 +9549,108 @@ var ReportsRepository = class extends base_repository_default {
 // ../backend/src/modules/reports/controller.ts
 var ReportsController = class {
   reportsRepo = new ReportsRepository();
-  async getDashboardKpis(request2) {
-    const ctx = this.createApiContext(request2);
+  async getDashboardKpis(request4) {
+    const ctx = this.createApiContext(request4);
     try {
-      const user = request2.user;
+      const user = request4.user;
       if (!user || !user.id) {
-        return this.errorResponse("unauthorized", "authentication_required", HTTP_STATUS.UNAUTHORIZED, ctx);
+        return this.errorResponse("unauthorized", "authentication_required", HTTP_STATUS2.UNAUTHORIZED, ctx);
       }
       const kpis = await this.reportsRepo.getDashboardKpis();
-      return success(kpis, ctx);
+      return success2(kpis, ctx);
     } catch (error) {
       return this.mapError(error, ctx);
     }
   }
-  async getSalesReport(request2) {
-    const ctx = this.createApiContext(request2);
+  async getSalesReport(request4) {
+    const ctx = this.createApiContext(request4);
     try {
-      const user = request2.user;
+      const user = request4.user;
       if (!user || !user.id) {
-        return this.errorResponse("unauthorized", "authentication_required", HTTP_STATUS.UNAUTHORIZED, ctx);
+        return this.errorResponse("unauthorized", "authentication_required", HTTP_STATUS2.UNAUTHORIZED, ctx);
       }
-      const { startDate, endDate, status } = request2.query || {};
+      const { startDate, endDate, status } = request4.query || {};
       const report = await this.reportsRepo.getSalesReport(
         startDate ? String(startDate) : void 0,
         endDate ? String(endDate) : void 0,
         status ? String(status) : void 0
       );
-      return success(report, ctx);
+      return success2(report, ctx);
     } catch (error) {
       return this.mapError(error, ctx);
     }
   }
-  async getProductAnalytics(request2) {
-    const ctx = this.createApiContext(request2);
+  async getProductAnalytics(request4) {
+    const ctx = this.createApiContext(request4);
     try {
-      const user = request2.user;
+      const user = request4.user;
       if (!user || !user.id) {
-        return this.errorResponse("unauthorized", "authentication_required", HTTP_STATUS.UNAUTHORIZED, ctx);
+        return this.errorResponse("unauthorized", "authentication_required", HTTP_STATUS2.UNAUTHORIZED, ctx);
       }
       const analytics = await this.reportsRepo.getProductAnalytics();
-      return success(analytics, ctx);
+      return success2(analytics, ctx);
     } catch (error) {
       return this.mapError(error, ctx);
     }
   }
-  async getInventoryAnalytics(request2) {
-    const ctx = this.createApiContext(request2);
+  async getInventoryAnalytics(request4) {
+    const ctx = this.createApiContext(request4);
     try {
-      const user = request2.user;
+      const user = request4.user;
       if (!user || !user.id) {
-        return this.errorResponse("unauthorized", "authentication_required", HTTP_STATUS.UNAUTHORIZED, ctx);
+        return this.errorResponse("unauthorized", "authentication_required", HTTP_STATUS2.UNAUTHORIZED, ctx);
       }
       const analytics = await this.reportsRepo.getInventoryAnalytics();
-      return success(analytics, ctx);
+      return success2(analytics, ctx);
     } catch (error) {
       return this.mapError(error, ctx);
     }
   }
-  async getCustomerAnalytics(request2) {
-    const ctx = this.createApiContext(request2);
+  async getCustomerAnalytics(request4) {
+    const ctx = this.createApiContext(request4);
     try {
-      const user = request2.user;
+      const user = request4.user;
       if (!user || !user.id) {
-        return this.errorResponse("unauthorized", "authentication_required", HTTP_STATUS.UNAUTHORIZED, ctx);
+        return this.errorResponse("unauthorized", "authentication_required", HTTP_STATUS2.UNAUTHORIZED, ctx);
       }
       const analytics = await this.reportsRepo.getCustomerAnalytics();
-      return success(analytics, ctx);
+      return success2(analytics, ctx);
     } catch (error) {
       return this.mapError(error, ctx);
     }
   }
-  async getPaymentAnalytics(request2) {
-    const ctx = this.createApiContext(request2);
+  async getPaymentAnalytics(request4) {
+    const ctx = this.createApiContext(request4);
     try {
-      const user = request2.user;
+      const user = request4.user;
       if (!user || !user.id) {
-        return this.errorResponse("unauthorized", "authentication_required", HTTP_STATUS.UNAUTHORIZED, ctx);
+        return this.errorResponse("unauthorized", "authentication_required", HTTP_STATUS2.UNAUTHORIZED, ctx);
       }
       const analytics = await this.reportsRepo.getPaymentAnalytics();
-      return success(analytics, ctx);
+      return success2(analytics, ctx);
     } catch (error) {
       return this.mapError(error, ctx);
     }
   }
-  createApiContext(request2) {
+  createApiContext(request4) {
     return {
-      timestamp: request2.context?.metadata?.timestamp ?? (/* @__PURE__ */ new Date()).toISOString(),
-      requestId: request2.context?.metadata?.requestId,
-      version: request2.context?.metadata?.version ?? "v1",
-      locale: request2.context?.metadata?.locale
+      timestamp: request4.context?.metadata?.timestamp ?? (/* @__PURE__ */ new Date()).toISOString(),
+      requestId: request4.context?.metadata?.requestId,
+      version: request4.context?.metadata?.version ?? "v1",
+      locale: request4.context?.metadata?.locale
     };
   }
   mapError(error, ctx) {
     if (error instanceof ValidationException) {
-      return this.errorResponse("bad_request", error.message || "bad_request", HTTP_STATUS.BAD_REQUEST, ctx);
+      return this.errorResponse("bad_request", error.message || "bad_request", HTTP_STATUS2.BAD_REQUEST, ctx);
     }
     if (error instanceof UnauthorizedError) {
-      return this.errorResponse("unauthorized", error.message || "unauthorized", HTTP_STATUS.UNAUTHORIZED, ctx);
+      return this.errorResponse("unauthorized", error.message || "unauthorized", HTTP_STATUS2.UNAUTHORIZED, ctx);
     }
     return this.errorResponse(
       "internal_error",
       error instanceof Error ? error.message : "internal_error",
-      HTTP_STATUS.INTERNAL_SERVER_ERROR,
+      HTTP_STATUS2.INTERNAL_SERVER_ERROR,
       ctx
     );
   }
@@ -8638,14 +9795,14 @@ function createReportsRoutes(controller = new ReportsController()) {
 init_errors();
 var AuditController = class {
   auditRepo = new AuditRepository();
-  async listAuditLogs(request2) {
-    const ctx = this.createApiContext(request2);
+  async listAuditLogs(request4) {
+    const ctx = this.createApiContext(request4);
     try {
-      const user = request2.user;
+      const user = request4.user;
       if (!user || !user.id) {
-        return this.errorResponse("unauthorized", "authentication_required", HTTP_STATUS.UNAUTHORIZED, ctx);
+        return this.errorResponse("unauthorized", "authentication_required", HTTP_STATUS2.UNAUTHORIZED, ctx);
       }
-      const { resource, action, actorId, page, limit } = request2.query || {};
+      const { resource, action, actorId, page, limit } = request4.query || {};
       const result = await this.auditRepo.findAuditLogs({
         resource: resource ? String(resource) : void 0,
         action: action ? String(action) : void 0,
@@ -8653,30 +9810,30 @@ var AuditController = class {
         page: page ? Number(page) : 1,
         limit: limit ? Number(limit) : 20
       });
-      return success(result, ctx);
+      return success2(result, ctx);
     } catch (error) {
       return this.mapError(error, ctx);
     }
   }
-  createApiContext(request2) {
+  createApiContext(request4) {
     return {
-      timestamp: request2.context?.metadata?.timestamp ?? (/* @__PURE__ */ new Date()).toISOString(),
-      requestId: request2.context?.metadata?.requestId,
-      version: request2.context?.metadata?.version ?? "v1",
-      locale: request2.context?.metadata?.locale
+      timestamp: request4.context?.metadata?.timestamp ?? (/* @__PURE__ */ new Date()).toISOString(),
+      requestId: request4.context?.metadata?.requestId,
+      version: request4.context?.metadata?.version ?? "v1",
+      locale: request4.context?.metadata?.locale
     };
   }
   mapError(error, ctx) {
     if (error instanceof ValidationException) {
-      return this.errorResponse("bad_request", error.message || "bad_request", HTTP_STATUS.BAD_REQUEST, ctx);
+      return this.errorResponse("bad_request", error.message || "bad_request", HTTP_STATUS2.BAD_REQUEST, ctx);
     }
     if (error instanceof UnauthorizedError) {
-      return this.errorResponse("unauthorized", error.message || "unauthorized", HTTP_STATUS.UNAUTHORIZED, ctx);
+      return this.errorResponse("unauthorized", error.message || "unauthorized", HTTP_STATUS2.UNAUTHORIZED, ctx);
     }
     return this.errorResponse(
       "internal_error",
       error instanceof Error ? error.message : "internal_error",
-      HTTP_STATUS.INTERNAL_SERVER_ERROR,
+      HTTP_STATUS2.INTERNAL_SERVER_ERROR,
       ctx
     );
   }
@@ -8737,10 +9894,293 @@ function createAuditRoutes(controller = new AuditController()) {
   return builder.build();
 }
 
+// ../backend/src/modules/education/controller.ts
+init_prisma_service();
+import { randomUUID } from "node:crypto";
+var EducationController = class {
+  prisma = PrismaService.getClient();
+  context(request4) {
+    return {
+      timestamp: request4.context?.metadata?.timestamp ?? (/* @__PURE__ */ new Date()).toISOString(),
+      requestId: request4.context?.metadata?.requestId,
+      version: request4.context?.metadata?.version ?? "v1",
+      locale: request4.context?.metadata?.locale
+    };
+  }
+  async listArticles(request4) {
+    const ctx = this.context(request4);
+    try {
+      const page = Math.max(1, Number(this.value(request4.query?.page) ?? 1) || 1);
+      const limit = Math.min(50, Math.max(1, Number(this.value(request4.query?.limit) ?? 12) || 12));
+      const [data, total] = await Promise.all([
+        this.prisma.educationalArticle.findMany({
+          where: { status: "PUBLISHED", deletedAt: null },
+          orderBy: [{ publishedAt: "desc" }, { createdAt: "desc" }],
+          skip: (page - 1) * limit,
+          take: limit,
+          select: { id: true, slug: true, title: true, summary: true, articleType: true, coverImageUrl: true, coverImageSourceUrl: true, coverImageLicense: true, sourceUrls: true, publishedAt: true, family: { select: { familyKey: true, name: true } } }
+        }),
+        this.prisma.educationalArticle.count({ where: { status: "PUBLISHED", deletedAt: null } })
+      ]);
+      return paginated2(data, page, limit, total, ctx);
+    } catch {
+      return internalError("education_articles_unavailable", ctx);
+    }
+  }
+  async getArticle(request4) {
+    const ctx = this.context(request4);
+    const slug = request4.params?.slug;
+    if (!slug) return validationError2("article_slug_required", ctx);
+    try {
+      const article = await this.prisma.educationalArticle.findFirst({
+        where: { slug, status: "PUBLISHED", deletedAt: null },
+        include: { family: true, productLinks: { include: { product: { select: { id: true, name: true, slug: true, produceKey: true } } } } }
+      });
+      return article ? success2(article, ctx) : notFound2("education_article_not_found", ctx);
+    } catch {
+      return internalError("education_article_unavailable", ctx);
+    }
+  }
+  async listAdminFamilies(request4) {
+    const ctx = this.context(request4);
+    try {
+      const rows = await this.prisma.productFamily.findMany({
+        where: { deletedAt: null },
+        orderBy: { name: "asc" },
+        include: { _count: { select: { products: true, articles: true } } }
+      });
+      return success2(rows, ctx);
+    } catch {
+      return internalError("education_families_unavailable", ctx);
+    }
+  }
+  async createAdminFamily(request4) {
+    const ctx = this.context(request4);
+    const body = request4.body ?? {};
+    const familyKey = this.text(body.familyKey, 80).toLowerCase();
+    const name = this.text(body.name, 120);
+    if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(familyKey)) return validationError2("family_key_invalid", ctx);
+    if (!name) return validationError2("family_name_required", ctx);
+    try {
+      const row = await this.prisma.productFamily.create({
+        data: { id: randomUUID(), familyKey, name, description: this.optionalText(body.description, 1e3) }
+      });
+      return created2(row, ctx);
+    } catch {
+      return internalError("education_family_create_failed", ctx);
+    }
+  }
+  async updateAdminFamily(request4) {
+    const ctx = this.context(request4);
+    const id = request4.params?.id;
+    const body = request4.body ?? {};
+    if (!id) return validationError2("family_id_required", ctx);
+    const familyKey = this.text(body.familyKey, 80).toLowerCase();
+    const name = this.text(body.name, 120);
+    if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(familyKey)) return validationError2("family_key_invalid", ctx);
+    if (!name) return validationError2("family_name_required", ctx);
+    try {
+      const row = await this.prisma.productFamily.update({
+        where: { id },
+        data: { familyKey, name, description: this.optionalText(body.description, 1e3) }
+      });
+      return success2(row, ctx);
+    } catch {
+      return internalError("education_family_update_failed", ctx);
+    }
+  }
+  async deleteAdminFamily(request4) {
+    const ctx = this.context(request4);
+    const id = request4.params?.id;
+    if (!id) return validationError2("family_id_required", ctx);
+    try {
+      await this.prisma.productFamily.update({ where: { id }, data: { deletedAt: /* @__PURE__ */ new Date() } });
+      return success2({ id, deleted: true }, ctx);
+    } catch {
+      return internalError("education_family_delete_failed", ctx);
+    }
+  }
+  async listAdminArticles(request4) {
+    const ctx = this.context(request4);
+    const search = this.optionalText(this.value(request4.query?.search), 120);
+    const status = this.optionalText(this.value(request4.query?.status), 30);
+    try {
+      const rows = await this.prisma.educationalArticle.findMany({
+        where: {
+          deletedAt: null,
+          ...status ? { status } : {},
+          ...search ? { OR: [{ title: { contains: search, mode: "insensitive" } }, { slug: { contains: search, mode: "insensitive" } }] } : {}
+        },
+        orderBy: { updatedAt: "desc" },
+        take: 100,
+        include: { family: { select: { id: true, familyKey: true, name: true } }, productLinks: { select: { productId: true, product: { select: { id: true, name: true, produceKey: true } } } } }
+      });
+      return success2(rows, ctx);
+    } catch {
+      return internalError("admin_education_articles_unavailable", ctx);
+    }
+  }
+  async createAdminArticle(request4) {
+    const ctx = this.context(request4);
+    const body = request4.body ?? {};
+    const input = this.articleInput(body);
+    if (!input.slug || !input.title || !input.body) return validationError2("education_article_fields_required", ctx);
+    try {
+      const row = await this.prisma.$transaction(async (tx) => {
+        const article = await tx.educationalArticle.create({ data: { id: randomUUID(), ...input.data } });
+        if (input.productIds.length) await tx.articleProduct.createMany({ data: input.productIds.map((productId) => ({ id: randomUUID(), articleId: article.id, productId })) });
+        return tx.educationalArticle.findUnique({ where: { id: article.id }, include: { family: true, productLinks: { include: { product: true } } } });
+      });
+      return created2(row, ctx);
+    } catch {
+      return internalError("education_article_create_failed", ctx);
+    }
+  }
+  async updateAdminArticle(request4) {
+    const ctx = this.context(request4);
+    const id = request4.params?.id;
+    const body = request4.body ?? {};
+    const input = this.articleInput(body);
+    if (!id) return validationError2("education_article_id_required", ctx);
+    if (!input.slug || !input.title || !input.body) return validationError2("education_article_fields_required", ctx);
+    try {
+      const row = await this.prisma.$transaction(async (tx) => {
+        const article = await tx.educationalArticle.update({ where: { id }, data: input.data });
+        await tx.articleProduct.deleteMany({ where: { articleId: id } });
+        if (input.productIds.length) await tx.articleProduct.createMany({ data: input.productIds.map((productId) => ({ id: randomUUID(), articleId: id, productId })) });
+        return tx.educationalArticle.findUnique({ where: { id: article.id }, include: { family: true, productLinks: { include: { product: true } } } });
+      });
+      return success2(row, ctx);
+    } catch {
+      return internalError("education_article_update_failed", ctx);
+    }
+  }
+  async deleteAdminArticle(request4) {
+    const ctx = this.context(request4);
+    const id = request4.params?.id;
+    if (!id) return validationError2("education_article_id_required", ctx);
+    try {
+      await this.prisma.educationalArticle.update({ where: { id }, data: { deletedAt: /* @__PURE__ */ new Date(), status: "ARCHIVED" } });
+      return success2({ id, deleted: true }, ctx);
+    } catch {
+      return internalError("education_article_delete_failed", ctx);
+    }
+  }
+  async createConsultation(request4) {
+    const ctx = this.context(request4);
+    const body = request4.body ?? {};
+    const contactName = typeof body.contactName === "string" ? body.contactName.trim() : "";
+    const goal = typeof body.goal === "string" ? body.goal.trim() : "";
+    const consent = body.consent === true;
+    if (!contactName || contactName.length > 120) return validationError2("consultation_name_invalid", ctx);
+    if (!goal || goal.length > 1e3) return validationError2("consultation_goal_invalid", ctx);
+    if (!consent) return validationError2("consultation_consent_required", ctx);
+    try {
+      const record = await this.prisma.consultationRequest.create({
+        data: {
+          id: randomUUID(),
+          contactName,
+          contactPhone: typeof body.contactPhone === "string" ? body.contactPhone.trim().slice(0, 40) : void 0,
+          contactEmail: typeof body.contactEmail === "string" ? body.contactEmail.trim().slice(0, 180) : void 0,
+          goal,
+          dietaryRestrictions: typeof body.dietaryRestrictions === "string" ? body.dietaryRestrictions.trim().slice(0, 1e3) : void 0,
+          preferredContactTime: typeof body.preferredContactTime === "string" ? body.preferredContactTime.trim().slice(0, 100) : void 0,
+          consent: true,
+          status: "NEW"
+        },
+        select: { id: true, status: true, createdAt: true }
+      });
+      return created2(record, ctx);
+    } catch {
+      return internalError("consultation_create_failed", ctx);
+    }
+  }
+  async listConsultations(request4) {
+    const ctx = this.context(request4);
+    try {
+      const rows = await this.prisma.consultationRequest.findMany({ orderBy: { createdAt: "desc" }, take: 100 });
+      return success2(rows, ctx);
+    } catch {
+      return internalError("consultations_unavailable", ctx);
+    }
+  }
+  articleInput(body) {
+    const status = ["DRAFT", "PUBLISHED", "ARCHIVED"].includes(this.text(body.status, 20)) ? this.text(body.status, 20) : "DRAFT";
+    const productIds = Array.isArray(body.productIds) ? body.productIds.filter((value) => typeof value === "string" && value.length > 0).slice(0, 50) : [];
+    const sourceUrls = Array.isArray(body.sourceUrls) ? body.sourceUrls.filter((value) => typeof value === "string" && /^https?:\/\//i.test(value.trim())).map((value) => value.trim()).slice(0, 20) : [];
+    return {
+      slug: this.text(body.slug, 160).toLowerCase(),
+      title: this.text(body.title, 180),
+      body: this.text(body.body, 2e4),
+      productIds,
+      data: {
+        slug: this.text(body.slug, 160).toLowerCase(),
+        title: this.text(body.title, 180),
+        summary: this.optionalText(body.summary, 500),
+        body: this.text(body.body, 2e4),
+        articleType: this.optionalText(body.articleType, 40) ?? "BENEFITS",
+        status,
+        coverImageUrl: this.optionalUrl(body.coverImageUrl),
+        coverImageSourceUrl: this.optionalUrl(body.coverImageSourceUrl),
+        coverImageLicense: this.optionalText(body.coverImageLicense, 120),
+        sourceUrls,
+        familyId: this.optionalText(body.familyId, 80),
+        publishedAt: status === "PUBLISHED" ? /* @__PURE__ */ new Date() : null
+      }
+    };
+  }
+  text(value, max) {
+    return typeof value === "string" ? value.trim().slice(0, max) : "";
+  }
+  optionalText(value, max) {
+    const text = this.text(value, max);
+    return text || void 0;
+  }
+  optionalUrl(value) {
+    const text = this.optionalText(value, 1e3);
+    return text && /^https?:\/\//i.test(text) ? text : void 0;
+  }
+  value(value) {
+    return Array.isArray(value) ? value[0] : value;
+  }
+};
+var controller_default9 = EducationController;
+
+// ../backend/src/modules/education/routes.ts
+function toControllerRequest15(ctx) {
+  return { body: ctx.body, headers: ctx.headers, query: ctx.query, params: ctx.params, context: { metadata: { timestamp: (/* @__PURE__ */ new Date()).toISOString(), version: "v1" } } };
+}
+function adapt15(handler2) {
+  return (context) => handler2(context);
+}
+function publicOptions() {
+  return { mode: "public", publicRoute: true, privateRoute: false, authenticationRequired: false, authorizationRequired: false, requiredPermissions: [], tags: ["education"], middleware: [] };
+}
+function privateOptions(permission) {
+  return { mode: "private", publicRoute: false, privateRoute: true, authenticationRequired: true, authorizationRequired: true, requiredPermissions: [permission], tags: ["education"], middleware: [] };
+}
+function createEducationRoutes(controller = new controller_default9()) {
+  const builder = new RouterBuilder();
+  const register = (definition) => builder.register({ ...definition, version: "v1", handler: adapt15(definition.handler) });
+  register({ name: "education-articles-list", method: "GET", path: "/education/articles", handler: (ctx) => controller.listArticles(toControllerRequest15(ctx)), options: publicOptions() });
+  register({ name: "education-article-get", method: "GET", path: "/education/articles/:slug", handler: (ctx) => controller.getArticle(toControllerRequest15(ctx)), options: publicOptions() });
+  register({ name: "education-consultation-create", method: "POST", path: "/education/consultations", handler: (ctx) => controller.createConsultation(toControllerRequest15(ctx)), options: publicOptions() });
+  register({ name: "education-families-list", method: "GET", path: "/admin/education/families", handler: (ctx) => controller.listAdminFamilies(toControllerRequest15(ctx)), options: privateOptions("products:read") });
+  register({ name: "education-family-create", method: "POST", path: "/admin/education/families", handler: (ctx) => controller.createAdminFamily(toControllerRequest15(ctx)), options: privateOptions("products:update") });
+  register({ name: "education-family-update", method: "PUT", path: "/admin/education/families/:id", handler: (ctx) => controller.updateAdminFamily(toControllerRequest15(ctx)), options: privateOptions("products:update") });
+  register({ name: "education-family-delete", method: "DELETE", path: "/admin/education/families/:id", handler: (ctx) => controller.deleteAdminFamily(toControllerRequest15(ctx)), options: privateOptions("products:update") });
+  register({ name: "education-articles-admin-list", method: "GET", path: "/admin/education/articles", handler: (ctx) => controller.listAdminArticles(toControllerRequest15(ctx)), options: privateOptions("products:read") });
+  register({ name: "education-article-create", method: "POST", path: "/admin/education/articles", handler: (ctx) => controller.createAdminArticle(toControllerRequest15(ctx)), options: privateOptions("products:update") });
+  register({ name: "education-article-update", method: "PUT", path: "/admin/education/articles/:id", handler: (ctx) => controller.updateAdminArticle(toControllerRequest15(ctx)), options: privateOptions("products:update") });
+  register({ name: "education-article-delete", method: "DELETE", path: "/admin/education/articles/:id", handler: (ctx) => controller.deleteAdminArticle(toControllerRequest15(ctx)), options: privateOptions("products:update") });
+  register({ name: "education-consultations-list", method: "GET", path: "/admin/education/consultations", handler: (ctx) => controller.listConsultations(toControllerRequest15(ctx)), options: privateOptions("customers:read") });
+  return builder.build();
+}
+
 // ../backend/src/system/server.ts
 init_errors();
-async function readBody(request2) {
-  const reqAny = request2;
+async function readBody(request4) {
+  const reqAny = request4;
   if (reqAny.body !== void 0 && reqAny.body !== null) {
     if (typeof reqAny.body === "object") return reqAny.body;
     if (typeof reqAny.body === "string") {
@@ -8753,7 +10193,7 @@ async function readBody(request2) {
   }
   const chunks = [];
   try {
-    for await (const chunk of request2) {
+    for await (const chunk of request4) {
       chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
     }
   } catch {
@@ -8776,13 +10216,13 @@ function createSystemRequestHandler() {
   const resolver = new RouteResolver();
   const protection = new RouteProtectionFactory();
   const authService = AuthController.createAuthService();
-  const routes = [...createSystemRoutes(), ...createAuthRoutes(), ...createUserRoutes(), ...createRoleRoutes(), ...createPermissionRoutes(), ...createProductRoutes(), ...createCustomerRoutes(), ...createCartRoutes(), ...createOrderRoutes(), ...createInventoryRoutes(), ...createPaymentRoutes(), ...createSettingsRoutes(), ...createNotificationRoutes(), ...createSupportRoutes(), ...createReportsRoutes(), ...createAuditRoutes()];
+  const routes = [...createSystemRoutes(), ...createAuthRoutes(), ...createUserRoutes(), ...createRoleRoutes(), ...createPermissionRoutes(), ...createProductRoutes(), ...createCustomerRoutes(), ...createCartRoutes(), ...createOrderRoutes(), ...createInventoryRoutes(), ...createDeliveryRoutes(), ...createSupplierAdminRoutes(), ...createPaymentRoutes(), ...createSettingsRoutes(), ...createNotificationRoutes(), ...createSupportRoutes(), ...createReportsRoutes(), ...createAuditRoutes(), ...createEducationRoutes()];
   for (const route of routes) {
     registry.register(route);
   }
-  return async (request2, response) => {
+  return async (request4, response) => {
     try {
-      const origin = request2.headers.origin || "*";
+      const origin = request4.headers.origin || "*";
       response.setHeader("Access-Control-Allow-Origin", origin);
       response.setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, PATCH, OPTIONS");
       response.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Requested-With");
@@ -8792,18 +10232,18 @@ function createSystemRequestHandler() {
       response.setHeader("X-XSS-Protection", "1; mode=block");
       response.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
       response.setHeader("Strict-Transport-Security", "max-age=31536000; includeSubDomains");
-      if (request2.method === "OPTIONS") {
+      if (request4.method === "OPTIONS") {
         response.writeHead(204);
         response.end();
         return;
       }
-      const url = new URL(request2.url ?? "/", `http://${request2.headers.host ?? "localhost"}`);
+      const url = new URL(request4.url ?? "/", `http://${request4.headers.host ?? "localhost"}`);
       let targetPath = url.searchParams.get("path") || url.pathname;
       if (targetPath.startsWith("/api/")) {
         targetPath = targetPath.substring(4);
       }
       const resolved = resolver.resolve(registry, {
-        method: request2.method ?? "GET",
+        method: request4.method ?? "GET",
         path: targetPath,
         version: "v1"
       });
@@ -8813,8 +10253,8 @@ function createSystemRequestHandler() {
         return;
       }
       const route = resolved;
-      const body = await readBody(request2);
-      const headers = request2.headers;
+      const body = await readBody(request4);
+      const headers = request4.headers;
       const query = {};
       for (const [key, value] of url.searchParams.entries()) {
         if (key !== "path") {
@@ -8828,7 +10268,7 @@ function createSystemRequestHandler() {
         const authorizationHeader = Array.isArray(authorization) ? authorization[0] : authorization;
         const tokenMatch = authorizationHeader?.match(/^Bearer\s+(.+)$/i);
         if (!tokenMatch) {
-          const result = unauthorized("authentication_required", {
+          const result = unauthorized2("authentication_required", {
             timestamp: (/* @__PURE__ */ new Date()).toISOString(),
             version: "v1"
           });
@@ -8839,7 +10279,7 @@ function createSystemRequestHandler() {
         const tokenPayload = await validateAccessToken(tokenMatch[1]);
         const user = await authService.getCurrentUser(String(tokenPayload.sub));
         if (!user) {
-          const result = unauthorized("authentication_required", {
+          const result = unauthorized2("authentication_required", {
             timestamp: (/* @__PURE__ */ new Date()).toISOString(),
             version: "v1"
           });
@@ -8925,3 +10365,12 @@ async function apiHandler(req, res) {
 export {
   apiHandler as default
 };
+/*! Bundled license information:
+
+hash-wasm/dist/index.esm.js:
+  (*!
+   * hash-wasm (https://www.npmjs.com/package/hash-wasm)
+   * (c) Dani Biro
+   * @license MIT
+   *)
+*/

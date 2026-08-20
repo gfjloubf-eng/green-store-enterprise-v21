@@ -69,6 +69,9 @@ import OrdersListPage from '@/features/orders/pages/OrdersListPage';
 import OrderDetailsPage from '@/features/orders/pages/OrderDetailsPage';
 
 import SupportCenterPage from '@/features/support/pages/SupportCenterPage';
+import EducationHubPage from '@/features/education/pages/EducationHubPage';
+import EducationArticlePage from '@/features/education/pages/EducationArticlePage';
+import ConsultationPage from '@/features/education/pages/ConsultationPage';
 
 export default function App() {
   return (
@@ -98,6 +101,9 @@ export default function App() {
           <Route path="contact" element={<ContactPage />} />
           <Route path="help" element={<HelpPage />} />
           <Route path="support" element={<SupportCenterPage />} />
+          <Route path="education" element={<EducationHubPage />} />
+          <Route path="education/:slug" element={<EducationArticlePage />} />
+          <Route path="consultation" element={<ConsultationPage />} />
 
           {/* Customer / Authenticated Protected Routes */}
           <Route element={<ProtectedRoute />}>
