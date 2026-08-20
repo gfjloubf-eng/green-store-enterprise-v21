@@ -13,7 +13,7 @@
     "@prisma/client": "^7.9.1",
     "@react-three/drei": "^10.7.7",
     "@react-three/fiber": "^9.5.0",
-    "argon2": "^0.30.0",
+    "hash-wasm": "^4.12.0",
     "framer-motion": "^12.38.0",
     "lucide-react": "^1.7.0",
     "pg": "^8.11.5",
