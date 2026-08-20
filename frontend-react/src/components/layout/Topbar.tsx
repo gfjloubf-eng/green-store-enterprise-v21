@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Bell, Menu, X, LogOut, ShoppingCart, LogIn, Settings, Sun, Moon } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -8,6 +8,13 @@ import { BreadcrumbEngine } from './BreadcrumbEngine';
 import { LogoPlaceholder } from '@/components/ui/LogoPlaceholder';
 import { getCart } from '@/services/cartClient';
 import { useTheme } from '@/hooks/useTheme';
+import {
+  getUserNotifications,
+  markAllNotificationsAsRead,
+  markNotificationAsRead,
+  type NotificationItem,
+} from '@/services/notificationClient';
+import { isManagementRole } from '@/utils/authRoles';
 
 /* ─── Props ────────────────────────────────────────────────── */
 
@@ -31,6 +38,15 @@ export function Topbar({ onMenuClick, mobileOpen = false, storefront = false, cl
   const { user, logout } = useAuth();
   const { isDark, toggle: toggleTheme } = useTheme();
   const [cartCount, setCartCount] = useState(0);
+  const [notifications, setNotifications] = useState<NotificationItem[]>([]);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const notificationsRef = useRef<HTMLDivElement>(null);
+  const managementUser = Boolean(
+    user &&
+      !storefront &&
+      (isManagementRole(user.role) || (Array.isArray(user.roles) && user.roles.some(isManagementRole))),
+  );
 
   useEffect(() => {
     getCart().then((c) => {
@@ -42,6 +58,86 @@ export function Topbar({ onMenuClick, mobileOpen = false, storefront = false, cl
       }
     }).catch(() => setCartCount(0));
   }, [location.pathname]);
+
+  useEffect(() => {
+    if (!managementUser) return;
+
+    let active = true;
+    const loadNotifications = async () => {
+      try {
+        const result = await getUserNotifications();
+        if (active) {
+          setNotifications(result?.items ?? []);
+          setUnreadCount(result?.unreadCount ?? 0);
+        }
+      } catch {
+        // Notification failures must not affect the rest of the admin shell.
+      }
+    };
+
+    void loadNotifications();
+    const intervalId = window.setInterval(() => void loadNotifications(), 30_000);
+    return () => {
+      active = false;
+      window.clearInterval(intervalId);
+    };
+  }, [managementUser, location.pathname]);
+
+  useEffect(() => {
+    if (!notificationsOpen) return;
+    const handlePointerDown = (event: MouseEvent) => {
+      if (notificationsRef.current && !notificationsRef.current.contains(event.target as Node)) {
+        setNotificationsOpen(false);
+      }
+    };
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setNotificationsOpen(false);
+    };
+    document.addEventListener('mousedown', handlePointerDown);
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('mousedown', handlePointerDown);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [notificationsOpen]);
+
+  const handleMarkAllNotificationsAsRead = async () => {
+    if (unreadCount === 0) return;
+    try {
+      await markAllNotificationsAsRead();
+      setNotifications((current) => current.map((item) => ({ ...item, read: true })));
+      setUnreadCount(0);
+    } catch {
+      // Keep the current state if the request fails; the next poll will reconcile it.
+    }
+  };
+
+  const handleNotificationClick = async (notification: NotificationItem) => {
+    if (!notification.read) {
+      try {
+        await markNotificationAsRead(notification.id);
+        setNotifications((current) =>
+          current.map((item) => (item.id === notification.id ? { ...item, read: true } : item)),
+        );
+        setUnreadCount((count) => Math.max(0, count - 1));
+      } catch {
+        // Navigation remains available even if marking as read fails.
+      }
+    }
+
+    let payload: Record<string, unknown> = {};
+    if (notification.payload) {
+      try {
+        payload = JSON.parse(notification.payload) as Record<string, unknown>;
+      } catch {
+        payload = {};
+      }
+    }
+
+    setNotificationsOpen(false);
+    if (payload.orderId) navigate(`/admin/orders?orderId=${encodeURIComponent(String(payload.orderId))}`);
+    else if (payload.customerId) navigate(`/admin/customers?customerId=${encodeURIComponent(String(payload.customerId))}`);
+  };
 
   const initials = user?.name
     ? user.name
@@ -117,17 +213,79 @@ export function Topbar({ onMenuClick, mobileOpen = false, storefront = false, cl
           )}
         </button>
 
-        {/* Notification placeholder (Desktop) */}
-        {user && (
-          <button
-            type="button"
-            className="hidden lg:flex relative rounded-lg p-2 [color:var(--gs-foreground-secondary)] hover:[background:var(--gs-muted)] hover:[color:var(--gs-foreground)] transition-colors min-h-[40px] min-w-[40px] items-center justify-center"
-            aria-label={t('profile.notifications')}
-            title={t('profile.notifications')}
-          >
-            <Bell className="h-4.5 w-4.5" />
-            <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full [background:var(--gs-primary)]" />
-          </button>
+        {/* Administration notifications */}
+        {managementUser && (
+          <div ref={notificationsRef} className="relative hidden lg:block">
+            <button
+              type="button"
+              onClick={() => setNotificationsOpen((open) => !open)}
+              className="relative flex min-h-[40px] min-w-[40px] items-center justify-center rounded-lg p-2 [color:var(--gs-foreground-secondary)] transition-colors hover:[background:var(--gs-muted)] hover:[color:var(--gs-foreground)]"
+              aria-label={t('profile.notifications') || 'الإشعارات'}
+              title={t('profile.notifications') || 'الإشعارات'}
+              aria-expanded={notificationsOpen}
+              aria-haspopup="menu"
+            >
+              <Bell className="h-4.5 w-4.5" />
+              {unreadCount > 0 && (
+                <span className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-red-600 px-1 text-[10px] font-bold text-white shadow-sm">
+                  {unreadCount > 99 ? '99+' : unreadCount}
+                </span>
+              )}
+            </button>
+
+            {notificationsOpen && (
+              <div
+                role="menu"
+                className="absolute right-0 top-12 z-[70] w-[min(22rem,calc(100vw-1.5rem))] overflow-hidden rounded-2xl border shadow-xl [background:var(--gs-surface)] [border-color:var(--gs-border)]"
+              >
+                <div className="flex items-center justify-between gap-3 border-b px-4 py-3 [border-color:var(--gs-border)]">
+                  <div>
+                    <p className="text-sm font-bold [color:var(--gs-foreground)]">الإشعارات</p>
+                    <p className="text-[11px] [color:var(--gs-foreground-secondary)]">
+                      {unreadCount > 0 ? `${unreadCount} غير مقروءة` : 'لا توجد إشعارات غير مقروءة'}
+                    </p>
+                  </div>
+                  {unreadCount > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => void handleMarkAllNotificationsAsRead()}
+                      className="text-[11px] font-semibold text-emerald-700 hover:underline"
+                    >
+                      تحديد الكل كمقروء
+                    </button>
+                  )}
+                </div>
+
+                <div className="max-h-80 overflow-y-auto">
+                  {notifications.length === 0 ? (
+                    <p className="px-4 py-8 text-center text-xs [color:var(--gs-foreground-secondary)]">لا توجد إشعارات حتى الآن.</p>
+                  ) : (
+                    notifications.map((notification) => (
+                      <button
+                        key={notification.id}
+                        type="button"
+                        role="menuitem"
+                        onClick={() => void handleNotificationClick(notification)}
+                        className={cn(
+                          'flex w-full flex-col gap-1 border-b px-4 py-3 text-right transition-colors hover:[background:var(--gs-muted)] [border-color:var(--gs-border)]',
+                          !notification.read && '[background:var(--gs-primary-soft)]',
+                        )}
+                      >
+                        <span className="flex items-start gap-2 text-xs font-bold [color:var(--gs-foreground)]">
+                          {!notification.read && <span className="mt-1 h-2 w-2 shrink-0 rounded-full bg-emerald-600" />}
+                          <span>{notification.title}</span>
+                        </span>
+                        <span className="text-[11px] leading-5 [color:var(--gs-foreground-secondary)]">{notification.body}</span>
+                        <span className="text-[10px] [color:var(--gs-foreground-secondary)]">
+                          {new Intl.DateTimeFormat('ar-YE', { dateStyle: 'short', timeStyle: 'short' }).format(new Date(notification.createdAt))}
+                        </span>
+                      </button>
+                    ))
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
         )}
 
         {/* Settings remains available to the admin shell; the storefront keeps the header focused. */}
