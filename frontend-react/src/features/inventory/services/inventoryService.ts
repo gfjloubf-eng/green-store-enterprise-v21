@@ -42,7 +42,7 @@ import type { ProductLookup } from '../domain/inventoryTableModel';
 import { toTableModelList } from '../domain/inventoryTableModel';
 import type { InventoryTableModel } from '../domain/inventoryTableModel';
 import { ProductService } from '@/features/products/services/productService';
-import { isAuthorizedStaffOrAdmin, getApiBase, parseJsonSafe } from '@/services/authClient';
+import { isAuthorizedStaffOrAdmin, fetchWithAuth, parseJsonSafe } from '@/services/authClient';
 import { MOCK_INVENTORY, MOCK_MOVEMENTS } from '../mock/inventory';
 import type { MovementType, MovementStatus, InventoryLocation } from '../types/inventory';
 
@@ -183,21 +183,23 @@ export const InventoryService = {
    */
   async syncFromBackendApi(): Promise<InventoryDTO[]> {
     try {
-      const res = await fetch(`${getApiBase()}/inventory`);
+      const res = await fetchWithAuth('/inventory?limit=1000', { method: 'GET' });
       if (res.ok) {
         const payload = await parseJsonSafe(res);
-        const list = Array.isArray(payload) ? payload : (Array.isArray(payload?.data) ? payload.data : null);
-        if (list && list.length > 0) {
-          for (const item of list) {
-            const entity = mapBackendInventoryToEntity(item);
-            if (entity.productId) {
-              store.upsert(entity);
-            }
-          }
+        const list = Array.isArray(payload?.data?.items)
+          ? payload.data.items
+          : Array.isArray(payload?.data)
+            ? payload.data
+            : Array.isArray(payload)
+              ? payload
+              : [];
+        for (const item of list) {
+          const entity = mapBackendInventoryToEntity(item);
+          if (entity.productId) store.upsert(entity);
         }
       }
     } catch {
-      // Safe fallback: Local store remains active
+      // Safe fallback: Local store remains active when the API is unavailable.
     }
     return this.getInventory();
   },

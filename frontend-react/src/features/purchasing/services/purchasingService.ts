@@ -44,7 +44,7 @@ import { toTableModelList, type PurchaseTableModel } from '../domain/purchaseTab
 import { MOCK_PURCHASES, getMockPurchaseSupplierIds } from '../mock/purchases';
 import { SupplierService } from '@/features/suppliers/services/supplierService';
 import { ProductService } from '@/features/products/services/productService';
-import { InventoryService } from '@/features/inventory/services/inventoryService';
+import { adjustStock as adjustInventoryStock } from '@/services/inventoryClient';
 import type { PurchaseStatus, SupplierRef } from '../types/purchasing';
 
 /* ─── Mock Data Store ──────────────────────────────────────── */
@@ -149,7 +149,7 @@ export const PurchasingService = {
 
     // If purchase order is created as received, trigger stock IN with duplicate protection
     if (entity.status === 'received' && entity.items.length > 0) {
-      this.syncStockForReceived(entity);
+      void this.syncStockForReceived(entity);
     }
 
     return toDTO(entity);
@@ -158,18 +158,17 @@ export const PurchasingService = {
   /**
    * Helper: sync stock IN for a received purchase order
    */
-  syncStockForReceived(order: PurchaseOrderEntity): void {
-    try {
-      for (const item of order.items) {
-        InventoryService.adjustStock(
-          item.productId,
-          item.quantity,
-          `توريد شراء ${order.code}`,
-        );
-      }
-    } catch (e) {
-      console.error('Failed to update inventory for purchase order:', e);
-    }
+  async syncStockForReceived(order: PurchaseOrderEntity): Promise<void> {
+    await Promise.all(
+      order.items
+        .filter((item) => item.quantity > 0)
+        .map((item) => adjustInventoryStock({
+          productId: item.productId,
+          type: 'IN',
+          quantity: item.quantity,
+          reason: `توريد شراء ${order.code}`,
+        })),
+    );
   },
 
   /**
@@ -210,13 +209,14 @@ export const PurchasingService = {
    * Updates item.quantityReceived, triggers Inventory Stock IN (+newlyReceived),
    * and protects against duplicate receiving.
    */
-  receive(
+  async receive(
     id: string,
     receivedByProduct: Record<string, number>,
-  ): PurchaseDTO | undefined {
+  ): Promise<PurchaseDTO | undefined> {
     const existing = store.getById(id);
     if (!existing) return undefined;
 
+    const pendingReceipts: Array<Promise<unknown>> = [];
     const items = existing.items.map((item) => {
       const targetReceived = receivedByProduct[item.productId] ?? item.quantity;
       const currentReceived = item.quantityReceived || 0;
@@ -224,15 +224,14 @@ export const PurchasingService = {
       const newlyReceived = Math.min(maxPossibleNew, Math.max(0, targetReceived - currentReceived));
 
       if (newlyReceived > 0) {
-        try {
-          InventoryService.adjustStock(
-            item.productId,
-            newlyReceived,
-            `استلام أومر شراء ${existing.code}`,
-          );
-        } catch (e) {
-          console.error('Failed to adjust stock on receive:', e);
-        }
+        pendingReceipts.push(
+          adjustInventoryStock({
+            productId: item.productId,
+            type: 'IN',
+            quantity: newlyReceived,
+            reason: `استلام أمر شراء ${existing.code}`,
+          }),
+        );
       }
 
       return {
@@ -240,6 +239,8 @@ export const PurchasingService = {
         quantityReceived: currentReceived + newlyReceived,
       };
     });
+
+    await Promise.all(pendingReceipts);
 
     const allReceived = items.every((i) => i.quantityReceived >= i.quantity);
     const anyReceived = items.some((i) => i.quantityReceived > 0);

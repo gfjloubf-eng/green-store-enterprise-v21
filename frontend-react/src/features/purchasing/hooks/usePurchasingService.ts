@@ -219,29 +219,25 @@ export function usePurchaseMutations() {
     });
   };
 
-  const runAction = (
-    fn: () => PurchaseDTO | undefined,
+  const runAction = async (
+    fn: () => PurchaseDTO | undefined | Promise<PurchaseDTO | undefined>,
     onErrorLabel: string,
   ): Promise<PurchaseDTO> => {
-    return new Promise((resolve, reject) => {
-      setActionState(loadingState());
-      try {
-        const dto = fn();
-        if (dto) {
-          setActionState(successState(dto));
-          resolve(dto);
-        } else {
-          const msg = onErrorLabel;
-          setActionState(errorState(msg));
-          reject(new Error(msg));
-        }
-      } catch (err) {
-        const message =
-          err instanceof Error ? err.message : 'Action failed';
-        setActionState(errorState(message));
-        reject(err);
+    setActionState(loadingState());
+    try {
+      const dto = await fn();
+      if (dto) {
+        setActionState(successState(dto));
+        return dto;
       }
-    });
+      const msg = onErrorLabel;
+      setActionState(errorState(msg));
+      throw new Error(msg);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Action failed';
+      setActionState(errorState(message));
+      throw err;
+    }
   };
 
   const cancel = useCallback(

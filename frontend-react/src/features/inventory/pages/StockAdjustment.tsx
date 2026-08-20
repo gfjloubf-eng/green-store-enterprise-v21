@@ -1,17 +1,16 @@
-import { useState, useCallback } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { SlidersHorizontal, Plus, Minus, CheckCircle2, AlertCircle, ArrowLeft, Package } from 'lucide-react';
 import { useI18n } from '@/i18n/useI18n';
 import { BreadcrumbEngine } from '@/components/layout/BreadcrumbEngine';
-import { ProductService } from '@/features/products/services/productService';
-import { InventoryService } from '../services/inventoryService';
+import { adjustStock as adjustInventoryStock, getInventory, type InventoryItem } from '@/services/inventoryClient';
 
 export function StockAdjustment() {
   const navigate = useNavigate();
   const { t } = useI18n();
-  const products = ProductService.getAll();
-
-  const [selectedProductId, setSelectedProductId] = useState<string>(products[0]?.id || '');
+  const [inventoryItems, setInventoryItems] = useState<InventoryItem[]>([]);
+  const [loadingProducts, setLoadingProducts] = useState(true);
+  const [selectedProductId, setSelectedProductId] = useState('');
   const [adjustmentType, setAdjustmentType] = useState<'IN' | 'OUT'>('IN');
   const [quantity, setQuantity] = useState<string>('1');
   const [reason, setReason] = useState<string>('');
@@ -19,10 +18,30 @@ export function StockAdjustment() {
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
-  const selectedProduct = products.find((p) => p.id === selectedProductId);
+  const selectedItem = inventoryItems.find((item) => item.productId === selectedProductId);
+
+  useEffect(() => {
+    let active = true;
+    setLoadingProducts(true);
+    getInventory({ limit: 100 })
+      .then((result) => {
+        if (!active) return;
+        setInventoryItems(result.items);
+        setSelectedProductId((current) => current || result.items[0]?.productId || '');
+      })
+      .catch((err: any) => {
+        if (active) setErrorMsg(err?.message || 'تعذر تحميل المنتجات من المخزون الحقيقي');
+      })
+      .finally(() => {
+        if (active) setLoadingProducts(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, []);
 
   const handleSubmit = useCallback(
-    (e: React.FormEvent) => {
+    async (e: React.FormEvent) => {
       e.preventDefault();
       setErrorMsg(null);
       setSuccessMsg(null);
@@ -45,29 +64,30 @@ export function StockAdjustment() {
 
       setSubmitting(true);
       try {
-        const delta = adjustmentType === 'IN' ? qtyNum : -qtyNum;
-        const updated = InventoryService.adjustStock(
-          selectedProductId,
-          delta,
-          reason.trim(),
+        const updated = await adjustInventoryStock({
+          productId: selectedProductId,
+          type: adjustmentType,
+          quantity: qtyNum,
+          reason: reason.trim(),
+        });
+        const currentQuantity = Number(updated?.quantity ?? selectedItem?.quantity ?? 0);
+        setSuccessMsg(
+          `تم تعديل المخزون للمنتج "${selectedItem?.product?.name || selectedProductId}" بنجاح. الكمية الحالية: ${currentQuantity}`,
         );
-
-        if (updated) {
-          setSuccessMsg(
-            `تم تعديل المخزون للمنتج "${selectedProduct?.name}" بنجاح. الكمية الحالية: ${updated.quantityOnHand}`,
-          );
-          setQuantity('1');
-          setReason('');
-        } else {
-          setErrorMsg('فشل تعديل المخزون، يرجى المحاولة مرة أخرى.');
-        }
+        setInventoryItems((current) => current.map((item) => (
+          item.productId === selectedProductId
+            ? { ...item, ...updated, quantity: currentQuantity, availableQuantity: Math.max(0, currentQuantity - Number(updated?.reservedQuantity ?? item.reservedQuantity ?? 0)) }
+            : item
+        )));
+        setQuantity('1');
+        setReason('');
       } catch (err: any) {
         setErrorMsg(err?.message || 'حدث خطأ غير متوقع أثناء تعديل المخزون');
       } finally {
         setSubmitting(false);
       }
     },
-    [selectedProductId, adjustmentType, quantity, reason, selectedProduct],
+    [selectedProductId, adjustmentType, quantity, reason, selectedItem],
   );
 
   return (
@@ -125,9 +145,13 @@ export function StockAdjustment() {
               onChange={(e) => setSelectedProductId(e.target.value)}
               className="gsd-input w-full rounded-2xl border border-[var(--gs-border)] bg-[var(--gs-background)] p-3 text-xs font-medium"
             >
-              {products.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.name} (SKU: {p.sku} | المخزون الحالي: {p.stock})
+              {loadingProducts ? (
+                <option value="">جاري تحميل المنتجات...</option>
+              ) : inventoryItems.length === 0 ? (
+                <option value="">لا توجد سجلات مخزون متاحة</option>
+              ) : inventoryItems.map((item) => (
+                <option key={item.id} value={item.productId}>
+                  {item.product?.name || item.productId} (SKU: {item.product?.sku || '—'} | المخزون الحالي: {item.quantity})
                 </option>
               ))}
             </select>
@@ -206,7 +230,7 @@ export function StockAdjustment() {
             </button>
             <button
               type="submit"
-              disabled={submitting}
+              disabled={submitting || loadingProducts || inventoryItems.length === 0}
               className="gsd-btn gsd-btn--primary gsd-btn--md rounded-2xl px-6 py-2.5 text-xs font-bold inline-flex items-center gap-2"
             >
               {submitting ? 'جاري الحفظ...' : 'تأكيد وحفظ التسوية'}
@@ -215,26 +239,18 @@ export function StockAdjustment() {
         </form>
 
         {/* Selected Product Summary Card */}
-        {selectedProduct && (
+        {selectedItem && (
           <div className="gsd-card rounded-3xl p-5 border border-[var(--gs-border)] bg-[var(--gs-surface)] h-fit space-y-4">
             <div className="flex items-center gap-3 border-b border-[var(--gs-border-subtle)] pb-3">
-              {selectedProduct.image ? (
-                <img
-                  src={selectedProduct.image}
-                  alt={selectedProduct.name}
-                  className="h-12 w-12 rounded-xl object-cover border border-[var(--gs-border)]"
-                />
-              ) : (
-                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-600 font-bold">
-                  <Package className="h-6 w-6" />
-                </div>
-              )}
+              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-600 font-bold">
+                <Package className="h-6 w-6" />
+              </div>
               <div>
                 <h3 className="text-sm font-bold [color:var(--gs-foreground)]">
-                  {selectedProduct.name}
+                  {selectedItem.product?.name || selectedItem.productId}
                 </h3>
                 <span className="text-xs font-mono text-[var(--gs-foreground-secondary)]">
-                  SKU: {selectedProduct.sku}
+                  SKU: {selectedItem.product?.sku || '—'}
                 </span>
               </div>
             </div>
@@ -243,19 +259,19 @@ export function StockAdjustment() {
               <div className="flex justify-between">
                 <span>المخزون الحالي:</span>
                 <strong className="text-emerald-600 font-bold text-sm">
-                  {selectedProduct.stock} قطعة
+                  {selectedItem.quantity} وحدة
                 </strong>
               </div>
               <div className="flex justify-between">
-                <span>سعر التكلفة:</span>
-                <strong className="[color:var(--gs-foreground)]">
-                  ${selectedProduct.purchasePrice}
+                <span>المحجوز للطلبات:</span>
+                <strong className="text-amber-600 font-bold text-sm">
+                  {selectedItem.reservedQuantity} وحدة
                 </strong>
               </div>
               <div className="flex justify-between">
-                <span>سعر البيع:</span>
+                <span>المتاح للبيع:</span>
                 <strong className="[color:var(--gs-foreground)]">
-                  ${selectedProduct.sellingPrice}
+                  {selectedItem.availableQuantity} وحدة
                 </strong>
               </div>
             </div>
