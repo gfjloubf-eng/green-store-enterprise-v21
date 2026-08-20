@@ -2,6 +2,16 @@
   "framework": "vite",
   "buildCommand": "npm run build",
   "outputDirectory": "frontend-react/dist",
+  "functions": {
+    "api/index.js": {
+      "includeFiles": [
+        "frontend-react/node_modules/argon2/lib/binding/**/*.node",
+        "frontend-react/node_modules/.pnpm/argon2@*/node_modules/argon2/lib/binding/**/*.node",
+        "node_modules/argon2/lib/binding/**/*.node",
+        "node_modules/.pnpm/argon2@*/node_modules/argon2/lib/binding/**/*.node"
+      ]
+    }
+  },
   "rewrites": [
     { "source": "/api/(.*)", "destination": "/api/index.js?path=/$1" },
     { "source": "/auth/(.*)", "destination": "/api/index.js?path=/auth/$1" },
