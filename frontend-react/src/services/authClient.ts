@@ -34,7 +34,13 @@ export const getApiBase = (): string => {
 
 function resolveUrl(input: RequestInfo): RequestInfo {
   if (typeof input === 'string' && input.startsWith('/')) {
-    return `${getApiBase()}${input}`;
+    const base = getApiBase();
+    const isLocalBase = base.includes('127.0.0.1') || base.includes('localhost');
+    const baseAlreadyHasApi = /\/api\/?$/.test(base);
+    const apiPath = input.startsWith('/api/') || input.startsWith('/auth/') || isLocalBase || baseAlreadyHasApi
+      ? input
+      : `/api${input}`;
+    return `${base}${apiPath}`;
   }
   return input;
 }

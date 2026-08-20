@@ -73,7 +73,21 @@ export async function getInventory(params?: {
     err.status = res.status;
     throw err;
   }
-  return payload?.data;
+  const data = payload?.data;
+  const pagination = data?.pagination ?? {};
+  const items = Array.isArray(data?.items)
+    ? data.items
+    : Array.isArray(data)
+      ? data
+      : [];
+
+  return {
+    items,
+    total: Number(pagination.total ?? data?.total ?? items.length),
+    page: Number(pagination.page ?? data?.page ?? params?.page ?? 1),
+    limit: Number(pagination.limit ?? data?.limit ?? params?.limit ?? (items.length || 1)),
+    totalPages: Number(pagination.totalPages ?? data?.totalPages ?? 1),
+  };
 }
 
 export async function adjustStock(data: {
