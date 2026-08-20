@@ -169,7 +169,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const hasPermission = useCallback(
     (permission: string): boolean => {
-      if (!user || !user.permissions) return false;
+      if (!user) return false;
+      const isSuperAdmin = normalizeAppRole(user.role) === 'SUPER_ADMIN'
+        || (Array.isArray(user.roles) && user.roles.some((role) => normalizeAppRole(role) === 'SUPER_ADMIN'));
+      if (isSuperAdmin) return true;
+      if (!user.permissions) return false;
       if (Array.isArray(user.permissions)) {
         return user.permissions.some((p: any) => {
           if (typeof p === 'string') return p === permission || p === '*';

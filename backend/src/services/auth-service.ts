@@ -12,6 +12,7 @@ import PrismaService from '../repositories/prisma-service';
 import crypto from 'crypto';
 import { AccountLockedError, RateLimitError, UnauthorizedError } from '../common/security/errors';
 import { ValidationException } from '../validation';
+import { getRolePermissions } from '../rbac';
 
 export interface AuthResult {
   accessToken: string;
@@ -388,7 +389,15 @@ export class AuthService {
 
       for (const assignment of user.roles) {
         if (assignment.role?.name) {
-          roles.push(String(assignment.role.name));
+          const roleName = String(assignment.role.name);
+          roles.push(roleName);
+
+          // The role definition is the authoritative fallback when the optional
+          // role_permissions seed is incomplete in an environment. Custom role
+          // assignments still rely exclusively on their persisted permissions.
+          for (const permission of getRolePermissions(roleName)) {
+            permissions.add(permission);
+          }
         }
 
         if (Array.isArray(assignment.role?.permissions)) {
