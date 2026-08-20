@@ -4,6 +4,7 @@ import type { Order, OrderItem, OrderStatus, Product } from '@prisma/client';
 import { NotFoundException } from './exceptions';
 import { ValidationException } from '../validation';
 import { InventoryRepository } from './inventory-repository';
+import NotificationRepository from './notification-repository';
 
 export type OrderWithRelations = Order & {
   items: (OrderItem & { product?: Product | null })[];
@@ -192,6 +193,22 @@ export class OrderRepository extends BaseRepository implements OrderRepositoryCo
     // Cache idempotency result after transaction success
     if (cacheKey) {
       idempotencyStore.set(cacheKey, { order: orderResult, createdAt: Date.now() });
+    }
+
+    try {
+      await new NotificationRepository().createForManagementUsers({
+        title: 'طلب جديد وصل',
+        body: `الطلب ${orderResult.code} بقيمة ${Number(orderResult.total).toLocaleString('ar-YE')} ر.ي.`,
+        channel: 'admin',
+        payload: {
+          type: 'order_created',
+          orderId: orderResult.id,
+          orderCode: orderResult.code,
+          total: orderResult.total,
+        },
+      });
+    } catch {
+      // Notification delivery must not make a successful order fail.
     }
 
     return orderResult;
