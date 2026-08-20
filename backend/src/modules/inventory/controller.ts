@@ -1,5 +1,4 @@
-import { HTTP_STATUS, success } from '../../api';
-import type { ApiMeta, ApiResponse } from '../../api';
+import { HTTP_STATUS, success, type ApiMeta, type ApiResponse } from '../../api';
 import type { ControllerRequest } from '../../controllers';
 import { UnauthorizedError } from '../../common/security/errors';
 import { ValidationException } from '../../validation';
@@ -26,6 +25,7 @@ export class InventoryController {
         search: query.search ? String(query.search) : undefined,
         page: query.page ? Number(query.page) : 1,
         limit: query.limit ? Number(query.limit) : 10,
+        warehouseId: query.warehouseId ? String(query.warehouseId) : undefined,
       });
 
       return success(result, ctx);
@@ -44,23 +44,30 @@ export class InventoryController {
       }
 
       const body = request.body || {};
-      const { productId, type, quantity, reason } = body;
+      const { productId, productVariantId, warehouseId, type, quantity, reason } = body;
 
       if (!productId || !type || quantity === undefined) {
         return this.errorResponse('bad_request', 'product_id_type_and_quantity_required', HTTP_STATUS.BAD_REQUEST, ctx);
       }
 
-      const validTypes: StockMovementType[] = ['IN', 'OUT', 'ADJUSTMENT'];
-      if (!validTypes.includes(type)) {
+      const validTypes = ['IN', 'OUT', 'ADJUSTMENT'] as const;
+      if (!validTypes.includes(type as (typeof validTypes)[number])) {
         return this.errorResponse('bad_request', 'invalid_movement_type', HTTP_STATUS.BAD_REQUEST, ctx);
       }
 
+      const numericQuantity = Number(quantity);
+      if (!Number.isInteger(numericQuantity) || numericQuantity < 0 || (type !== 'ADJUSTMENT' && numericQuantity <= 0)) {
+        return this.errorResponse('bad_request', 'quantity_must_be_a_valid_non_negative_integer', HTTP_STATUS.BAD_REQUEST, ctx);
+      }
+
       const updated = await this.inventoryRepo.adjustStock(
-        productId,
-        type as StockMovementType,
-        Number(quantity),
+        String(productId),
+        type as (typeof validTypes)[number],
+        numericQuantity,
         reason ? String(reason) : undefined,
-        user.id
+        user.id,
+        warehouseId ? String(warehouseId) : undefined,
+        productVariantId ? String(productVariantId) : undefined
       );
 
       return success(updated, ctx);
@@ -79,10 +86,15 @@ export class InventoryController {
       }
 
       const query = request.query || {};
-      const inventoryId = query.inventoryId ? String(query.inventoryId) : undefined;
-      const movements = await this.inventoryRepo.findMovements(inventoryId);
+      const movements = await this.inventoryRepo.findMovements({
+        inventoryId: query.inventoryId ? String(query.inventoryId) : undefined,
+        productId: query.productId ? String(query.productId) : undefined,
+        type: query.type ? String(query.type) : undefined,
+        page: query.page ? Number(query.page) : 1,
+        limit: query.limit ? Number(query.limit) : 20,
+      });
 
-      return success({ movements }, ctx);
+      return success({ movements: movements.items, pagination: movements.pagination }, ctx);
     } catch (error) {
       return this.mapError(error, ctx);
     }

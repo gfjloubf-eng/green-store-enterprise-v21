@@ -64,13 +64,13 @@ export class PrismaService {
         if (!global.__prismaClient) {
           global.__prismaClient = createClient();
         }
-        PrismaService.client = global.__prismaClient as PrismaClient;
+        PrismaService.client = global.__prismaClient as PrismaClientType;
       } else {
         PrismaService.client = createClient();
       }
     }
 
-    return PrismaService.client;
+    return PrismaService.client!;
   }
 
   static async disconnect(): Promise<void> {

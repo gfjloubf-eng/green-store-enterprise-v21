@@ -17,7 +17,8 @@
     "typescript": "~5"
   },
   "dependencies": {
+    "@prisma/adapter-pg": "^7.9.1",
     "@prisma/client": "^7.9.1",
-    "@prisma/adapter-pg": "^7.9.1"
+    "hash-wasm": "^4.12.0"
   }
 }

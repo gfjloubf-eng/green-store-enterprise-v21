@@ -163,7 +163,7 @@ export class OrderRepository extends BaseRepository implements OrderRepositoryCo
 
         // Reserve stock for item in atomic transaction
         const invRepo = new InventoryRepository();
-        await invRepo.reserveStockForOrder(tx, pItem.productId, pItem.quantity, order.id);
+        await invRepo.reserveStockForOrder(tx, pItem.productId, pItem.quantity, order.id, pItem.variantId);
       }
 
       // Finalize Cart (Clear all items from customer cart)
@@ -301,65 +301,50 @@ export class OrderRepository extends BaseRepository implements OrderRepositoryCo
   }
 
   async updateOrderStatus(orderId: string, newStatus: OrderStatus, customerId?: string): Promise<OrderWithRelations> {
-    const order = await this.client.order.findUnique({
-      where: { id: orderId },
-    });
-
-    if (!order || order.deletedAt !== null) {
-      throw new NotFoundException('order_not_found');
-    }
-
-    // Ownership & Customer Cancellation Validation
-    if (customerId) {
-      if (order.customerId !== customerId) {
+    return this.client.$transaction(async (tx) => {
+      const order = await tx.order.findUnique({ where: { id: orderId } });
+      if (!order || order.deletedAt !== null) {
         throw new NotFoundException('order_not_found');
       }
-      if (newStatus !== 'CANCELED') {
-        throw new ValidationException('customer_cannot_set_status');
+
+      if (customerId) {
+        if (order.customerId !== customerId) throw new NotFoundException('order_not_found');
+        if (newStatus !== 'CANCELED') throw new ValidationException('customer_cannot_set_status');
+        if (order.status !== 'PENDING' && order.status !== 'CONFIRMED') {
+          throw new ValidationException('order_cannot_be_cancelled');
+        }
       }
-      if (order.status !== 'PENDING' && order.status !== 'CONFIRMED') {
-        throw new ValidationException('order_cannot_be_cancelled');
+
+      const allowed = ALLOWED_TRANSITIONS[order.status] ?? [];
+      if (!allowed.includes(newStatus)) {
+        throw new ValidationException(`invalid_status_transition_${order.status}_to_${newStatus}`);
       }
-    }
 
-    // Validate Lifecycle Status Transition
-    const allowed = ALLOWED_TRANSITIONS[order.status] ?? [];
-    if (!allowed.includes(newStatus)) {
-      throw new ValidationException(`invalid_status_transition_${order.status}_to_${newStatus}`);
-    }
+      const orderWithItems = await tx.order.findUnique({
+        where: { id: orderId },
+        include: { items: true },
+      });
+      const invRepo = new InventoryRepository();
 
-    const orderWithItems = await this.client.order.findUnique({
-      where: { id: orderId },
-      include: { items: true },
-    });
-
-    const invRepo = new InventoryRepository();
-    if (orderWithItems && orderWithItems.items) {
       if (newStatus === 'CANCELED') {
-        for (const item of orderWithItems.items) {
-          await invRepo.releaseStockForOrder(this.client, item.productId, item.quantity, orderId);
+        for (const item of orderWithItems?.items ?? []) {
+          await invRepo.releaseStockForOrder(tx, item.productId, item.quantity, orderId, item.variantId);
         }
-      } else if (newStatus === 'SHIPPED' || newStatus === 'DELIVERED') {
-        for (const item of orderWithItems.items) {
-          await invRepo.deductStockForOrder(this.client, item.productId, item.quantity, orderId);
+      } else if (newStatus === 'SHIPPED') {
+        for (const item of orderWithItems?.items ?? []) {
+          await invRepo.deductStockForShipment(tx, item.productId, item.quantity, orderId, item.variantId);
         }
       }
-    }
 
-    const updated = await this.client.order.update({
-      where: { id: orderId },
-      data: { status: newStatus },
-      include: {
-        items: {
-          include: { product: true },
+      return tx.order.update({
+        where: { id: orderId },
+        data: { status: newStatus },
+        include: {
+          items: { include: { product: true } },
+          customer: { select: { id: true, fullName: true, email: true, phone: true } },
         },
-        customer: {
-          select: { id: true, fullName: true, email: true, phone: true },
-        },
-      },
+      }) as Promise<OrderWithRelations>;
     });
-
-    return updated as OrderWithRelations;
   }
 }
 

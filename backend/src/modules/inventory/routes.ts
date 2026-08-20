@@ -1,5 +1,6 @@
 import { RouterBuilder } from '../../routes';
-import type { RouteDefinition, RouteExecutionContext, RouteHandler } from '../../routes';
+import type { RouteDefinition, RouteExecutionContext, RouteHandler, RouteOptions } from '../../routes';
+import type { Permission } from '../../rbac';
 import type { ControllerRequest } from '../../controllers';
 import { InventoryController } from './controller';
 
@@ -26,6 +27,17 @@ function adapt(handler: (ctx: RouteExecutionContext) => Promise<unknown> | unkno
 export function createInventoryRoutes(controller: InventoryController = new InventoryController()): readonly RouteDefinition[] {
   const builder = new RouterBuilder();
 
+  const privateOptions = (permission: Permission): RouteOptions => ({
+    mode: 'private',
+    publicRoute: false,
+    privateRoute: true,
+    authenticationRequired: true,
+    authorizationRequired: true,
+    requiredPermissions: [permission],
+    tags: ['inventory'],
+    middleware: [],
+  });
+
   // GET /inventory — List Stock Levels (Filterable by status, Searchable)
   builder.register({
     name: 'inventory-list',
@@ -37,10 +49,7 @@ export function createInventoryRoutes(controller: InventoryController = new Inve
       mode: 'private',
       publicRoute: false,
       privateRoute: true,
-      authenticationRequired: true,
-      authorizationRequired: false,
-      tags: ['inventory'],
-      middleware: [],
+      ...privateOptions('inventory:read'),
     },
   });
 
@@ -55,10 +64,7 @@ export function createInventoryRoutes(controller: InventoryController = new Inve
       mode: 'private',
       publicRoute: false,
       privateRoute: true,
-      authenticationRequired: true,
-      authorizationRequired: false,
-      tags: ['inventory'],
-      middleware: [],
+      ...privateOptions('inventory:update'),
     },
   });
 
@@ -73,10 +79,7 @@ export function createInventoryRoutes(controller: InventoryController = new Inve
       mode: 'private',
       publicRoute: false,
       privateRoute: true,
-      authenticationRequired: true,
-      authorizationRequired: false,
-      tags: ['inventory'],
-      middleware: [],
+      ...privateOptions('inventory:read'),
     },
   });
 

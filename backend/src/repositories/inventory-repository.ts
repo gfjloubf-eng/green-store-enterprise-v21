@@ -22,7 +22,7 @@ export class InventoryRepository extends BaseRepository {
     return warehouse;
   }
 
-  async findOrCreateInventory(productId: string, warehouseId?: string) {
+  async findOrCreateInventory(productId: string, warehouseId?: string, productVariantId?: string) {
     let targetWarehouseId = warehouseId;
     if (!targetWarehouseId) {
       const defaultW = await this.findOrCreateDefaultWarehouse();
@@ -30,7 +30,7 @@ export class InventoryRepository extends BaseRepository {
     }
 
     let inv = await this.client.inventory.findFirst({
-      where: { productId, warehouseId: targetWarehouseId },
+      where: { productId, warehouseId: targetWarehouseId, productVariantId: productVariantId ?? null },
       include: {
         product: { select: { id: true, name: true, sku: true } },
         warehouse: { select: { id: true, name: true } },
@@ -40,8 +40,9 @@ export class InventoryRepository extends BaseRepository {
     if (!inv) {
       inv = await this.client.inventory.create({
         data: {
-          productId,
-          warehouseId: targetWarehouseId,
+            productId,
+            productVariantId: productVariantId ?? null,
+            warehouseId: targetWarehouseId,
           quantity: 0,
           reserved: 0,
           available: 0,
@@ -57,9 +58,14 @@ export class InventoryRepository extends BaseRepository {
     return inv;
   }
 
-  async reserveStockForOrder(tx: any, productId: string, qty: number, orderId: string): Promise<void> {
+  async reserveStockForOrder(tx: any, productId: string, qty: number, orderId: string, productVariantId?: string | null): Promise<void> {
+    if (!Number.isInteger(qty) || qty <= 0) throw new ValidationException('quantity_must_be_positive_integer');
     const inv = await tx.inventory.findFirst({
-      where: { productId },
+      where: {
+        productId,
+        productVariantId: productVariantId ?? null,
+        warehouse: { code: 'DEFAULT' },
+      },
     });
 
     if (!inv) {
@@ -91,9 +97,14 @@ export class InventoryRepository extends BaseRepository {
     });
   }
 
-  async releaseStockForOrder(tx: any, productId: string, qty: number, orderId: string): Promise<void> {
+  async releaseStockForOrder(tx: any, productId: string, qty: number, orderId: string, productVariantId?: string | null): Promise<void> {
+    if (!Number.isInteger(qty) || qty <= 0) throw new ValidationException('quantity_must_be_positive_integer');
     const inv = await tx.inventory.findFirst({
-      where: { productId },
+      where: {
+        productId,
+        productVariantId: productVariantId ?? null,
+        warehouse: { code: 'DEFAULT' },
+      },
     });
 
     if (!inv) return;
@@ -119,15 +130,24 @@ export class InventoryRepository extends BaseRepository {
     });
   }
 
-  async deductStockForShipment(tx: any, productId: string, qty: number, orderId: string): Promise<void> {
+  async deductStockForShipment(tx: any, productId: string, qty: number, orderId: string, productVariantId?: string | null): Promise<void> {
+    if (!Number.isInteger(qty) || qty <= 0) throw new ValidationException('quantity_must_be_positive_integer');
     const inv = await tx.inventory.findFirst({
-      where: { productId },
+      where: {
+        productId,
+        productVariantId: productVariantId ?? null,
+        warehouse: { code: 'DEFAULT' },
+      },
     });
 
     if (!inv) return;
 
-    const newReserved = Math.max(0, inv.reserved - qty);
-    const newQuantity = Math.max(0, inv.quantity - qty);
+    if (inv.reserved < qty || inv.quantity < qty) {
+      throw new ValidationException(`insufficient_reserved_stock_for_product_${productId}`);
+    }
+
+    const newReserved = inv.reserved - qty;
+    const newQuantity = inv.quantity - qty;
     const newAvailable = Math.max(0, newQuantity - newReserved);
 
     await tx.inventory.update({
@@ -149,8 +169,8 @@ export class InventoryRepository extends BaseRepository {
     });
   }
 
-  async deductStockForOrder(tx: any, productId: string, qty: number, orderId: string): Promise<void> {
-    return this.deductStockForShipment(tx, productId, qty, orderId);
+  async deductStockForOrder(tx: any, productId: string, qty: number, orderId: string, productVariantId?: string | null): Promise<void> {
+    return this.deductStockForShipment(tx, productId, qty, orderId, productVariantId);
   }
 
   async adjustStock(
@@ -158,24 +178,30 @@ export class InventoryRepository extends BaseRepository {
     type: 'IN' | 'OUT' | 'TRANSFER' | 'ADJUSTMENT' | 'RESERVATION',
     qty: number,
     reason?: string,
-    performedById?: string
+    performedById?: string,
+    warehouseId?: string,
+    productVariantId?: string
   ): Promise<any> {
     if (qty < 0) {
       throw new ValidationException('quantity_cannot_be_negative');
     }
 
-    const defaultW = await this.findOrCreateDefaultWarehouse();
+    const targetWarehouse = warehouseId
+      ? await this.client.warehouse.findUnique({ where: { id: warehouseId } })
+      : await this.findOrCreateDefaultWarehouse();
+    if (!targetWarehouse) throw new NotFoundException('warehouse_not_found');
 
     const { updated } = await this.client.$transaction(
       async (tx) => {
       let inv = await tx.inventory.findFirst({
-        where: { productId, warehouseId: defaultW.id },
+        where: { productId, warehouseId: targetWarehouse.id, productVariantId: productVariantId ?? null },
       });
       if (!inv) {
         inv = await tx.inventory.create({
           data: {
             productId,
-            warehouseId: defaultW.id,
+            productVariantId: productVariantId ?? null,
+            warehouseId: targetWarehouse.id,
             quantity: 0,
             reserved: 0,
             available: 0,
@@ -198,6 +224,9 @@ export class InventoryRepository extends BaseRepository {
           },
         });
       } else if (type === 'OUT') {
+        if (inv.available < qty || inv.quantity < qty) {
+          throw new ValidationException('insufficient_available_stock');
+        }
         up = await tx.inventory.update({
           where: { id: inv.id },
           data: {
@@ -209,8 +238,11 @@ export class InventoryRepository extends BaseRepository {
             warehouse: { select: { id: true, name: true } },
           },
         });
-      } else {
-        const newQty = Math.max(0, qty);
+      } else if (type === 'ADJUSTMENT') {
+        if (qty < inv.reserved) {
+          throw new ValidationException('adjustment_below_reserved_quantity');
+        }
+        const newQty = qty;
         const newAvail = Math.max(0, newQty - inv.reserved);
         up = await tx.inventory.update({
           where: { id: inv.id },
@@ -254,6 +286,8 @@ export class InventoryRepository extends BaseRepository {
     search?: string;
     page?: number;
     limit?: number;
+    warehouseId?: string;
+    productVariantId?: string;
     sort?: string;
     order?: 'asc' | 'desc';
   }) {
@@ -262,6 +296,8 @@ export class InventoryRepository extends BaseRepository {
     const skip = (page - 1) * limit;
 
     const where: any = {};
+    if (options.warehouseId) where.warehouseId = options.warehouseId;
+    if (options.productVariantId) where.productVariantId = options.productVariantId;
     if (options.search) {
       where.product = {
         OR: [
@@ -329,6 +365,7 @@ export class InventoryRepository extends BaseRepository {
     const where: any = {};
     if (options.inventoryId) where.inventoryId = options.inventoryId;
     if (options.type) where.type = options.type;
+    if (options.productId) where.inventory = { productId: options.productId };
 
     const [items, total] = await Promise.all([
       this.client.stockMovement.findMany({

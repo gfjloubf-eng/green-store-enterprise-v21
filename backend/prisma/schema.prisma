@@ -1122,6 +1122,7 @@ enum StockMovementType {
   TRANSFER
   ADJUSTMENT
   RESERVATION
+  RELEASE
 }
 
 enum TaxType {
