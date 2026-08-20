@@ -151,7 +151,7 @@ export function Topbar({ onMenuClick, mobileOpen = false, storefront = false, cl
   return (
     <header
       className={cn(
-        'gsd-topbar sticky top-0 z-50 md:relative md:z-auto shadow-sm md:shadow-none md:static flex h-16 items-center justify-between gap-2 px-3 sm:px-5',
+        'gsd-topbar w-full min-w-0 max-w-full overflow-x-clip sticky top-0 z-50 md:relative md:z-auto shadow-sm md:shadow-none md:static flex h-16 items-center justify-between gap-2 px-2 sm:px-5',
         '[background:var(--gs-surface)] [border-color:var(--gs-border)] border-b',
         className,
       )}
@@ -173,10 +173,10 @@ export function Topbar({ onMenuClick, mobileOpen = false, storefront = false, cl
         )}
 
         <div
-          className={cn('flex items-center cursor-pointer min-w-0', storefront ? 'lg:flex' : 'lg:hidden')}
+          className={cn('gsd-topbar__brand flex min-w-0 max-w-[calc(100vw-9.5rem)] shrink items-center cursor-pointer overflow-hidden', storefront ? 'lg:flex' : 'lg:hidden')}
           onClick={() => navigate('/')}
         >
-          <LogoPlaceholder size="sm" showText />
+          <LogoPlaceholder size="sm" showText className="min-w-0 max-w-full shrink" />
         </div>
       </div>
 
@@ -185,7 +185,7 @@ export function Topbar({ onMenuClick, mobileOpen = false, storefront = false, cl
       {storefront && <div className="hidden sm:block flex-1" aria-hidden="true" />}
 
       {/* Header Actions (Desktop & Mobile) */}
-      <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+      <div className="gsd-topbar__actions flex shrink-0 items-center gap-0.5 sm:gap-2">
         {/* Theme toggle (Desktop & Mobile) */}
         <button
           type="button"

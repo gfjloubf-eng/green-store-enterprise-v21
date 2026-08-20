@@ -70,7 +70,7 @@ export function AppShell() {
       )}
 
       {/* Main area */}
-      <div className={cn('flex flex-1 flex-col min-w-0', isStorefront && 'w-full')}>
+      <div className={cn('gsd-appshell__main flex flex-1 flex-col min-w-0', isStorefront && 'w-full')}>
         {/* Topbar */}
         <Topbar onMenuClick={handleMobileToggle} mobileOpen={mobileOpen} storefront={isStorefront} />
 

@@ -26,6 +26,10 @@
   }
 
   html {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    overflow-x: hidden;
     -webkit-text-size-adjust: 100%;
     -moz-text-size-adjust: 100%;
     text-size-adjust: 100%;
@@ -33,6 +37,10 @@
   }
 
   body {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    overflow-x: hidden;
     margin: 0;
     padding: 0;
     font-family: var(--gs-font-arabic);
@@ -46,6 +54,13 @@
     /* Smooth theme transition */
     transition: background-color var(--gs-duration-medium) var(--gs-ease-in-out),
                 color var(--gs-duration-medium) var(--gs-ease-in-out);
+  }
+
+  #root {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    overflow-x: hidden;
   }
 
   /* RTL / LTR body direction */
@@ -597,9 +612,10 @@
   opacity: 0.035;
 }
 
-.gsd-appshell--storefront > * {
+.gsd-appshell--storefront > .gsd-appshell__main {
   position: relative;
   z-index: 1;
+  min-width: 0;
 }
 
 .gsd-main--storefront {
@@ -639,6 +655,37 @@
 }
 
 @media (max-width: 640px) {
+  .gsd-appshell,
+  .gsd-appshell > div,
+  .gsd-main,
+  .gsd-topbar {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+  }
+
+  .gsd-topbar__brand > div {
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .gsd-topbar__brand > div > div:last-child {
+    min-width: 0;
+    overflow: hidden;
+  }
+
+  .gsd-topbar__brand > div > div:last-child span {
+    display: block;
+    max-width: 7rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .gsd-topbar__actions button {
+    flex-shrink: 1;
+  }
+
   .gsd-appshell--storefront::before {
     background-position: center 54%;
     background-size: 76vw auto;

@@ -43,7 +43,7 @@ export function MobileBottomNav({ storefront = false }: MobileBottomNavProps) {
   return (
     <nav
       aria-label="التنقل السريع للهاتف"
-      className="fixed bottom-0 left-0 right-0 z-40 lg:hidden border-t border-[var(--gs-border)] bg-[var(--gs-surface)]/95 backdrop-blur-md shadow-lg py-1 px-2 pb-[calc(0.25rem+env(safe-area-inset-bottom))] flex items-center justify-around"
+      className="fixed inset-x-0 bottom-0 z-40 flex w-full max-w-full items-center justify-around overflow-x-hidden border-t border-[var(--gs-border)] bg-[var(--gs-surface)]/95 px-1 py-1 pb-[calc(0.25rem+env(safe-area-inset-bottom))] shadow-lg backdrop-blur-md lg:hidden"
       dir="rtl"
     >
       {navItems.map((item) => {
@@ -58,7 +58,7 @@ export function MobileBottomNav({ storefront = false }: MobileBottomNavProps) {
             key={item.path}
             type="button"
             onClick={() => navigate(item.path)}
-            className={`relative flex flex-col items-center justify-center py-1.5 px-2 min-h-[48px] min-w-[64px] rounded-xl transition-all touch-manipulation ${
+            className={`relative flex min-w-0 flex-1 flex-col items-center justify-center rounded-xl px-1 py-1.5 min-h-[48px] transition-all touch-manipulation ${
               isActive
                 ? 'text-emerald-600 font-bold bg-emerald-500/10'
                 : 'text-[var(--gs-foreground-secondary)] hover:text-[var(--gs-foreground)]'
