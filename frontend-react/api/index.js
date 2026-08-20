@@ -549,7 +549,7 @@ var init_auth_email_verification_service = __esm({
 });
 
 // ../backend/src/api/status.ts
-var HTTP_STATUS = {
+var HTTP_STATUS2 = {
   OK: 200,
   CREATED: 201,
   ACCEPTED: 202,
@@ -572,9 +572,9 @@ function createMeta(context) {
     locale: context.locale
   };
 }
-function success(data, context) {
+function success2(data, context) {
   return {
-    statusCode: HTTP_STATUS.OK,
+    statusCode: HTTP_STATUS2.OK,
     body: {
       success: true,
       data,
@@ -582,9 +582,9 @@ function success(data, context) {
     }
   };
 }
-function created(data, context) {
+function created2(data, context) {
   return {
-    statusCode: HTTP_STATUS.CREATED,
+    statusCode: HTTP_STATUS2.CREATED,
     body: {
       success: true,
       data,
@@ -592,9 +592,9 @@ function created(data, context) {
     }
   };
 }
-function noContent(context) {
+function noContent2(context) {
   return {
-    statusCode: HTTP_STATUS.NO_CONTENT,
+    statusCode: HTTP_STATUS2.NO_CONTENT,
     body: {
       success: true,
       data: null,
@@ -602,20 +602,20 @@ function noContent(context) {
     }
   };
 }
-function unauthorized(message, context) {
-  return errorResponse("unauthorized", message, HTTP_STATUS.UNAUTHORIZED, context);
+function unauthorized2(message, context) {
+  return errorResponse("unauthorized", message, HTTP_STATUS2.UNAUTHORIZED, context);
 }
 function forbidden(message, context) {
-  return errorResponse("forbidden", message, HTTP_STATUS.FORBIDDEN, context);
+  return errorResponse("forbidden", message, HTTP_STATUS2.FORBIDDEN, context);
 }
-function notFound(message, context) {
-  return errorResponse("not_found", message, HTTP_STATUS.NOT_FOUND, context);
+function notFound2(message, context) {
+  return errorResponse("not_found", message, HTTP_STATUS2.NOT_FOUND, context);
 }
 function conflict(message, context) {
-  return errorResponse("conflict", message, HTTP_STATUS.CONFLICT, context);
+  return errorResponse("conflict", message, HTTP_STATUS2.CONFLICT, context);
 }
-function validationError(message, context) {
-  return errorResponse("validation_error", message, HTTP_STATUS.UNPROCESSABLE_ENTITY, context);
+function validationError2(message, context) {
+  return errorResponse("validation_error", message, HTTP_STATUS2.UNPROCESSABLE_ENTITY, context);
 }
 function errorResponse(code, message, statusCode, context) {
   return {
@@ -630,9 +630,9 @@ function errorResponse(code, message, statusCode, context) {
     }
   };
 }
-function paginated(data, page, limit, total, context) {
+function paginated2(data, page, limit, total, context) {
   return {
-    statusCode: HTTP_STATUS.OK,
+    statusCode: HTTP_STATUS2.OK,
     body: {
       data,
       pagination: {
@@ -816,8 +816,8 @@ var RouterBuilder = class {
 
 // ../backend/src/routes/resolver.ts
 var RouteResolver = class {
-  resolve(registry, request2) {
-    return registry.findByPath(request2.method, request2.path, request2.version);
+  resolve(registry, request4) {
+    return registry.findByPath(request4.method, request4.path, request4.version);
   }
   resolveByName(registry, name) {
     return registry.findByName(name);
@@ -1011,8 +1011,8 @@ init_auth_constants();
 init_prisma_service();
 var LoginHistoryRepository = class {
   client = prisma_service_default.getClient();
-  async record(userId, email, ip, ua, success2, reason) {
-    return this.client.loginHistory.create({ data: { userId, email, ipAddress: ip, userAgent: ua, success: success2, reason } });
+  async record(userId, email, ip, ua, success3, reason) {
+    return this.client.loginHistory.create({ data: { userId, email, ipAddress: ip, userAgent: ua, success: success3, reason } });
   }
   async recentFailedCountByUser(userId, sinceMinutes = 15) {
     const since = new Date(Date.now() - sinceMinutes * 60 * 1e3);
@@ -1056,8 +1056,8 @@ var AuthAuditService = class {
   loginRepo = login_history_repository_default;
   tokenBlacklist = token_blacklist_repository_default;
   client = prisma_service_default.getClient();
-  async recordLoginAttempt(userId, email, ip, ua, success2 = false, reason) {
-    await this.loginRepo.record(userId, email, ip, ua, success2, reason);
+  async recordLoginAttempt(userId, email, ip, ua, success3 = false, reason) {
+    await this.loginRepo.record(userId, email, ip, ua, success3, reason);
   }
   async lockAccount(userId, reason = "too_many_failed_logins") {
     const meta = JSON.stringify({ type: "account_lock", reason, createdAt: (/* @__PURE__ */ new Date()).toISOString() });
@@ -1067,9 +1067,9 @@ var AuthAuditService = class {
     const rec = await this.client.securityLog.findFirst({ where: { userId, event: "account_locked" }, orderBy: { createdAt: "desc" } });
     if (!rec) return false;
     const ttl = Number(process.env.ACCOUNT_LOCK_TTL_MINUTES ?? 30);
-    const created2 = rec.createdAt;
-    if (!created2) return true;
-    const unlockedAt = new Date(created2.getTime() + ttl * 60 * 1e3);
+    const created3 = rec.createdAt;
+    if (!created3) return true;
+    const unlockedAt = new Date(created3.getTime() + ttl * 60 * 1e3);
     return unlockedAt > /* @__PURE__ */ new Date();
   }
   async blacklistRefreshTokenByHash(userId, tokenHash) {
@@ -1077,6 +1077,222 @@ var AuthAuditService = class {
   }
 };
 var auth_audit_service_default = new AuthAuditService();
+
+// ../backend/src/repositories/base-repository.ts
+init_prisma_service();
+var BaseRepository = class {
+  client = prisma_service_default.getClient();
+  modelName;
+  constructor(modelName) {
+    this.modelName = modelName;
+  }
+  get model() {
+    return this.client[this.modelName];
+  }
+  async findById(id) {
+    const result = await this.model.findUnique({ where: { id } });
+    return result ?? null;
+  }
+  async findMany(filter) {
+    const where = filter ?? {};
+    const results = await this.model.findMany({ where });
+    return results ?? [];
+  }
+  async create(data) {
+    return this.model.create({ data });
+  }
+  async update(id, data) {
+    return this.model.update({ where: { id }, data });
+  }
+  async delete(id) {
+    try {
+      await this.model.update({ where: { id }, data: { deletedAt: /* @__PURE__ */ new Date() } });
+    } catch (err) {
+      await this.model.delete({ where: { id } });
+    }
+  }
+  async restore(id) {
+    return this.model.update({ where: { id }, data: { deletedAt: null } });
+  }
+  async exists(id) {
+    const count = await this.model.count({ where: { id } });
+    return count > 0;
+  }
+  async count(filter) {
+    const where = filter ?? {};
+    return this.model.count({ where });
+  }
+  async paginate(options) {
+    const page = Math.max(1, options.page ?? 1);
+    const limit = Math.max(1, Math.min(100, options.limit ?? 25));
+    const skip = (page - 1) * limit;
+    const rawWhere = options.filters ?? {};
+    const cleanWhere = (obj) => {
+      if (obj == null) return {};
+      if (Array.isArray(obj)) {
+        const arr = obj.map(cleanWhere).filter((x) => {
+          return !(x && typeof x === "object" && Object.keys(x).length === 0);
+        });
+        return arr.length > 0 ? arr : void 0;
+      }
+      if (typeof obj !== "object") return obj;
+      const out = {};
+      for (const [k, v] of Object.entries(obj)) {
+        if (v === void 0) continue;
+        if ((k === "AND" || k === "OR" || k === "NOT") && Array.isArray(v)) {
+          const cleaned = cleanWhere(v);
+          if (cleaned !== void 0 && cleaned.length > 0) out[k] = cleaned;
+        } else if (v && typeof v === "object") {
+          const cleaned = cleanWhere(v);
+          if (cleaned !== void 0 && (typeof cleaned !== "object" || Object.keys(cleaned).length > 0)) {
+            out[k] = cleaned;
+          }
+        } else if (v !== void 0) {
+          out[k] = v;
+        }
+      }
+      return Object.keys(out).length > 0 ? out : void 0;
+    };
+    const where = cleanWhere(rawWhere) ?? {};
+    const orderBy = options.sort && (options.order === "asc" || options.order === "desc") ? { [options.sort]: options.order } : void 0;
+    let data = [];
+    let total = 0;
+    try {
+      const res = await Promise.all([
+        this.model.findMany({ where, skip, take: limit, orderBy }),
+        this.model.count({ where })
+      ]);
+      data = res[0] ?? [];
+      total = res[1] ?? 0;
+    } catch (err) {
+      const debug = { where, orderBy, skip, take: limit };
+      const msg = `paginate_error: ${err?.message ?? "unknown"} -- query: ${JSON.stringify(debug)}`;
+      throw new Error(msg);
+    }
+    return {
+      data,
+      total,
+      page,
+      limit
+    };
+  }
+};
+var base_repository_default = BaseRepository;
+
+// ../backend/src/repositories/exceptions.ts
+var DatabaseException = class extends Error {
+  constructor(message) {
+    super(message ?? "Database error");
+    this.name = "DatabaseException";
+  }
+};
+var NotFoundException = class extends Error {
+  constructor(message) {
+    super(message ?? "Resource not found");
+    this.name = "NotFoundException";
+  }
+};
+var ConflictException = class extends Error {
+  constructor(message) {
+    super(message ?? "Conflict");
+    this.name = "ConflictException";
+  }
+};
+var ValidationException2 = class extends Error {
+  constructor(message) {
+    super(message ?? "Validation failed");
+    this.name = "ValidationException";
+  }
+};
+
+// ../backend/src/repositories/notification-repository.ts
+var NotificationRepository = class extends base_repository_default {
+  constructor() {
+    super("notification");
+  }
+  async createNotification(data) {
+    return this.client.notification.create({
+      data: {
+        userId: data.userId,
+        title: data.title,
+        body: data.body,
+        channel: data.channel ?? "SYSTEM",
+        read: false,
+        payload: data.payload ? JSON.stringify(data.payload) : null
+      }
+    });
+  }
+  async createForManagementUsers(data) {
+    const managementUsers = await this.client.user.findMany({
+      where: {
+        isActive: true,
+        deletedAt: null,
+        roles: {
+          some: {
+            role: {
+              name: { in: ["SUPER_ADMIN", "ADMIN", "MANAGER", "EMPLOYEE"] },
+              deletedAt: null
+            }
+          }
+        }
+      },
+      select: { id: true }
+    });
+    if (managementUsers.length === 0) return 0;
+    const result = await this.client.notification.createMany({
+      data: managementUsers.map((user) => ({
+        userId: user.id,
+        title: data.title,
+        body: data.body,
+        channel: data.channel ?? "admin",
+        read: false,
+        payload: data.payload ? JSON.stringify(data.payload) : null
+      }))
+    });
+    return result.count;
+  }
+  async findUserNotifications(userId, limit = 30) {
+    const [items, unreadCount] = await Promise.all([
+      this.client.notification.findMany({
+        where: { userId },
+        orderBy: { createdAt: "desc" },
+        take: limit
+      }),
+      this.client.notification.count({
+        where: { userId, read: false }
+      })
+    ]);
+    return {
+      items,
+      unreadCount
+    };
+  }
+  async getUnreadCount(userId) {
+    return this.client.notification.count({
+      where: { userId, read: false }
+    });
+  }
+  async markAsRead(notificationId, userId) {
+    const existing = await this.client.notification.findUnique({
+      where: { id: notificationId }
+    });
+    if (!existing || existing.userId !== userId) {
+      throw new NotFoundException("notification_not_found");
+    }
+    return this.client.notification.update({
+      where: { id: notificationId },
+      data: { read: true }
+    });
+  }
+  async markAllAsRead(userId) {
+    const result = await this.client.notification.updateMany({
+      where: { userId, read: false },
+      data: { read: true }
+    });
+    return result.count;
+  }
+};
+var notification_repository_default = NotificationRepository;
 
 // ../backend/src/services/auth-service.ts
 init_rate_limiter();
@@ -1161,6 +1377,15 @@ var AuthService = class {
         }
       });
     });
+    try {
+      await new notification_repository_default().createForManagementUsers({
+        title: "\u0639\u0645\u064A\u0644 \u062C\u062F\u064A\u062F \u0633\u062C\u0644 \u0641\u064A \u0627\u0644\u0645\u062A\u062C\u0631",
+        body: `${name} (${email}) \u0623\u0646\u0634\u0623 \u062D\u0633\u0627\u0628 \u0639\u0645\u064A\u0644 \u062C\u062F\u064A\u062F.`,
+        channel: "admin",
+        payload: { type: "customer_registered", customerEmail: email }
+      });
+    } catch {
+    }
     return this.signIn(email, password);
   }
   async changePassword(userId, currentPassword, newPassword, confirmPassword) {
@@ -1435,95 +1660,95 @@ var AuthController = class _AuthController {
       return client.user.findFirst({ where: { email: identifier } });
     });
   }
-  async signIn(request2) {
-    const ctx = this.createApiContext(request2);
-    const body = request2.body;
+  async signIn(request4) {
+    const ctx = this.createApiContext(request4);
+    const body = request4.body;
     if (!this.isObject(body) || typeof body.identifier !== "string" || !body.identifier || typeof body.password !== "string" || !body.password) {
-      return this.errorResponse("bad_request", "identifier_and_password_required", HTTP_STATUS.BAD_REQUEST, ctx);
+      return this.errorResponse("bad_request", "identifier_and_password_required", HTTP_STATUS2.BAD_REQUEST, ctx);
     }
     try {
-      const result = await this.authService.signIn(body.identifier, body.password, body.deviceId, this.requestMeta(request2));
-      return success(result, ctx);
+      const result = await this.authService.signIn(body.identifier, body.password, body.deviceId, this.requestMeta(request4));
+      return success2(result, ctx);
     } catch (error) {
       return this.mapError(error, ctx);
     }
   }
-  async refresh(request2) {
-    const ctx = this.createApiContext(request2);
-    const body = request2.body;
+  async refresh(request4) {
+    const ctx = this.createApiContext(request4);
+    const body = request4.body;
     if (!this.isObject(body) || typeof body.refreshToken !== "string" || !body.refreshToken) {
-      return this.errorResponse("bad_request", "refresh_token_required", HTTP_STATUS.BAD_REQUEST, ctx);
+      return this.errorResponse("bad_request", "refresh_token_required", HTTP_STATUS2.BAD_REQUEST, ctx);
     }
     try {
-      const result = await this.authService.refresh(body.refreshToken, this.requestMeta(request2));
-      return success(result, ctx);
+      const result = await this.authService.refresh(body.refreshToken, this.requestMeta(request4));
+      return success2(result, ctx);
     } catch (error) {
       return this.mapError(error, ctx);
     }
   }
-  async signOut(request2) {
-    const ctx = this.createApiContext(request2);
-    const body = request2.body;
+  async signOut(request4) {
+    const ctx = this.createApiContext(request4);
+    const body = request4.body;
     if (!this.isObject(body) || typeof body.refreshToken !== "string" || !body.refreshToken) {
-      return this.errorResponse("bad_request", "refresh_token_required", HTTP_STATUS.BAD_REQUEST, ctx);
+      return this.errorResponse("bad_request", "refresh_token_required", HTTP_STATUS2.BAD_REQUEST, ctx);
     }
     try {
-      await this.authService.signOut(body.refreshToken, this.requestMeta(request2));
-      return success(null, ctx);
+      await this.authService.signOut(body.refreshToken, this.requestMeta(request4));
+      return success2(null, ctx);
     } catch (error) {
       return this.mapError(error, ctx);
     }
   }
   // Logout endpoint — invalidates refresh token and session and returns HTTP 204 No Content
-  async logout(request2) {
-    const ctx = this.createApiContext(request2);
-    const body = request2.body;
+  async logout(request4) {
+    const ctx = this.createApiContext(request4);
+    const body = request4.body;
     if (!this.isObject(body) || typeof body.refreshToken !== "string" || !body.refreshToken) {
-      return this.errorResponse("bad_request", "refresh_token_required", HTTP_STATUS.BAD_REQUEST, ctx);
+      return this.errorResponse("bad_request", "refresh_token_required", HTTP_STATUS2.BAD_REQUEST, ctx);
     }
     try {
-      await this.authService.signOut(body.refreshToken, this.requestMeta(request2));
-      return noContent(ctx);
+      await this.authService.signOut(body.refreshToken, this.requestMeta(request4));
+      return noContent2(ctx);
     } catch (error) {
       return this.mapError(error, ctx);
     }
   }
-  async validate(request2) {
-    const ctx = this.createApiContext(request2);
-    const authorization = this.headerValue(request2, "authorization");
+  async validate(request4) {
+    const ctx = this.createApiContext(request4);
+    const authorization = this.headerValue(request4, "authorization");
     const match = authorization?.match(/^Bearer\s+(.+)$/i);
     const token = match?.[1];
     if (!token) {
-      return this.errorResponse("unauthorized", "access_token_required", HTTP_STATUS.UNAUTHORIZED, ctx);
+      return this.errorResponse("unauthorized", "access_token_required", HTTP_STATUS2.UNAUTHORIZED, ctx);
     }
     try {
       const result = await this.authService.validateAccessToken(token);
-      return success({ valid: result.valid }, ctx);
+      return success2({ valid: result.valid }, ctx);
     } catch (error) {
       return this.mapError(error, ctx);
     }
   }
   // GET /auth/me — return current authenticated user
-  async me(request2) {
-    const ctx = this.createApiContext(request2);
-    const authorization = this.headerValue(request2, "authorization");
+  async me(request4) {
+    const ctx = this.createApiContext(request4);
+    const authorization = this.headerValue(request4, "authorization");
     try {
       const payload = await guardRequireAuth(authorization);
       const userId = payload?.sub;
-      if (!userId) return this.errorResponse("unauthorized", "missing_sub", HTTP_STATUS.UNAUTHORIZED, ctx);
+      if (!userId) return this.errorResponse("unauthorized", "missing_sub", HTTP_STATUS2.UNAUTHORIZED, ctx);
       const result = await this.authService.getCurrentUser(userId);
-      if (!result) return this.errorResponse("not_found", "user_not_found", HTTP_STATUS.NOT_FOUND, ctx);
-      return success(result, ctx);
+      if (!result) return this.errorResponse("not_found", "user_not_found", HTTP_STATUS2.NOT_FOUND, ctx);
+      return success2(result, ctx);
     } catch (error) {
       return this.mapError(error, ctx);
     }
   }
   // Public Customer Registration
-  async signUp(request2) {
-    const ctx = this.createApiContext(request2);
-    const body = request2.body;
+  async signUp(request4) {
+    const ctx = this.createApiContext(request4);
+    const body = request4.body;
     if (!this.isObject(body) || typeof body.email !== "string" || typeof body.password !== "string") {
-      return this.errorResponse("bad_request", "email_and_password_required", HTTP_STATUS.BAD_REQUEST, ctx);
+      return this.errorResponse("bad_request", "email_and_password_required", HTTP_STATUS2.BAD_REQUEST, ctx);
     }
     try {
       const result = await this.authService.signUp({
@@ -1533,140 +1758,140 @@ var AuthController = class _AuthController {
         confirmPassword: body.confirmPassword ? String(body.confirmPassword) : void 0,
         phone: body.phone ? String(body.phone) : void 0
       });
-      return success(result, ctx);
+      return success2(result, ctx);
     } catch (error) {
       return this.mapError(error, ctx);
     }
   }
   // Change Password
-  async changePassword(request2) {
-    const ctx = this.createApiContext(request2);
-    const authorization = this.headerValue(request2, "authorization");
-    const body = request2.body;
+  async changePassword(request4) {
+    const ctx = this.createApiContext(request4);
+    const authorization = this.headerValue(request4, "authorization");
+    const body = request4.body;
     if (!this.isObject(body) || typeof body.currentPassword !== "string" || typeof body.newPassword !== "string") {
-      return this.errorResponse("bad_request", "current_and_new_password_required", HTTP_STATUS.BAD_REQUEST, ctx);
+      return this.errorResponse("bad_request", "current_and_new_password_required", HTTP_STATUS2.BAD_REQUEST, ctx);
     }
     try {
       const payload = await guardRequireAuth(authorization);
       const userId = payload?.sub;
-      if (!userId) return this.errorResponse("unauthorized", "missing_sub", HTTP_STATUS.UNAUTHORIZED, ctx);
+      if (!userId) return this.errorResponse("unauthorized", "missing_sub", HTTP_STATUS2.UNAUTHORIZED, ctx);
       await this.authService.changePassword(userId, String(body.currentPassword), String(body.newPassword), body.confirmPassword ? String(body.confirmPassword) : void 0);
-      return success({ message: "password_changed_successfully" }, ctx);
+      return success2({ message: "password_changed_successfully" }, ctx);
     } catch (error) {
       return this.mapError(error, ctx);
     }
   }
   // Forgot Password — Request reset link
-  async forgotPassword(request2) {
-    const ctx = this.createApiContext(request2);
-    const body = request2.body;
+  async forgotPassword(request4) {
+    const ctx = this.createApiContext(request4);
+    const body = request4.body;
     if (!this.isObject(body) || typeof body.email !== "string" || !body.email) {
-      return this.errorResponse("bad_request", "email_required", HTTP_STATUS.BAD_REQUEST, ctx);
+      return this.errorResponse("bad_request", "email_required", HTTP_STATUS2.BAD_REQUEST, ctx);
     }
     try {
       const { default: resetService } = await Promise.resolve().then(() => (init_auth_reset_service(), auth_reset_service_exports));
       await resetService.generateResetTokenByEmail(String(body.email));
-      return success({ message: "If the email exists, a password reset token has been generated." }, ctx);
+      return success2({ message: "If the email exists, a password reset token has been generated." }, ctx);
     } catch (error) {
       return this.mapError(error, ctx);
     }
   }
   // Reset Password — Submit reset token & new password
-  async resetPassword(request2) {
-    const ctx = this.createApiContext(request2);
-    const body = request2.body;
+  async resetPassword(request4) {
+    const ctx = this.createApiContext(request4);
+    const body = request4.body;
     if (!this.isObject(body) || typeof body.token !== "string" || typeof body.newPassword !== "string") {
-      return this.errorResponse("bad_request", "token_and_new_password_required", HTTP_STATUS.BAD_REQUEST, ctx);
+      return this.errorResponse("bad_request", "token_and_new_password_required", HTTP_STATUS2.BAD_REQUEST, ctx);
     }
     try {
       const { default: resetService } = await Promise.resolve().then(() => (init_auth_reset_service(), auth_reset_service_exports));
       await resetService.resetPassword(String(body.token), String(body.newPassword));
-      return success({ message: "password_reset_successfully" }, ctx);
+      return success2({ message: "password_reset_successfully" }, ctx);
     } catch (error) {
       return this.mapError(error, ctx);
     }
   }
   // Update Profile
-  async updateProfile(request2) {
-    const ctx = this.createApiContext(request2);
-    const authorization = this.headerValue(request2, "authorization");
-    const body = request2.body;
+  async updateProfile(request4) {
+    const ctx = this.createApiContext(request4);
+    const authorization = this.headerValue(request4, "authorization");
+    const body = request4.body;
     if (!this.isObject(body)) {
-      return this.errorResponse("bad_request", "body_required", HTTP_STATUS.BAD_REQUEST, ctx);
+      return this.errorResponse("bad_request", "body_required", HTTP_STATUS2.BAD_REQUEST, ctx);
     }
     try {
       const payload = await guardRequireAuth(authorization);
       const userId = payload?.sub;
-      if (!userId) return this.errorResponse("unauthorized", "missing_sub", HTTP_STATUS.UNAUTHORIZED, ctx);
+      if (!userId) return this.errorResponse("unauthorized", "missing_sub", HTTP_STATUS2.UNAUTHORIZED, ctx);
       const result = await this.authService.updateProfile(userId, {
         name: body.name ? String(body.name) : void 0,
         displayName: body.displayName ? String(body.displayName) : void 0,
         phone: body.phone ? String(body.phone) : void 0
       });
-      return success(result, ctx);
+      return success2(result, ctx);
     } catch (error) {
       return this.mapError(error, ctx);
     }
   }
   // Email Verification: Send verification token
-  async sendVerification(request2) {
-    const ctx = this.createApiContext(request2);
-    const authorization = this.headerValue(request2, "authorization");
+  async sendVerification(request4) {
+    const ctx = this.createApiContext(request4);
+    const authorization = this.headerValue(request4, "authorization");
     try {
       const payload = await guardRequireAuth(authorization);
       const userId = payload?.sub;
-      if (!userId) return this.errorResponse("unauthorized", "missing_sub", HTTP_STATUS.UNAUTHORIZED, ctx);
+      if (!userId) return this.errorResponse("unauthorized", "missing_sub", HTTP_STATUS2.UNAUTHORIZED, ctx);
       const { default: emailVerificationService } = await Promise.resolve().then(() => (init_auth_email_verification_service(), auth_email_verification_service_exports));
       await emailVerificationService.generateVerificationToken(userId);
-      return success({ message: "verification_token_sent" }, ctx);
+      return success2({ message: "verification_token_sent" }, ctx);
     } catch (error) {
       return this.mapError(error, ctx);
     }
   }
   // Email Verification: Verify token
-  async verifyEmail(request2) {
-    const ctx = this.createApiContext(request2);
-    const body = request2.body;
+  async verifyEmail(request4) {
+    const ctx = this.createApiContext(request4);
+    const body = request4.body;
     if (!this.isObject(body) || typeof body.token !== "string" || !body.token) {
-      return this.errorResponse("bad_request", "token_required", HTTP_STATUS.BAD_REQUEST, ctx);
+      return this.errorResponse("bad_request", "token_required", HTTP_STATUS2.BAD_REQUEST, ctx);
     }
     try {
       const { default: emailVerificationService } = await Promise.resolve().then(() => (init_auth_email_verification_service(), auth_email_verification_service_exports));
       const ok = await emailVerificationService.activateAccount(String(body.token));
-      if (!ok) return this.errorResponse("bad_request", "invalid_or_expired_token", HTTP_STATUS.BAD_REQUEST, ctx);
-      return success({ message: "email_verified_successfully" }, ctx);
+      if (!ok) return this.errorResponse("bad_request", "invalid_or_expired_token", HTTP_STATUS2.BAD_REQUEST, ctx);
+      return success2({ message: "email_verified_successfully" }, ctx);
     } catch (error) {
       return this.mapError(error, ctx);
     }
   }
-  requestMeta(request2) {
+  requestMeta(request4) {
     return {
-      ip: this.headerValue(request2, "x-forwarded-for") ?? this.headerValue(request2, "x-real-ip"),
-      userAgent: this.headerValue(request2, "user-agent")
+      ip: this.headerValue(request4, "x-forwarded-for") ?? this.headerValue(request4, "x-real-ip"),
+      userAgent: this.headerValue(request4, "user-agent")
     };
   }
-  createApiContext(request2) {
+  createApiContext(request4) {
     return {
-      timestamp: request2.context?.metadata?.timestamp ?? (/* @__PURE__ */ new Date()).toISOString(),
-      requestId: request2.context?.metadata?.requestId,
-      version: request2.context?.metadata?.version ?? "v1",
-      locale: request2.context?.metadata?.locale
+      timestamp: request4.context?.metadata?.timestamp ?? (/* @__PURE__ */ new Date()).toISOString(),
+      requestId: request4.context?.metadata?.requestId,
+      version: request4.context?.metadata?.version ?? "v1",
+      locale: request4.context?.metadata?.locale
     };
   }
-  headerValue(request2, name) {
-    const value = request2.headers?.[name.toLowerCase()];
+  headerValue(request4, name) {
+    const value = request4.headers?.[name.toLowerCase()];
     if (Array.isArray(value)) return value[0];
     return value;
   }
   mapError(error, ctx) {
     if (error instanceof ValidationException) {
-      return this.errorResponse("bad_request", error.message || "bad_request", HTTP_STATUS.BAD_REQUEST, ctx);
+      return this.errorResponse("bad_request", error.message || "bad_request", HTTP_STATUS2.BAD_REQUEST, ctx);
     }
     if (error instanceof UnauthorizedError) {
-      return this.errorResponse("unauthorized", error.message || "unauthorized", HTTP_STATUS.UNAUTHORIZED, ctx);
+      return this.errorResponse("unauthorized", error.message || "unauthorized", HTTP_STATUS2.UNAUTHORIZED, ctx);
     }
     if (error instanceof InvalidTokenError) {
-      return this.errorResponse("unauthorized", error.message || "invalid_token", HTTP_STATUS.UNAUTHORIZED, ctx);
+      return this.errorResponse("unauthorized", error.message || "invalid_token", HTTP_STATUS2.UNAUTHORIZED, ctx);
     }
     if (error instanceof AccountLockedError) {
       return this.errorResponse("account_locked", error.message || "account_locked", 423, ctx);
@@ -1674,7 +1899,7 @@ var AuthController = class _AuthController {
     if (error instanceof RateLimitError) {
       return this.errorResponse("rate_limited", error.message || "rate_limited", 429, ctx);
     }
-    return this.errorResponse("internal_error", error instanceof Error ? error.message : "internal_error", HTTP_STATUS.INTERNAL_SERVER_ERROR, ctx);
+    return this.errorResponse("internal_error", error instanceof Error ? error.message : "internal_error", HTTP_STATUS2.INTERNAL_SERVER_ERROR, ctx);
   }
   errorResponse(code, message, statusCode, ctx) {
     return {
@@ -1961,7 +2186,8 @@ var MODULE_SCOPES = {
   settings: "tenant",
   audit: "tenant",
   notifications: "tenant",
-  carts: "tenant"
+  carts: "tenant",
+  delivery: "tenant"
 };
 function createPermissionDefinition(module, action, description) {
   return {
@@ -2100,6 +2326,13 @@ var PERMISSION_DEFINITIONS = {
     update: "Update cart items",
     delete: "Delete cart items",
     list: "List cart items"
+  }),
+  delivery: createPermissionMap("delivery", {
+    create: "Create delivery records",
+    read: "Read delivery records",
+    update: "Update delivery records",
+    delete: "Delete delivery records",
+    list: "List delivery records"
   })
 };
 var PERMISSION_GROUPS = Object.entries(PERMISSION_DEFINITIONS).map(
@@ -2139,12 +2372,13 @@ function getPermissionsForModuleActions(module, actions) {
 var ROLE_DEFINITIONS = [
   createRoleDefinition("SUPER_ADMIN", "Full access across every module", [...ALL_PERMISSIONS]),
   createRoleDefinition("ADMIN", "Administrative access with audit excluded", ALL_PERMISSIONS.filter((permission) => !permission.startsWith("audit:"))),
-  createRoleDefinition("MANAGER", "Operational access for products, inventory, orders, and customers", getPermissionsForModules(["products", "inventory", "orders", "customers"])),
+  createRoleDefinition("MANAGER", "Operational access for products, inventory, orders, customers, and delivery", getPermissionsForModules(["products", "inventory", "orders", "customers", "delivery"])),
   createRoleDefinition("EMPLOYEE", "Staff operational access for reading products, customers, inventory, and updating orders", [
     ...getPermissionsForModuleActions("products", ["read", "list"]),
     ...getPermissionsForModuleActions("customers", ["read", "list"]),
     ...getPermissionsForModuleActions("orders", ["read", "list", "update"]),
-    ...getPermissionsForModuleActions("inventory", ["read", "list"])
+    ...getPermissionsForModuleActions("inventory", ["read", "list"]),
+    ...getPermissionsForModuleActions("delivery", ["read", "list", "update"])
   ]),
   createRoleDefinition("CUSTOMER", "Read and create access for self-service orders and customer profile", [
     ...getPermissionsForModuleActions("customers", ["read", "list"]),
@@ -2358,12 +2592,12 @@ function normalizePermissions2(permissions) {
 function normalizeRoles(roles) {
   return (roles ?? []).map((role) => role.toString().toUpperCase());
 }
-function buildAuthorizationContext(user, request2) {
+function buildAuthorizationContext(user, request4) {
   return {
     roles: user?.roles,
     permissions: user?.permissions,
     scope: user?.scope,
-    requiredScope: request2?.requiredScope,
+    requiredScope: request4?.requiredScope,
     actorId: user?.id,
     tenantId: user?.tenantId,
     storeId: user?.storeId,
@@ -2376,60 +2610,60 @@ var PermissionMiddleware = class {
   constructor(authorizationService = service_default) {
     this.authorizationService = authorizationService;
   }
-  requirePermission(user, request2) {
-    const context = buildAuthorizationContext(user, request2);
+  requirePermission(user, request4) {
+    const context = buildAuthorizationContext(user, request4);
     const result = this.authorizationService.evaluate(context, {
-      requiredPermissions: request2.requiredPermissions,
-      requiredRoles: request2.requiredRoles,
-      requiredScope: request2.requiredScope,
-      requireAllPermissions: request2.requireAllPermissions
+      requiredPermissions: request4.requiredPermissions,
+      requiredRoles: request4.requiredRoles,
+      requiredScope: request4.requiredScope,
+      requireAllPermissions: request4.requireAllPermissions
     });
     return {
       ...result,
-      requiredPermissions: normalizePermissions2(request2.requiredPermissions)
+      requiredPermissions: normalizePermissions2(request4.requiredPermissions)
     };
   }
-  requireAnyPermission(user, permissions, request2 = {}) {
-    const context = buildAuthorizationContext(user, request2);
+  requireAnyPermission(user, permissions, request4 = {}) {
+    const context = buildAuthorizationContext(user, request4);
     const result = this.authorizationService.hasAnyPermission(context, permissions, {
-      requiredRoles: request2.requiredRoles,
-      requiredScope: request2.requiredScope
+      requiredRoles: request4.requiredRoles,
+      requiredScope: request4.requiredScope
     });
     return {
       ...result,
       requiredPermissions: normalizePermissions2(permissions)
     };
   }
-  requireAllPermissions(user, permissions, request2 = {}) {
-    const context = buildAuthorizationContext(user, request2);
+  requireAllPermissions(user, permissions, request4 = {}) {
+    const context = buildAuthorizationContext(user, request4);
     const result = this.authorizationService.hasAllPermissions(context, permissions, {
-      requiredRoles: request2.requiredRoles,
-      requiredScope: request2.requiredScope
+      requiredRoles: request4.requiredRoles,
+      requiredScope: request4.requiredScope
     });
     return {
       ...result,
       requiredPermissions: normalizePermissions2(permissions)
     };
   }
-  requireRole(user, role, request2 = {}) {
-    const context = buildAuthorizationContext(user, request2);
-    const result = this.authorizationService.hasRole(context, role, { requiredScope: request2.requiredScope });
+  requireRole(user, role, request4 = {}) {
+    const context = buildAuthorizationContext(user, request4);
+    const result = this.authorizationService.hasRole(context, role, { requiredScope: request4.requiredScope });
     return {
       ...result,
       requiredPermissions: []
     };
   }
-  requireAnyRole(user, roles, request2 = {}) {
-    const context = buildAuthorizationContext(user, request2);
-    const result = this.authorizationService.hasAnyRole(context, roles, { requiredScope: request2.requiredScope });
+  requireAnyRole(user, roles, request4 = {}) {
+    const context = buildAuthorizationContext(user, request4);
+    const result = this.authorizationService.hasAnyRole(context, roles, { requiredScope: request4.requiredScope });
     return {
       ...result,
       requiredPermissions: []
     };
   }
-  requireSuperAdmin(user, request2 = {}) {
-    const context = buildAuthorizationContext(user, request2);
-    const result = this.authorizationService.isSuperAdmin(context, { requiredScope: request2.requiredScope });
+  requireSuperAdmin(user, request4 = {}) {
+    const context = buildAuthorizationContext(user, request4);
+    const result = this.authorizationService.isSuperAdmin(context, { requiredScope: request4.requiredScope });
     return {
       ...result,
       requiredPermissions: []
@@ -2614,16 +2848,16 @@ var SystemController = class {
     this.service = service;
   }
   getHealth() {
-    return success(this.service.getHealth(), this.createApiContext());
+    return success2(this.service.getHealth(), this.createApiContext());
   }
   getReady() {
-    return success(this.service.getReady(), this.createApiContext());
+    return success2(this.service.getReady(), this.createApiContext());
   }
   getLive() {
-    return success(this.service.getLive(), this.createApiContext());
+    return success2(this.service.getLive(), this.createApiContext());
   }
   getVersion() {
-    return success(this.service.getVersion(), this.createApiContext());
+    return success2(this.service.getVersion(), this.createApiContext());
   }
   createApiContext() {
     return {
@@ -2705,107 +2939,6 @@ function createSystemRoutes(controller = new SystemController()) {
   });
   return builder.build();
 }
-
-// ../backend/src/repositories/base-repository.ts
-init_prisma_service();
-var BaseRepository = class {
-  client = prisma_service_default.getClient();
-  modelName;
-  constructor(modelName) {
-    this.modelName = modelName;
-  }
-  get model() {
-    return this.client[this.modelName];
-  }
-  async findById(id) {
-    const result = await this.model.findUnique({ where: { id } });
-    return result ?? null;
-  }
-  async findMany(filter) {
-    const where = filter ?? {};
-    const results = await this.model.findMany({ where });
-    return results ?? [];
-  }
-  async create(data) {
-    return this.model.create({ data });
-  }
-  async update(id, data) {
-    return this.model.update({ where: { id }, data });
-  }
-  async delete(id) {
-    try {
-      await this.model.update({ where: { id }, data: { deletedAt: /* @__PURE__ */ new Date() } });
-    } catch (err) {
-      await this.model.delete({ where: { id } });
-    }
-  }
-  async restore(id) {
-    return this.model.update({ where: { id }, data: { deletedAt: null } });
-  }
-  async exists(id) {
-    const count = await this.model.count({ where: { id } });
-    return count > 0;
-  }
-  async count(filter) {
-    const where = filter ?? {};
-    return this.model.count({ where });
-  }
-  async paginate(options) {
-    const page = Math.max(1, options.page ?? 1);
-    const limit = Math.max(1, Math.min(100, options.limit ?? 25));
-    const skip = (page - 1) * limit;
-    const rawWhere = options.filters ?? {};
-    const cleanWhere = (obj) => {
-      if (obj == null) return {};
-      if (Array.isArray(obj)) {
-        const arr = obj.map(cleanWhere).filter((x) => {
-          return !(x && typeof x === "object" && Object.keys(x).length === 0);
-        });
-        return arr.length > 0 ? arr : void 0;
-      }
-      if (typeof obj !== "object") return obj;
-      const out = {};
-      for (const [k, v] of Object.entries(obj)) {
-        if (v === void 0) continue;
-        if ((k === "AND" || k === "OR" || k === "NOT") && Array.isArray(v)) {
-          const cleaned = cleanWhere(v);
-          if (cleaned !== void 0 && cleaned.length > 0) out[k] = cleaned;
-        } else if (v && typeof v === "object") {
-          const cleaned = cleanWhere(v);
-          if (cleaned !== void 0 && (typeof cleaned !== "object" || Object.keys(cleaned).length > 0)) {
-            out[k] = cleaned;
-          }
-        } else if (v !== void 0) {
-          out[k] = v;
-        }
-      }
-      return Object.keys(out).length > 0 ? out : void 0;
-    };
-    const where = cleanWhere(rawWhere) ?? {};
-    const orderBy = options.sort && (options.order === "asc" || options.order === "desc") ? { [options.sort]: options.order } : void 0;
-    let data = [];
-    let total = 0;
-    try {
-      const res = await Promise.all([
-        this.model.findMany({ where, skip, take: limit, orderBy }),
-        this.model.count({ where })
-      ]);
-      data = res[0] ?? [];
-      total = res[1] ?? 0;
-    } catch (err) {
-      const debug = { where, orderBy, skip, take: limit };
-      const msg = `paginate_error: ${err?.message ?? "unknown"} -- query: ${JSON.stringify(debug)}`;
-      throw new Error(msg);
-    }
-    return {
-      data,
-      total,
-      page,
-      limit
-    };
-  }
-};
-var base_repository_default = BaseRepository;
 
 // ../backend/src/repositories/tenant-repository.ts
 var TenantRepository = class extends base_repository_default {
@@ -3572,32 +3705,6 @@ var CartRepository = class extends base_repository_default {
 };
 var cart_repository_default = CartRepository;
 
-// ../backend/src/repositories/exceptions.ts
-var DatabaseException = class extends Error {
-  constructor(message) {
-    super(message ?? "Database error");
-    this.name = "DatabaseException";
-  }
-};
-var NotFoundException = class extends Error {
-  constructor(message) {
-    super(message ?? "Resource not found");
-    this.name = "NotFoundException";
-  }
-};
-var ConflictException = class extends Error {
-  constructor(message) {
-    super(message ?? "Conflict");
-    this.name = "ConflictException";
-  }
-};
-var ValidationException2 = class extends Error {
-  constructor(message) {
-    super(message ?? "Validation failed");
-    this.name = "ValidationException";
-  }
-};
-
 // ../backend/src/repositories/order-repository.ts
 var ALLOWED_TRANSITIONS = {
   DRAFT: ["PENDING", "CONFIRMED", "CANCELED"],
@@ -3740,6 +3847,20 @@ var OrderRepository = class extends base_repository_default {
     const orderResult = createdOrder;
     if (cacheKey) {
       idempotencyStore.set(cacheKey, { order: orderResult, createdAt: Date.now() });
+    }
+    try {
+      await new notification_repository_default().createForManagementUsers({
+        title: "\u0637\u0644\u0628 \u062C\u062F\u064A\u062F \u0648\u0635\u0644",
+        body: `\u0627\u0644\u0637\u0644\u0628 ${orderResult.code} \u0628\u0642\u064A\u0645\u0629 ${Number(orderResult.total).toLocaleString("ar-YE")} \u0631.\u064A.`,
+        channel: "admin",
+        payload: {
+          type: "order_created",
+          orderId: orderResult.id,
+          orderCode: orderResult.code,
+          total: orderResult.total
+        }
+      });
+    } catch {
     }
     return orderResult;
   }
@@ -3948,66 +4069,6 @@ var PaymentRepository = class extends base_repository_default {
   }
 };
 var payment_repository_default = PaymentRepository;
-
-// ../backend/src/repositories/notification-repository.ts
-var NotificationRepository = class extends base_repository_default {
-  constructor() {
-    super("notification");
-  }
-  async createNotification(data) {
-    return this.client.notification.create({
-      data: {
-        userId: data.userId,
-        title: data.title,
-        body: data.body,
-        channel: data.channel ?? "SYSTEM",
-        read: false,
-        payload: data.payload ? JSON.stringify(data.payload) : null
-      }
-    });
-  }
-  async findUserNotifications(userId, limit = 30) {
-    const [items, unreadCount] = await Promise.all([
-      this.client.notification.findMany({
-        where: { userId },
-        orderBy: { createdAt: "desc" },
-        take: limit
-      }),
-      this.client.notification.count({
-        where: { userId, read: false }
-      })
-    ]);
-    return {
-      items,
-      unreadCount
-    };
-  }
-  async getUnreadCount(userId) {
-    return this.client.notification.count({
-      where: { userId, read: false }
-    });
-  }
-  async markAsRead(notificationId, userId) {
-    const existing = await this.client.notification.findUnique({
-      where: { id: notificationId }
-    });
-    if (!existing || existing.userId !== userId) {
-      throw new NotFoundException("notification_not_found");
-    }
-    return this.client.notification.update({
-      where: { id: notificationId },
-      data: { read: true }
-    });
-  }
-  async markAllAsRead(userId) {
-    const result = await this.client.notification.updateMany({
-      where: { userId, read: false },
-      data: { read: true }
-    });
-    return result.count;
-  }
-};
-var notification_repository_default = NotificationRepository;
 
 // ../backend/src/repositories/audit-repository.ts
 var SENSITIVE_KEYS = ["password", "passwordHash", "token", "jwt", "secret", "creditCard"];
@@ -5136,12 +5197,12 @@ var ServiceFactory = {
 // ../backend/src/modules/users/controller.ts
 var UsersController = class {
   userService = ServiceFactory.createUserService();
-  createApiContext(request2) {
+  createApiContext(request4) {
     return {
-      timestamp: request2.context?.metadata?.timestamp ?? (/* @__PURE__ */ new Date()).toISOString(),
-      requestId: request2.context?.metadata?.requestId,
-      version: request2.context?.metadata?.version ?? "v1",
-      locale: request2.context?.metadata?.locale
+      timestamp: request4.context?.metadata?.timestamp ?? (/* @__PURE__ */ new Date()).toISOString(),
+      requestId: request4.context?.metadata?.requestId,
+      version: request4.context?.metadata?.version ?? "v1",
+      locale: request4.context?.metadata?.locale
     };
   }
   mapToDto(entity) {
@@ -5155,9 +5216,9 @@ var UsersController = class {
       deletedAt: entity.deletedAt ? new Date(entity.deletedAt).toISOString() : null
     };
   }
-  async list(request2) {
-    const ctx = this.createApiContext(request2);
-    const q = request2.query ?? {};
+  async list(request4) {
+    const ctx = this.createApiContext(request4);
+    const q = request4.query ?? {};
     const page = Number(q.page ?? 1);
     const limit = Number(q.limit ?? 25);
     const rawSort = q.sort ?? void 0;
@@ -5195,127 +5256,127 @@ var UsersController = class {
       }
       const resultAny = await this.userService.paginate(options);
       const data = (resultAny.data ?? []).map((e) => this.mapToDto(e));
-      return paginated(data, resultAny.page ?? page, resultAny.limit ?? limit, resultAny.total ?? 0, ctx);
+      return paginated2(data, resultAny.page ?? page, resultAny.limit ?? limit, resultAny.total ?? 0, ctx);
     } catch (err) {
-      return { statusCode: HTTP_STATUS.INTERNAL_SERVER_ERROR, body: { success: false, error: { code: "internal_error", message: err?.message ?? "internal_error" }, meta: ctx } };
+      return { statusCode: HTTP_STATUS2.INTERNAL_SERVER_ERROR, body: { success: false, error: { code: "internal_error", message: err?.message ?? "internal_error" }, meta: ctx } };
     }
   }
-  async get(request2) {
-    const ctx = this.createApiContext(request2);
-    const id = request2.params?.id;
-    if (!id) return { statusCode: HTTP_STATUS.BAD_REQUEST, body: { success: false, error: { code: "bad_request", message: "id_required" }, meta: ctx } };
+  async get(request4) {
+    const ctx = this.createApiContext(request4);
+    const id = request4.params?.id;
+    if (!id) return { statusCode: HTTP_STATUS2.BAD_REQUEST, body: { success: false, error: { code: "bad_request", message: "id_required" }, meta: ctx } };
     try {
       const result = await this.userService.findById(id);
-      if (!result) return { statusCode: HTTP_STATUS.NOT_FOUND, body: { success: false, error: { code: "not_found", message: "user_not_found" }, meta: ctx } };
-      return success(this.mapToDto(result), ctx);
+      if (!result) return { statusCode: HTTP_STATUS2.NOT_FOUND, body: { success: false, error: { code: "not_found", message: "user_not_found" }, meta: ctx } };
+      return success2(this.mapToDto(result), ctx);
     } catch (err) {
-      return { statusCode: HTTP_STATUS.INTERNAL_SERVER_ERROR, body: { success: false, error: { code: "internal_error", message: err?.message ?? "internal_error" }, meta: ctx } };
+      return { statusCode: HTTP_STATUS2.INTERNAL_SERVER_ERROR, body: { success: false, error: { code: "internal_error", message: err?.message ?? "internal_error" }, meta: ctx } };
     }
   }
-  async create(request2) {
-    const ctx = this.createApiContext(request2);
-    const body = request2.body;
+  async create(request4) {
+    const ctx = this.createApiContext(request4);
+    const body = request4.body;
     if (!body || typeof body !== "object" || typeof body.email !== "string" || !body.email) {
-      return { statusCode: HTTP_STATUS.BAD_REQUEST, body: { success: false, error: { code: "bad_request", message: "email_required" }, meta: ctx } };
+      return { statusCode: HTTP_STATUS2.BAD_REQUEST, body: { success: false, error: { code: "bad_request", message: "email_required" }, meta: ctx } };
     }
     try {
       const createdUser = await this.userService.create(body);
-      return created(this.mapToDto(createdUser), ctx);
+      return created2(this.mapToDto(createdUser), ctx);
     } catch (err) {
       if (err instanceof ValidationException) {
-        return { statusCode: HTTP_STATUS.UNPROCESSABLE_ENTITY, body: { success: false, error: { code: "validation_error", message: err.message }, meta: ctx } };
+        return { statusCode: HTTP_STATUS2.UNPROCESSABLE_ENTITY, body: { success: false, error: { code: "validation_error", message: err.message }, meta: ctx } };
       }
-      return { statusCode: HTTP_STATUS.INTERNAL_SERVER_ERROR, body: { success: false, error: { code: "internal_error", message: err?.message ?? "internal_error" }, meta: ctx } };
+      return { statusCode: HTTP_STATUS2.INTERNAL_SERVER_ERROR, body: { success: false, error: { code: "internal_error", message: err?.message ?? "internal_error" }, meta: ctx } };
     }
   }
-  async update(request2) {
-    const ctx = this.createApiContext(request2);
-    const id = request2.params?.id;
-    const body = request2.body;
-    if (!id) return { statusCode: HTTP_STATUS.BAD_REQUEST, body: { success: false, error: { code: "bad_request", message: "id_required" }, meta: ctx } };
-    if (!body || typeof body !== "object") return { statusCode: HTTP_STATUS.BAD_REQUEST, body: { success: false, error: { code: "bad_request", message: "data_required" }, meta: ctx } };
+  async update(request4) {
+    const ctx = this.createApiContext(request4);
+    const id = request4.params?.id;
+    const body = request4.body;
+    if (!id) return { statusCode: HTTP_STATUS2.BAD_REQUEST, body: { success: false, error: { code: "bad_request", message: "id_required" }, meta: ctx } };
+    if (!body || typeof body !== "object") return { statusCode: HTTP_STATUS2.BAD_REQUEST, body: { success: false, error: { code: "bad_request", message: "data_required" }, meta: ctx } };
     try {
       const updated = await this.userService.update(id, body);
-      return success(this.mapToDto(updated), ctx);
+      return success2(this.mapToDto(updated), ctx);
     } catch (err) {
       if (err instanceof ValidationException) {
-        return { statusCode: HTTP_STATUS.UNPROCESSABLE_ENTITY, body: { success: false, error: { code: "validation_error", message: err.message }, meta: ctx } };
+        return { statusCode: HTTP_STATUS2.UNPROCESSABLE_ENTITY, body: { success: false, error: { code: "validation_error", message: err.message }, meta: ctx } };
       }
-      return { statusCode: HTTP_STATUS.INTERNAL_SERVER_ERROR, body: { success: false, error: { code: "internal_error", message: err?.message ?? "internal_error" }, meta: ctx } };
+      return { statusCode: HTTP_STATUS2.INTERNAL_SERVER_ERROR, body: { success: false, error: { code: "internal_error", message: err?.message ?? "internal_error" }, meta: ctx } };
     }
   }
-  async remove(request2) {
-    const ctx = this.createApiContext(request2);
-    const id = request2.params?.id;
-    if (!id) return { statusCode: HTTP_STATUS.BAD_REQUEST, body: { success: false, error: { code: "bad_request", message: "id_required" }, meta: ctx } };
+  async remove(request4) {
+    const ctx = this.createApiContext(request4);
+    const id = request4.params?.id;
+    if (!id) return { statusCode: HTTP_STATUS2.BAD_REQUEST, body: { success: false, error: { code: "bad_request", message: "id_required" }, meta: ctx } };
     try {
       await this.userService.delete(id);
-      return noContent(ctx);
+      return noContent2(ctx);
     } catch (err) {
-      return { statusCode: HTTP_STATUS.INTERNAL_SERVER_ERROR, body: { success: false, error: { code: "internal_error", message: err?.message ?? "internal_error" }, meta: ctx } };
+      return { statusCode: HTTP_STATUS2.INTERNAL_SERVER_ERROR, body: { success: false, error: { code: "internal_error", message: err?.message ?? "internal_error" }, meta: ctx } };
     }
   }
-  async restore(request2) {
-    const ctx = this.createApiContext(request2);
-    const id = request2.params?.id;
-    if (!id) return { statusCode: HTTP_STATUS.BAD_REQUEST, body: { success: false, error: { code: "bad_request", message: "id_required" }, meta: ctx } };
+  async restore(request4) {
+    const ctx = this.createApiContext(request4);
+    const id = request4.params?.id;
+    if (!id) return { statusCode: HTTP_STATUS2.BAD_REQUEST, body: { success: false, error: { code: "bad_request", message: "id_required" }, meta: ctx } };
     try {
       const restored = await this.userService.restore(id);
-      return success(this.mapToDto(restored), ctx);
+      return success2(this.mapToDto(restored), ctx);
     } catch (err) {
-      return { statusCode: HTTP_STATUS.INTERNAL_SERVER_ERROR, body: { success: false, error: { code: "internal_error", message: err?.message ?? "internal_error" }, meta: ctx } };
+      return { statusCode: HTTP_STATUS2.INTERNAL_SERVER_ERROR, body: { success: false, error: { code: "internal_error", message: err?.message ?? "internal_error" }, meta: ctx } };
     }
   }
-  async listRoles(request2) {
-    const ctx = this.createApiContext(request2);
-    const userId = request2.params?.userId;
-    if (!userId) return { statusCode: HTTP_STATUS.BAD_REQUEST, body: { success: false, error: { code: "bad_request", message: "user_id_required" }, meta: ctx } };
+  async listRoles(request4) {
+    const ctx = this.createApiContext(request4);
+    const userId = request4.params?.userId;
+    if (!userId) return { statusCode: HTTP_STATUS2.BAD_REQUEST, body: { success: false, error: { code: "bad_request", message: "user_id_required" }, meta: ctx } };
     try {
       const result = await this.userService.listRoles(userId);
       const roles = (result.roles ?? []).map((assignment) => assignment.role ?? assignment);
-      return success({ userId: result.userId, roles }, ctx);
+      return success2({ userId: result.userId, roles }, ctx);
     } catch (err) {
       return this.relationshipError(err, ctx);
     }
   }
-  async assignRole(request2) {
-    const ctx = this.createApiContext(request2);
-    const userId = request2.params?.userId;
-    const roleId = request2.body?.roleId;
-    if (!userId || !roleId) return { statusCode: HTTP_STATUS.BAD_REQUEST, body: { success: false, error: { code: "bad_request", message: "user_id_and_role_id_required" }, meta: ctx } };
+  async assignRole(request4) {
+    const ctx = this.createApiContext(request4);
+    const userId = request4.params?.userId;
+    const roleId = request4.body?.roleId;
+    if (!userId || !roleId) return { statusCode: HTTP_STATUS2.BAD_REQUEST, body: { success: false, error: { code: "bad_request", message: "user_id_and_role_id_required" }, meta: ctx } };
     try {
-      return created(await this.userService.assignRole(userId, roleId), ctx);
+      return created2(await this.userService.assignRole(userId, roleId), ctx);
     } catch (err) {
       return this.relationshipError(err, ctx);
     }
   }
-  async removeRole(request2) {
-    const ctx = this.createApiContext(request2);
-    const userId = request2.params?.userId;
-    const roleId = request2.params?.roleId;
-    if (!userId || !roleId) return { statusCode: HTTP_STATUS.BAD_REQUEST, body: { success: false, error: { code: "bad_request", message: "user_id_and_role_id_required" }, meta: ctx } };
+  async removeRole(request4) {
+    const ctx = this.createApiContext(request4);
+    const userId = request4.params?.userId;
+    const roleId = request4.params?.roleId;
+    if (!userId || !roleId) return { statusCode: HTTP_STATUS2.BAD_REQUEST, body: { success: false, error: { code: "bad_request", message: "user_id_and_role_id_required" }, meta: ctx } };
     try {
       await this.userService.removeRole(userId, roleId);
-      return noContent(ctx);
+      return noContent2(ctx);
     } catch (err) {
       return this.relationshipError(err, ctx);
     }
   }
-  async checkRole(request2) {
-    const ctx = this.createApiContext(request2);
-    const userId = request2.params?.userId;
-    const roleId = request2.params?.roleId;
-    if (!userId || !roleId) return { statusCode: HTTP_STATUS.BAD_REQUEST, body: { success: false, error: { code: "bad_request", message: "user_id_and_role_id_required" }, meta: ctx } };
+  async checkRole(request4) {
+    const ctx = this.createApiContext(request4);
+    const userId = request4.params?.userId;
+    const roleId = request4.params?.roleId;
+    if (!userId || !roleId) return { statusCode: HTTP_STATUS2.BAD_REQUEST, body: { success: false, error: { code: "bad_request", message: "user_id_and_role_id_required" }, meta: ctx } };
     try {
-      return success({ assigned: await this.userService.checkRole(userId, roleId) }, ctx);
+      return success2({ assigned: await this.userService.checkRole(userId, roleId) }, ctx);
     } catch (err) {
       return this.relationshipError(err, ctx);
     }
   }
   relationshipError(err, ctx) {
-    if (err instanceof ConflictException) return { statusCode: HTTP_STATUS.CONFLICT, body: { success: false, error: { code: "conflict", message: err.message }, meta: ctx } };
-    if (err instanceof NotFoundException) return { statusCode: HTTP_STATUS.NOT_FOUND, body: { success: false, error: { code: "not_found", message: err.message }, meta: ctx } };
-    return { statusCode: HTTP_STATUS.INTERNAL_SERVER_ERROR, body: { success: false, error: { code: "internal_error", message: err?.message ?? "internal_error" }, meta: ctx } };
+    if (err instanceof ConflictException) return { statusCode: HTTP_STATUS2.CONFLICT, body: { success: false, error: { code: "conflict", message: err.message }, meta: ctx } };
+    if (err instanceof NotFoundException) return { statusCode: HTTP_STATUS2.NOT_FOUND, body: { success: false, error: { code: "not_found", message: err.message }, meta: ctx } };
+    return { statusCode: HTTP_STATUS2.INTERNAL_SERVER_ERROR, body: { success: false, error: { code: "internal_error", message: err?.message ?? "internal_error" }, meta: ctx } };
   }
 };
 var controller_default = UsersController;
@@ -5512,12 +5573,12 @@ function createUserRoutes(controller = new controller_default()) {
 // ../backend/src/modules/roles/controller.ts
 var RolesController = class {
   roleService = ServiceFactory.createRoleService();
-  createApiContext(request2) {
+  createApiContext(request4) {
     return {
-      timestamp: request2.context?.metadata?.timestamp ?? (/* @__PURE__ */ new Date()).toISOString(),
-      requestId: request2.context?.metadata?.requestId,
-      version: request2.context?.metadata?.version ?? "v1",
-      locale: request2.context?.metadata?.locale
+      timestamp: request4.context?.metadata?.timestamp ?? (/* @__PURE__ */ new Date()).toISOString(),
+      requestId: request4.context?.metadata?.requestId,
+      version: request4.context?.metadata?.version ?? "v1",
+      locale: request4.context?.metadata?.locale
     };
   }
   mapToDto(entity) {
@@ -5532,9 +5593,9 @@ var RolesController = class {
       deletedAt: entity.deletedAt ? new Date(entity.deletedAt).toISOString() : null
     };
   }
-  async list(request2) {
-    const ctx = this.createApiContext(request2);
-    const q = request2.query ?? {};
+  async list(request4) {
+    const ctx = this.createApiContext(request4);
+    const q = request4.query ?? {};
     const page = Number(q.page ?? 1);
     const limit = Number(q.limit ?? 25);
     const rawSort = q.sort ?? void 0;
@@ -5572,28 +5633,28 @@ var RolesController = class {
       }
       const resultAny = await this.roleService.paginate(options);
       const data = (resultAny.data ?? []).map((e) => this.mapToDto(e));
-      return paginated(data, resultAny.page ?? page, resultAny.limit ?? limit, resultAny.total ?? 0, ctx);
+      return paginated2(data, resultAny.page ?? page, resultAny.limit ?? limit, resultAny.total ?? 0, ctx);
     } catch (err) {
-      return { statusCode: HTTP_STATUS.INTERNAL_SERVER_ERROR, body: { success: false, error: { code: "internal_error", message: err?.message ?? "internal_error" }, meta: ctx } };
+      return { statusCode: HTTP_STATUS2.INTERNAL_SERVER_ERROR, body: { success: false, error: { code: "internal_error", message: err?.message ?? "internal_error" }, meta: ctx } };
     }
   }
-  async get(request2) {
-    const ctx = this.createApiContext(request2);
-    const id = request2.params?.id;
-    if (!id) return { statusCode: HTTP_STATUS.BAD_REQUEST, body: { success: false, error: { code: "bad_request", message: "id_required" }, meta: ctx } };
+  async get(request4) {
+    const ctx = this.createApiContext(request4);
+    const id = request4.params?.id;
+    if (!id) return { statusCode: HTTP_STATUS2.BAD_REQUEST, body: { success: false, error: { code: "bad_request", message: "id_required" }, meta: ctx } };
     try {
       const result = await this.roleService.findById(id);
-      if (!result) return { statusCode: HTTP_STATUS.NOT_FOUND, body: { success: false, error: { code: "not_found", message: "role_not_found" }, meta: ctx } };
-      return success(this.mapToDto(result), ctx);
+      if (!result) return { statusCode: HTTP_STATUS2.NOT_FOUND, body: { success: false, error: { code: "not_found", message: "role_not_found" }, meta: ctx } };
+      return success2(this.mapToDto(result), ctx);
     } catch (err) {
-      return { statusCode: HTTP_STATUS.INTERNAL_SERVER_ERROR, body: { success: false, error: { code: "internal_error", message: err?.message ?? "internal_error" }, meta: ctx } };
+      return { statusCode: HTTP_STATUS2.INTERNAL_SERVER_ERROR, body: { success: false, error: { code: "internal_error", message: err?.message ?? "internal_error" }, meta: ctx } };
     }
   }
-  async create(request2) {
-    const ctx = this.createApiContext(request2);
-    const body = request2.body;
+  async create(request4) {
+    const ctx = this.createApiContext(request4);
+    const body = request4.body;
     if (!body || typeof body !== "object" || typeof body.name !== "string" || !body.name) {
-      return { statusCode: HTTP_STATUS.BAD_REQUEST, body: { success: false, error: { code: "bad_request", message: "name_required" }, meta: ctx } };
+      return { statusCode: HTTP_STATUS2.BAD_REQUEST, body: { success: false, error: { code: "bad_request", message: "name_required" }, meta: ctx } };
     }
     try {
       const payload = {
@@ -5601,52 +5662,52 @@ var RolesController = class {
       };
       if (body.description !== void 0) payload.description = body.description;
       const createdRole = await this.roleService.create(payload);
-      return created(this.mapToDto(createdRole), ctx);
+      return created2(this.mapToDto(createdRole), ctx);
     } catch (err) {
       if (err instanceof ValidationException) {
-        return { statusCode: HTTP_STATUS.UNPROCESSABLE_ENTITY, body: { success: false, error: { code: "validation_error", message: err.message }, meta: ctx } };
+        return { statusCode: HTTP_STATUS2.UNPROCESSABLE_ENTITY, body: { success: false, error: { code: "validation_error", message: err.message }, meta: ctx } };
       }
-      return { statusCode: HTTP_STATUS.INTERNAL_SERVER_ERROR, body: { success: false, error: { code: "internal_error", message: err?.message ?? "internal_error" }, meta: ctx } };
+      return { statusCode: HTTP_STATUS2.INTERNAL_SERVER_ERROR, body: { success: false, error: { code: "internal_error", message: err?.message ?? "internal_error" }, meta: ctx } };
     }
   }
-  async update(request2) {
-    const ctx = this.createApiContext(request2);
-    const id = request2.params?.id;
-    const body = request2.body;
-    if (!id) return { statusCode: HTTP_STATUS.BAD_REQUEST, body: { success: false, error: { code: "bad_request", message: "id_required" }, meta: ctx } };
-    if (!body || typeof body !== "object") return { statusCode: HTTP_STATUS.BAD_REQUEST, body: { success: false, error: { code: "bad_request", message: "data_required" }, meta: ctx } };
+  async update(request4) {
+    const ctx = this.createApiContext(request4);
+    const id = request4.params?.id;
+    const body = request4.body;
+    if (!id) return { statusCode: HTTP_STATUS2.BAD_REQUEST, body: { success: false, error: { code: "bad_request", message: "id_required" }, meta: ctx } };
+    if (!body || typeof body !== "object") return { statusCode: HTTP_STATUS2.BAD_REQUEST, body: { success: false, error: { code: "bad_request", message: "data_required" }, meta: ctx } };
     try {
       const payload = {};
       if (body.description !== void 0) payload.description = body.description;
       const updated = await this.roleService.update(id, payload);
-      return success(this.mapToDto(updated), ctx);
+      return success2(this.mapToDto(updated), ctx);
     } catch (err) {
       if (err instanceof ValidationException) {
-        return { statusCode: HTTP_STATUS.UNPROCESSABLE_ENTITY, body: { success: false, error: { code: "validation_error", message: err.message }, meta: ctx } };
+        return { statusCode: HTTP_STATUS2.UNPROCESSABLE_ENTITY, body: { success: false, error: { code: "validation_error", message: err.message }, meta: ctx } };
       }
-      return { statusCode: HTTP_STATUS.INTERNAL_SERVER_ERROR, body: { success: false, error: { code: "internal_error", message: err?.message ?? "internal_error" }, meta: ctx } };
+      return { statusCode: HTTP_STATUS2.INTERNAL_SERVER_ERROR, body: { success: false, error: { code: "internal_error", message: err?.message ?? "internal_error" }, meta: ctx } };
     }
   }
-  async remove(request2) {
-    const ctx = this.createApiContext(request2);
-    const id = request2.params?.id;
-    if (!id) return { statusCode: HTTP_STATUS.BAD_REQUEST, body: { success: false, error: { code: "bad_request", message: "id_required" }, meta: ctx } };
+  async remove(request4) {
+    const ctx = this.createApiContext(request4);
+    const id = request4.params?.id;
+    if (!id) return { statusCode: HTTP_STATUS2.BAD_REQUEST, body: { success: false, error: { code: "bad_request", message: "id_required" }, meta: ctx } };
     try {
       await this.roleService.delete(id);
-      return noContent(ctx);
+      return noContent2(ctx);
     } catch (err) {
-      return { statusCode: HTTP_STATUS.INTERNAL_SERVER_ERROR, body: { success: false, error: { code: "internal_error", message: err?.message ?? "internal_error" }, meta: ctx } };
+      return { statusCode: HTTP_STATUS2.INTERNAL_SERVER_ERROR, body: { success: false, error: { code: "internal_error", message: err?.message ?? "internal_error" }, meta: ctx } };
     }
   }
-  async restore(request2) {
-    const ctx = this.createApiContext(request2);
-    const id = request2.params?.id;
-    if (!id) return { statusCode: HTTP_STATUS.BAD_REQUEST, body: { success: false, error: { code: "bad_request", message: "id_required" }, meta: ctx } };
+  async restore(request4) {
+    const ctx = this.createApiContext(request4);
+    const id = request4.params?.id;
+    if (!id) return { statusCode: HTTP_STATUS2.BAD_REQUEST, body: { success: false, error: { code: "bad_request", message: "id_required" }, meta: ctx } };
     try {
       const restored = await this.roleService.restore(id);
-      return success(this.mapToDto(restored), ctx);
+      return success2(this.mapToDto(restored), ctx);
     } catch (err) {
-      return { statusCode: HTTP_STATUS.INTERNAL_SERVER_ERROR, body: { success: false, error: { code: "internal_error", message: err?.message ?? "internal_error" }, meta: ctx } };
+      return { statusCode: HTTP_STATUS2.INTERNAL_SERVER_ERROR, body: { success: false, error: { code: "internal_error", message: err?.message ?? "internal_error" }, meta: ctx } };
     }
   }
   mapPermissionEntity(entity) {
@@ -5665,65 +5726,65 @@ var RolesController = class {
       } : null
     };
   }
-  async listPermissions(request2) {
-    const ctx = this.createApiContext(request2);
-    const roleId = request2.params?.roleId;
-    if (!roleId) return { statusCode: HTTP_STATUS.BAD_REQUEST, body: { success: false, error: { code: "bad_request", message: "role_id_required" }, meta: ctx } };
+  async listPermissions(request4) {
+    const ctx = this.createApiContext(request4);
+    const roleId = request4.params?.roleId;
+    if (!roleId) return { statusCode: HTTP_STATUS2.BAD_REQUEST, body: { success: false, error: { code: "bad_request", message: "role_id_required" }, meta: ctx } };
     try {
       const result = await this.roleService.listPermissions(roleId);
       const dto = {
         role: this.mapToDto(result.role),
         permissions: (result.permissions ?? []).map((e) => this.mapPermissionEntity(e))
       };
-      return success(dto, ctx);
+      return success2(dto, ctx);
     } catch (err) {
-      if (err instanceof NotFoundException) return { statusCode: HTTP_STATUS.NOT_FOUND, body: { success: false, error: { code: "not_found", message: err.message }, meta: ctx } };
-      return { statusCode: HTTP_STATUS.INTERNAL_SERVER_ERROR, body: { success: false, error: { code: "internal_error", message: err?.message ?? "internal_error" }, meta: ctx } };
+      if (err instanceof NotFoundException) return { statusCode: HTTP_STATUS2.NOT_FOUND, body: { success: false, error: { code: "not_found", message: err.message }, meta: ctx } };
+      return { statusCode: HTTP_STATUS2.INTERNAL_SERVER_ERROR, body: { success: false, error: { code: "internal_error", message: err?.message ?? "internal_error" }, meta: ctx } };
     }
   }
-  async assignPermission(request2) {
-    const ctx = this.createApiContext(request2);
-    const roleId = request2.params?.roleId;
-    const body = request2.body;
-    if (!roleId) return { statusCode: HTTP_STATUS.BAD_REQUEST, body: { success: false, error: { code: "bad_request", message: "role_id_required" }, meta: ctx } };
+  async assignPermission(request4) {
+    const ctx = this.createApiContext(request4);
+    const roleId = request4.params?.roleId;
+    const body = request4.body;
+    if (!roleId) return { statusCode: HTTP_STATUS2.BAD_REQUEST, body: { success: false, error: { code: "bad_request", message: "role_id_required" }, meta: ctx } };
     if (!body || typeof body !== "object" || typeof body.permissionId !== "string" || !body.permissionId) {
-      return { statusCode: HTTP_STATUS.BAD_REQUEST, body: { success: false, error: { code: "bad_request", message: "permission_id_required" }, meta: ctx } };
+      return { statusCode: HTTP_STATUS2.BAD_REQUEST, body: { success: false, error: { code: "bad_request", message: "permission_id_required" }, meta: ctx } };
     }
     try {
       const result = await this.roleService.assignPermission(roleId, body.permissionId);
-      return created(this.mapPermissionEntity(result), ctx);
+      return created2(this.mapPermissionEntity(result), ctx);
     } catch (err) {
-      if (err instanceof NotFoundException) return { statusCode: HTTP_STATUS.NOT_FOUND, body: { success: false, error: { code: "not_found", message: err.message }, meta: ctx } };
-      if (err instanceof ConflictException) return { statusCode: HTTP_STATUS.CONFLICT, body: { success: false, error: { code: "conflict", message: err.message }, meta: ctx } };
-      return { statusCode: HTTP_STATUS.INTERNAL_SERVER_ERROR, body: { success: false, error: { code: "internal_error", message: err?.message ?? "internal_error" }, meta: ctx } };
+      if (err instanceof NotFoundException) return { statusCode: HTTP_STATUS2.NOT_FOUND, body: { success: false, error: { code: "not_found", message: err.message }, meta: ctx } };
+      if (err instanceof ConflictException) return { statusCode: HTTP_STATUS2.CONFLICT, body: { success: false, error: { code: "conflict", message: err.message }, meta: ctx } };
+      return { statusCode: HTTP_STATUS2.INTERNAL_SERVER_ERROR, body: { success: false, error: { code: "internal_error", message: err?.message ?? "internal_error" }, meta: ctx } };
     }
   }
-  async removePermission(request2) {
-    const ctx = this.createApiContext(request2);
-    const roleId = request2.params?.roleId;
-    const permissionId = request2.params?.permissionId;
-    if (!roleId) return { statusCode: HTTP_STATUS.BAD_REQUEST, body: { success: false, error: { code: "bad_request", message: "role_id_required" }, meta: ctx } };
-    if (!permissionId) return { statusCode: HTTP_STATUS.BAD_REQUEST, body: { success: false, error: { code: "bad_request", message: "permission_id_required" }, meta: ctx } };
+  async removePermission(request4) {
+    const ctx = this.createApiContext(request4);
+    const roleId = request4.params?.roleId;
+    const permissionId = request4.params?.permissionId;
+    if (!roleId) return { statusCode: HTTP_STATUS2.BAD_REQUEST, body: { success: false, error: { code: "bad_request", message: "role_id_required" }, meta: ctx } };
+    if (!permissionId) return { statusCode: HTTP_STATUS2.BAD_REQUEST, body: { success: false, error: { code: "bad_request", message: "permission_id_required" }, meta: ctx } };
     try {
       await this.roleService.removePermission(roleId, permissionId);
-      return noContent(ctx);
+      return noContent2(ctx);
     } catch (err) {
-      if (err instanceof NotFoundException) return { statusCode: HTTP_STATUS.NOT_FOUND, body: { success: false, error: { code: "not_found", message: err.message }, meta: ctx } };
-      return { statusCode: HTTP_STATUS.INTERNAL_SERVER_ERROR, body: { success: false, error: { code: "internal_error", message: err?.message ?? "internal_error" }, meta: ctx } };
+      if (err instanceof NotFoundException) return { statusCode: HTTP_STATUS2.NOT_FOUND, body: { success: false, error: { code: "not_found", message: err.message }, meta: ctx } };
+      return { statusCode: HTTP_STATUS2.INTERNAL_SERVER_ERROR, body: { success: false, error: { code: "internal_error", message: err?.message ?? "internal_error" }, meta: ctx } };
     }
   }
-  async checkPermission(request2) {
-    const ctx = this.createApiContext(request2);
-    const roleId = request2.params?.roleId;
-    const permissionId = request2.params?.permissionId;
-    if (!roleId) return { statusCode: HTTP_STATUS.BAD_REQUEST, body: { success: false, error: { code: "bad_request", message: "role_id_required" }, meta: ctx } };
-    if (!permissionId) return { statusCode: HTTP_STATUS.BAD_REQUEST, body: { success: false, error: { code: "bad_request", message: "permission_id_required" }, meta: ctx } };
+  async checkPermission(request4) {
+    const ctx = this.createApiContext(request4);
+    const roleId = request4.params?.roleId;
+    const permissionId = request4.params?.permissionId;
+    if (!roleId) return { statusCode: HTTP_STATUS2.BAD_REQUEST, body: { success: false, error: { code: "bad_request", message: "role_id_required" }, meta: ctx } };
+    if (!permissionId) return { statusCode: HTTP_STATUS2.BAD_REQUEST, body: { success: false, error: { code: "bad_request", message: "permission_id_required" }, meta: ctx } };
     try {
       const exists = await this.roleService.checkPermission(roleId, permissionId);
-      return success({ assigned: exists }, ctx);
+      return success2({ assigned: exists }, ctx);
     } catch (err) {
-      if (err instanceof NotFoundException) return { statusCode: HTTP_STATUS.NOT_FOUND, body: { success: false, error: { code: "not_found", message: err.message }, meta: ctx } };
-      return { statusCode: HTTP_STATUS.INTERNAL_SERVER_ERROR, body: { success: false, error: { code: "internal_error", message: err?.message ?? "internal_error" }, meta: ctx } };
+      if (err instanceof NotFoundException) return { statusCode: HTTP_STATUS2.NOT_FOUND, body: { success: false, error: { code: "not_found", message: err.message }, meta: ctx } };
+      return { statusCode: HTTP_STATUS2.INTERNAL_SERVER_ERROR, body: { success: false, error: { code: "internal_error", message: err?.message ?? "internal_error" }, meta: ctx } };
     }
   }
 };
@@ -5922,12 +5983,12 @@ function createRoleRoutes(controller = new controller_default2()) {
 var PERMISSION_ACTIONS = ["CREATE", "READ", "UPDATE", "DELETE", "LIST", "EXECUTE"];
 var PermissionsController = class {
   permissionService = ServiceFactory.createPermissionService();
-  createApiContext(request2) {
+  createApiContext(request4) {
     return {
-      timestamp: request2.context?.metadata?.timestamp ?? (/* @__PURE__ */ new Date()).toISOString(),
-      requestId: request2.context?.metadata?.requestId,
-      version: request2.context?.metadata?.version ?? "v1",
-      locale: request2.context?.metadata?.locale
+      timestamp: request4.context?.metadata?.timestamp ?? (/* @__PURE__ */ new Date()).toISOString(),
+      requestId: request4.context?.metadata?.requestId,
+      version: request4.context?.metadata?.version ?? "v1",
+      locale: request4.context?.metadata?.locale
     };
   }
   mapToDto(entity) {
@@ -5942,9 +6003,9 @@ var PermissionsController = class {
       deletedAt: entity.deletedAt ? new Date(entity.deletedAt).toISOString() : null
     };
   }
-  async list(request2) {
-    const ctx = this.createApiContext(request2);
-    const q = request2.query ?? {};
+  async list(request4) {
+    const ctx = this.createApiContext(request4);
+    const q = request4.query ?? {};
     const page = Number(q.page ?? 1);
     const limit = Number(q.limit ?? 25);
     const rawSort = q.sort ?? void 0;
@@ -5978,31 +6039,31 @@ var PermissionsController = class {
     try {
       const resultAny = await this.permissionService.paginate(options);
       const data = (resultAny.data ?? []).map((e) => this.mapToDto(e));
-      return paginated(data, resultAny.page ?? page, resultAny.limit ?? limit, resultAny.total ?? 0, ctx);
+      return paginated2(data, resultAny.page ?? page, resultAny.limit ?? limit, resultAny.total ?? 0, ctx);
     } catch (err) {
-      return { statusCode: HTTP_STATUS.INTERNAL_SERVER_ERROR, body: { success: false, error: { code: "internal_error", message: err?.message ?? "internal_error" }, meta: ctx } };
+      return { statusCode: HTTP_STATUS2.INTERNAL_SERVER_ERROR, body: { success: false, error: { code: "internal_error", message: err?.message ?? "internal_error" }, meta: ctx } };
     }
   }
-  async get(request2) {
-    const ctx = this.createApiContext(request2);
-    const id = request2.params?.id;
-    if (!id) return { statusCode: HTTP_STATUS.BAD_REQUEST, body: { success: false, error: { code: "bad_request", message: "id_required" }, meta: ctx } };
+  async get(request4) {
+    const ctx = this.createApiContext(request4);
+    const id = request4.params?.id;
+    if (!id) return { statusCode: HTTP_STATUS2.BAD_REQUEST, body: { success: false, error: { code: "bad_request", message: "id_required" }, meta: ctx } };
     try {
       const result = await this.permissionService.findById(id);
-      if (!result) return { statusCode: HTTP_STATUS.NOT_FOUND, body: { success: false, error: { code: "not_found", message: "permission_not_found" }, meta: ctx } };
-      return success(this.mapToDto(result), ctx);
+      if (!result) return { statusCode: HTTP_STATUS2.NOT_FOUND, body: { success: false, error: { code: "not_found", message: "permission_not_found" }, meta: ctx } };
+      return success2(this.mapToDto(result), ctx);
     } catch (err) {
-      return { statusCode: HTTP_STATUS.INTERNAL_SERVER_ERROR, body: { success: false, error: { code: "internal_error", message: err?.message ?? "internal_error" }, meta: ctx } };
+      return { statusCode: HTTP_STATUS2.INTERNAL_SERVER_ERROR, body: { success: false, error: { code: "internal_error", message: err?.message ?? "internal_error" }, meta: ctx } };
     }
   }
-  async create(request2) {
-    const ctx = this.createApiContext(request2);
-    const body = request2.body;
+  async create(request4) {
+    const ctx = this.createApiContext(request4);
+    const body = request4.body;
     if (!body || typeof body !== "object" || typeof body.resource !== "string" || !body.resource) {
-      return { statusCode: HTTP_STATUS.BAD_REQUEST, body: { success: false, error: { code: "bad_request", message: "resource_required" }, meta: ctx } };
+      return { statusCode: HTTP_STATUS2.BAD_REQUEST, body: { success: false, error: { code: "bad_request", message: "resource_required" }, meta: ctx } };
     }
     if (typeof body.action !== "string" || !PERMISSION_ACTIONS.includes(body.action)) {
-      return { statusCode: HTTP_STATUS.UNPROCESSABLE_ENTITY, body: { success: false, error: { code: "validation_error", message: "action_invalid" }, meta: ctx } };
+      return { statusCode: HTTP_STATUS2.UNPROCESSABLE_ENTITY, body: { success: false, error: { code: "validation_error", message: "action_invalid" }, meta: ctx } };
     }
     try {
       const payload = {
@@ -6011,22 +6072,22 @@ var PermissionsController = class {
       };
       if (body.description !== void 0) payload.description = body.description;
       const createdPermission = await this.permissionService.create(payload);
-      return created(this.mapToDto(createdPermission), ctx);
+      return created2(this.mapToDto(createdPermission), ctx);
     } catch (err) {
       if (err instanceof ValidationException) {
-        return { statusCode: HTTP_STATUS.UNPROCESSABLE_ENTITY, body: { success: false, error: { code: "validation_error", message: err.message }, meta: ctx } };
+        return { statusCode: HTTP_STATUS2.UNPROCESSABLE_ENTITY, body: { success: false, error: { code: "validation_error", message: err.message }, meta: ctx } };
       }
-      return { statusCode: HTTP_STATUS.INTERNAL_SERVER_ERROR, body: { success: false, error: { code: "internal_error", message: err?.message ?? "internal_error" }, meta: ctx } };
+      return { statusCode: HTTP_STATUS2.INTERNAL_SERVER_ERROR, body: { success: false, error: { code: "internal_error", message: err?.message ?? "internal_error" }, meta: ctx } };
     }
   }
-  async update(request2) {
-    const ctx = this.createApiContext(request2);
-    const id = request2.params?.id;
-    const body = request2.body;
-    if (!id) return { statusCode: HTTP_STATUS.BAD_REQUEST, body: { success: false, error: { code: "bad_request", message: "id_required" }, meta: ctx } };
-    if (!body || typeof body !== "object") return { statusCode: HTTP_STATUS.BAD_REQUEST, body: { success: false, error: { code: "bad_request", message: "data_required" }, meta: ctx } };
+  async update(request4) {
+    const ctx = this.createApiContext(request4);
+    const id = request4.params?.id;
+    const body = request4.body;
+    if (!id) return { statusCode: HTTP_STATUS2.BAD_REQUEST, body: { success: false, error: { code: "bad_request", message: "id_required" }, meta: ctx } };
+    if (!body || typeof body !== "object") return { statusCode: HTTP_STATUS2.BAD_REQUEST, body: { success: false, error: { code: "bad_request", message: "data_required" }, meta: ctx } };
     if (body.action !== void 0 && (typeof body.action !== "string" || !PERMISSION_ACTIONS.includes(body.action))) {
-      return { statusCode: HTTP_STATUS.UNPROCESSABLE_ENTITY, body: { success: false, error: { code: "validation_error", message: "action_invalid" }, meta: ctx } };
+      return { statusCode: HTTP_STATUS2.UNPROCESSABLE_ENTITY, body: { success: false, error: { code: "validation_error", message: "action_invalid" }, meta: ctx } };
     }
     try {
       const payload = {};
@@ -6034,34 +6095,34 @@ var PermissionsController = class {
       if (body.action !== void 0) payload.action = body.action;
       if (body.description !== void 0) payload.description = body.description;
       const updated = await this.permissionService.update(id, payload);
-      return success(this.mapToDto(updated), ctx);
+      return success2(this.mapToDto(updated), ctx);
     } catch (err) {
       if (err instanceof ValidationException) {
-        return { statusCode: HTTP_STATUS.UNPROCESSABLE_ENTITY, body: { success: false, error: { code: "validation_error", message: err.message }, meta: ctx } };
+        return { statusCode: HTTP_STATUS2.UNPROCESSABLE_ENTITY, body: { success: false, error: { code: "validation_error", message: err.message }, meta: ctx } };
       }
-      return { statusCode: HTTP_STATUS.INTERNAL_SERVER_ERROR, body: { success: false, error: { code: "internal_error", message: err?.message ?? "internal_error" }, meta: ctx } };
+      return { statusCode: HTTP_STATUS2.INTERNAL_SERVER_ERROR, body: { success: false, error: { code: "internal_error", message: err?.message ?? "internal_error" }, meta: ctx } };
     }
   }
-  async remove(request2) {
-    const ctx = this.createApiContext(request2);
-    const id = request2.params?.id;
-    if (!id) return { statusCode: HTTP_STATUS.BAD_REQUEST, body: { success: false, error: { code: "bad_request", message: "id_required" }, meta: ctx } };
+  async remove(request4) {
+    const ctx = this.createApiContext(request4);
+    const id = request4.params?.id;
+    if (!id) return { statusCode: HTTP_STATUS2.BAD_REQUEST, body: { success: false, error: { code: "bad_request", message: "id_required" }, meta: ctx } };
     try {
       await this.permissionService.delete(id);
-      return noContent(ctx);
+      return noContent2(ctx);
     } catch (err) {
-      return { statusCode: HTTP_STATUS.INTERNAL_SERVER_ERROR, body: { success: false, error: { code: "internal_error", message: err?.message ?? "internal_error" }, meta: ctx } };
+      return { statusCode: HTTP_STATUS2.INTERNAL_SERVER_ERROR, body: { success: false, error: { code: "internal_error", message: err?.message ?? "internal_error" }, meta: ctx } };
     }
   }
-  async restore(request2) {
-    const ctx = this.createApiContext(request2);
-    const id = request2.params?.id;
-    if (!id) return { statusCode: HTTP_STATUS.BAD_REQUEST, body: { success: false, error: { code: "bad_request", message: "id_required" }, meta: ctx } };
+  async restore(request4) {
+    const ctx = this.createApiContext(request4);
+    const id = request4.params?.id;
+    if (!id) return { statusCode: HTTP_STATUS2.BAD_REQUEST, body: { success: false, error: { code: "bad_request", message: "id_required" }, meta: ctx } };
     try {
       const restored = await this.permissionService.restore(id);
-      return success(this.mapToDto(restored), ctx);
+      return success2(this.mapToDto(restored), ctx);
     } catch (err) {
-      return { statusCode: HTTP_STATUS.INTERNAL_SERVER_ERROR, body: { success: false, error: { code: "internal_error", message: err?.message ?? "internal_error" }, meta: ctx } };
+      return { statusCode: HTTP_STATUS2.INTERNAL_SERVER_ERROR, body: { success: false, error: { code: "internal_error", message: err?.message ?? "internal_error" }, meta: ctx } };
     }
   }
 };
@@ -6195,12 +6256,12 @@ function createPermissionRoutes(controller = new controller_default3()) {
 // ../backend/src/modules/products/controller.ts
 var ProductsController = class {
   productService = ServiceFactory.createProductService();
-  context(request2) {
+  context(request4) {
     return {
-      timestamp: request2.context?.metadata?.timestamp ?? (/* @__PURE__ */ new Date()).toISOString(),
-      requestId: request2.context?.metadata?.requestId,
-      version: request2.context?.metadata?.version ?? "v1",
-      locale: request2.context?.metadata?.locale
+      timestamp: request4.context?.metadata?.timestamp ?? (/* @__PURE__ */ new Date()).toISOString(),
+      requestId: request4.context?.metadata?.requestId,
+      version: request4.context?.metadata?.version ?? "v1",
+      locale: request4.context?.metadata?.locale
     };
   }
   mapToDto(entity) {
@@ -6241,9 +6302,9 @@ var ProductsController = class {
       throw new ValidationException("filters_invalid");
     }
   }
-  async list(request2) {
-    const ctx = this.context(request2);
-    const q = request2.query ?? {};
+  async list(request4) {
+    const ctx = this.context(request4);
+    const q = request4.query ?? {};
     try {
       const page = this.parsePositiveInteger(this.queryValue(q.page), 1);
       const limit = this.parsePositiveInteger(this.queryValue(q.limit), 25, 100);
@@ -6263,70 +6324,70 @@ var ProductsController = class {
       const where = search ? Object.keys(filters).length > 0 ? { AND: [filters, searchCondition] } : searchCondition : filters;
       const result = await this.productService.paginate({ page, limit, sort, order, filters: where });
       const data = result.data.map((entity) => this.mapToDto(entity));
-      return paginated(data, result.page ?? page, result.limit ?? limit, result.total ?? 0, ctx);
+      return paginated2(data, result.page ?? page, result.limit ?? limit, result.total ?? 0, ctx);
     } catch (err) {
       return this.error(err, ctx);
     }
   }
-  async get(request2) {
-    const ctx = this.context(request2);
-    const id = request2.params?.id;
-    if (!id) return validationError("id_required", ctx);
+  async get(request4) {
+    const ctx = this.context(request4);
+    const id = request4.params?.id;
+    if (!id) return validationError2("id_required", ctx);
     try {
       const product = await this.productService.findById(id);
-      return product ? success(this.mapToDto(product), ctx) : notFound("product_not_found", ctx);
+      return product ? success2(this.mapToDto(product), ctx) : notFound2("product_not_found", ctx);
     } catch (err) {
       return this.error(err, ctx);
     }
   }
-  async create(request2) {
-    const ctx = this.context(request2);
+  async create(request4) {
+    const ctx = this.context(request4);
     try {
-      const product = await this.productService.create(request2.body);
-      return created(this.mapToDto(product), ctx);
+      const product = await this.productService.create(request4.body);
+      return created2(this.mapToDto(product), ctx);
     } catch (err) {
       return this.error(err, ctx);
     }
   }
-  async update(request2) {
-    const ctx = this.context(request2);
-    const id = request2.params?.id;
-    if (!id) return validationError("id_required", ctx);
+  async update(request4) {
+    const ctx = this.context(request4);
+    const id = request4.params?.id;
+    if (!id) return validationError2("id_required", ctx);
     try {
-      const product = await this.productService.update(id, request2.body);
-      return success(this.mapToDto(product), ctx);
+      const product = await this.productService.update(id, request4.body);
+      return success2(this.mapToDto(product), ctx);
     } catch (err) {
       return this.error(err, ctx);
     }
   }
-  async remove(request2) {
-    const ctx = this.context(request2);
-    const id = request2.params?.id;
-    if (!id) return validationError("id_required", ctx);
+  async remove(request4) {
+    const ctx = this.context(request4);
+    const id = request4.params?.id;
+    if (!id) return validationError2("id_required", ctx);
     try {
       await this.productService.delete(id);
-      return noContent(ctx);
+      return noContent2(ctx);
     } catch (err) {
       return this.error(err, ctx);
     }
   }
-  async restore(request2) {
-    const ctx = this.context(request2);
-    const id = request2.params?.id;
-    if (!id) return validationError("id_required", ctx);
+  async restore(request4) {
+    const ctx = this.context(request4);
+    const id = request4.params?.id;
+    if (!id) return validationError2("id_required", ctx);
     try {
       const product = await this.productService.restore(id);
-      return success(this.mapToDto(product), ctx);
+      return success2(this.mapToDto(product), ctx);
     } catch (err) {
       return this.error(err, ctx);
     }
   }
   error(err, ctx) {
-    if (err instanceof ValidationException) return validationError(err.message, ctx);
-    if (err instanceof NotFoundException) return notFound(err.message, ctx);
+    if (err instanceof ValidationException) return validationError2(err.message, ctx);
+    if (err instanceof NotFoundException) return notFound2(err.message, ctx);
     if (err instanceof ConflictException) return conflict(err.message, ctx);
     return {
-      statusCode: HTTP_STATUS.INTERNAL_SERVER_ERROR,
+      statusCode: HTTP_STATUS2.INTERNAL_SERVER_ERROR,
       body: { success: false, error: { code: "internal_error", message: err instanceof Error ? err.message : "internal_error" }, meta: ctx }
     };
   }
@@ -6379,12 +6440,12 @@ function createProductRoutes(controller = new controller_default4()) {
 // ../backend/src/modules/customers/controller.ts
 var CustomersController = class {
   service = ServiceFactory.createCustomerService();
-  context(request2) {
+  context(request4) {
     return {
-      timestamp: request2.context?.metadata?.timestamp ?? (/* @__PURE__ */ new Date()).toISOString(),
-      requestId: request2.context?.metadata?.requestId,
-      version: request2.context?.metadata?.version ?? "v1",
-      locale: request2.context?.metadata?.locale
+      timestamp: request4.context?.metadata?.timestamp ?? (/* @__PURE__ */ new Date()).toISOString(),
+      requestId: request4.context?.metadata?.requestId,
+      version: request4.context?.metadata?.version ?? "v1",
+      locale: request4.context?.metadata?.locale
     };
   }
   value(value) {
@@ -6427,9 +6488,9 @@ var CustomersController = class {
       updatedAt: entity.updatedAt.toISOString()
     };
   }
-  async list(request2) {
-    const ctx = this.context(request2);
-    const query = request2.query ?? {};
+  async list(request4) {
+    const ctx = this.context(request4);
+    const query = request4.query ?? {};
     try {
       const page = this.integer(this.value(query.page), 1, 1e5);
       const limit = this.integer(this.value(query.limit), 25, 100);
@@ -6443,13 +6504,13 @@ var CustomersController = class {
       if (search && search.length > 255) throw new ValidationException("search_too_long");
       const where = search ? { AND: [filters, { OR: [{ customerCode: { contains: search } }, { firstName: { contains: search } }, { lastName: { contains: search } }, { fullName: { contains: search } }, { email: { contains: search } }, { phone: { contains: search } }] }] } : filters;
       const result = await this.service.paginate({ page, limit, sort, order, filters: where });
-      return paginated(result.data.map((entry) => this.mapCustomer(entry)), result.page, result.limit, result.total, ctx);
+      return paginated2(result.data.map((entry) => this.mapCustomer(entry)), result.page, result.limit, result.total, ctx);
     } catch (error) {
       return this.error(error, ctx);
     }
   }
-  async checkOwnershipOrAdmin(request2, targetCustomerId) {
-    const user = request2.context?.user;
+  async checkOwnershipOrAdmin(request4, targetCustomerId) {
+    const user = request4.context?.user;
     if (!user) return true;
     const userRoles = (user.roles || []).map(
       (r) => typeof r === "string" ? r : r.name || r.role?.name || ""
@@ -6462,95 +6523,95 @@ var CustomersController = class {
     if (!customer) return false;
     return customer.userId === user.id || customer.id === user.id;
   }
-  async get(request2) {
-    const ctx = this.context(request2);
+  async get(request4) {
+    const ctx = this.context(request4);
     try {
-      const id = request2.params?.id ?? "";
-      const allowed = await this.checkOwnershipOrAdmin(request2, id);
+      const id = request4.params?.id ?? "";
+      const allowed = await this.checkOwnershipOrAdmin(request4, id);
       if (!allowed) return forbidden("authorization_denied", ctx);
       const entity = await this.service.findById(id);
-      return entity ? success(this.mapCustomer(entity), ctx) : notFound("customer_not_found", ctx);
+      return entity ? success2(this.mapCustomer(entity), ctx) : notFound2("customer_not_found", ctx);
     } catch (error) {
       return this.error(error, ctx);
     }
   }
-  async create(request2) {
-    const ctx = this.context(request2);
+  async create(request4) {
+    const ctx = this.context(request4);
     try {
-      const entity = await this.service.create(request2.body);
-      return created(this.mapCustomer(entity), ctx);
+      const entity = await this.service.create(request4.body);
+      return created2(this.mapCustomer(entity), ctx);
     } catch (error) {
       return this.error(error, ctx);
     }
   }
-  async update(request2) {
-    const ctx = this.context(request2);
+  async update(request4) {
+    const ctx = this.context(request4);
     try {
-      const id = request2.params?.id ?? "";
-      const allowed = await this.checkOwnershipOrAdmin(request2, id);
+      const id = request4.params?.id ?? "";
+      const allowed = await this.checkOwnershipOrAdmin(request4, id);
       if (!allowed) return forbidden("authorization_denied", ctx);
-      const entity = await this.service.update(id, request2.body);
-      return success(this.mapCustomer(entity), ctx);
+      const entity = await this.service.update(id, request4.body);
+      return success2(this.mapCustomer(entity), ctx);
     } catch (error) {
       return this.error(error, ctx);
     }
   }
-  async remove(request2) {
-    const ctx = this.context(request2);
+  async remove(request4) {
+    const ctx = this.context(request4);
     try {
-      const id = request2.params?.id ?? "";
-      const allowed = await this.checkOwnershipOrAdmin(request2, id);
+      const id = request4.params?.id ?? "";
+      const allowed = await this.checkOwnershipOrAdmin(request4, id);
       if (!allowed) return forbidden("authorization_denied", ctx);
       await this.service.delete(id);
-      return noContent(ctx);
+      return noContent2(ctx);
     } catch (error) {
       return this.error(error, ctx);
     }
   }
-  async listAddresses(request2) {
-    const ctx = this.context(request2);
+  async listAddresses(request4) {
+    const ctx = this.context(request4);
     try {
-      const id = request2.params?.id ?? "";
-      const allowed = await this.checkOwnershipOrAdmin(request2, id);
+      const id = request4.params?.id ?? "";
+      const allowed = await this.checkOwnershipOrAdmin(request4, id);
       if (!allowed) return forbidden("authorization_denied", ctx);
       const addresses = await this.service.listAddresses(id);
-      return success(addresses.map((entry) => this.mapAddress(entry)), ctx);
+      return success2(addresses.map((entry) => this.mapAddress(entry)), ctx);
     } catch (error) {
       return this.error(error, ctx);
     }
   }
-  async createAddress(request2) {
-    const ctx = this.context(request2);
+  async createAddress(request4) {
+    const ctx = this.context(request4);
     try {
-      const id = request2.params?.id ?? "";
-      const allowed = await this.checkOwnershipOrAdmin(request2, id);
+      const id = request4.params?.id ?? "";
+      const allowed = await this.checkOwnershipOrAdmin(request4, id);
       if (!allowed) return forbidden("authorization_denied", ctx);
-      const address = await this.service.createAddress(id, request2.body);
-      return created(this.mapAddress(address), ctx);
+      const address = await this.service.createAddress(id, request4.body);
+      return created2(this.mapAddress(address), ctx);
     } catch (error) {
       return this.error(error, ctx);
     }
   }
-  async updateAddress(request2) {
-    const ctx = this.context(request2);
+  async updateAddress(request4) {
+    const ctx = this.context(request4);
     try {
-      const id = request2.params?.id ?? "";
-      const allowed = await this.checkOwnershipOrAdmin(request2, id);
+      const id = request4.params?.id ?? "";
+      const allowed = await this.checkOwnershipOrAdmin(request4, id);
       if (!allowed) return forbidden("authorization_denied", ctx);
-      const address = await this.service.updateAddress(id, request2.params?.addressId ?? "", request2.body);
-      return success(this.mapAddress(address), ctx);
+      const address = await this.service.updateAddress(id, request4.params?.addressId ?? "", request4.body);
+      return success2(this.mapAddress(address), ctx);
     } catch (error) {
       return this.error(error, ctx);
     }
   }
-  async removeAddress(request2) {
-    const ctx = this.context(request2);
+  async removeAddress(request4) {
+    const ctx = this.context(request4);
     try {
-      const id = request2.params?.id ?? "";
-      const allowed = await this.checkOwnershipOrAdmin(request2, id);
+      const id = request4.params?.id ?? "";
+      const allowed = await this.checkOwnershipOrAdmin(request4, id);
       if (!allowed) return forbidden("authorization_denied", ctx);
-      await this.service.deleteAddress(id, request2.params?.addressId ?? "");
-      return noContent(ctx);
+      await this.service.deleteAddress(id, request4.params?.addressId ?? "");
+      return noContent2(ctx);
     } catch (error) {
       return this.error(error, ctx);
     }
@@ -6577,10 +6638,10 @@ var CustomersController = class {
     return parsed;
   }
   error(error, ctx) {
-    if (error instanceof ValidationException) return validationError(error.message, ctx);
-    if (error instanceof NotFoundException) return notFound(error.message, ctx);
+    if (error instanceof ValidationException) return validationError2(error.message, ctx);
+    if (error instanceof NotFoundException) return notFound2(error.message, ctx);
     if (error instanceof ConflictException) return conflict(error.message, ctx);
-    return { statusCode: HTTP_STATUS.INTERNAL_SERVER_ERROR, body: { success: false, error: { code: "internal_error", message: "internal_error" }, meta: ctx } };
+    return { statusCode: HTTP_STATUS2.INTERNAL_SERVER_ERROR, body: { success: false, error: { code: "internal_error", message: "internal_error" }, meta: ctx } };
   }
 };
 var controller_default5 = CustomersController;
@@ -6617,16 +6678,16 @@ function createCustomerRoutes(controller = new controller_default5()) {
 // ../backend/src/modules/cart/controller.ts
 var CartController = class {
   service = ServiceFactory.createCartService();
-  context(request2) {
+  context(request4) {
     return {
-      timestamp: request2.context?.metadata?.timestamp ?? (/* @__PURE__ */ new Date()).toISOString(),
-      requestId: request2.context?.metadata?.requestId,
-      version: request2.context?.metadata?.version ?? "v1",
-      locale: request2.context?.metadata?.locale
+      timestamp: request4.context?.metadata?.timestamp ?? (/* @__PURE__ */ new Date()).toISOString(),
+      requestId: request4.context?.metadata?.requestId,
+      version: request4.context?.metadata?.version ?? "v1",
+      locale: request4.context?.metadata?.locale
     };
   }
-  getUserInfo(request2) {
-    const user = request2.context?.user;
+  getUserInfo(request4) {
+    const user = request4.context?.user;
     if (!user || typeof user !== "object" || !user.id) {
       throw new ValidationException2("authentication_required");
     }
@@ -6635,64 +6696,64 @@ var CartController = class {
       email: user.email ? String(user.email) : void 0
     };
   }
-  async getCart(request2) {
-    const ctx = this.context(request2);
+  async getCart(request4) {
+    const ctx = this.context(request4);
     try {
-      const user = this.getUserInfo(request2);
+      const user = this.getUserInfo(request4);
       const cart = await this.service.getCartForUser(user.id, user.email);
-      return success(cart, ctx);
+      return success2(cart, ctx);
     } catch (error) {
       return this.error(error, ctx);
     }
   }
-  async addItem(request2) {
-    const ctx = this.context(request2);
+  async addItem(request4) {
+    const ctx = this.context(request4);
     try {
-      const user = this.getUserInfo(request2);
-      const cart = await this.service.addItem(user.id, request2.body, user.email);
-      return success(cart, ctx);
+      const user = this.getUserInfo(request4);
+      const cart = await this.service.addItem(user.id, request4.body, user.email);
+      return success2(cart, ctx);
     } catch (error) {
       return this.error(error, ctx);
     }
   }
-  async updateItem(request2) {
-    const ctx = this.context(request2);
+  async updateItem(request4) {
+    const ctx = this.context(request4);
     try {
-      const user = this.getUserInfo(request2);
-      const itemId = request2.params?.id ?? "";
-      const cart = await this.service.updateItemQuantity(user.id, itemId, request2.body, user.email);
-      return success(cart, ctx);
+      const user = this.getUserInfo(request4);
+      const itemId = request4.params?.id ?? "";
+      const cart = await this.service.updateItemQuantity(user.id, itemId, request4.body, user.email);
+      return success2(cart, ctx);
     } catch (error) {
       return this.error(error, ctx);
     }
   }
-  async removeItem(request2) {
-    const ctx = this.context(request2);
+  async removeItem(request4) {
+    const ctx = this.context(request4);
     try {
-      const user = this.getUserInfo(request2);
-      const itemId = request2.params?.id ?? "";
+      const user = this.getUserInfo(request4);
+      const itemId = request4.params?.id ?? "";
       const cart = await this.service.removeItem(user.id, itemId, user.email);
-      return success(cart, ctx);
+      return success2(cart, ctx);
     } catch (error) {
       return this.error(error, ctx);
     }
   }
-  async clearCart(request2) {
-    const ctx = this.context(request2);
+  async clearCart(request4) {
+    const ctx = this.context(request4);
     try {
-      const user = this.getUserInfo(request2);
+      const user = this.getUserInfo(request4);
       const cart = await this.service.clearCart(user.id, user.email);
-      return success(cart, ctx);
+      return success2(cart, ctx);
     } catch (error) {
       return this.error(error, ctx);
     }
   }
   error(error, ctx) {
-    if (error instanceof ValidationException2) return validationError(error.message, ctx);
-    if (error instanceof NotFoundException || error?.code === "not_found") return notFound(error instanceof Error ? error.message : "not_found", ctx);
+    if (error instanceof ValidationException2) return validationError2(error.message, ctx);
+    if (error instanceof NotFoundException || error?.code === "not_found") return notFound2(error instanceof Error ? error.message : "not_found", ctx);
     if (error instanceof ForbiddenError || error?.code === "forbidden") return forbidden(error instanceof Error ? error.message : "forbidden", ctx);
     return {
-      statusCode: HTTP_STATUS.INTERNAL_SERVER_ERROR,
+      statusCode: HTTP_STATUS2.INTERNAL_SERVER_ERROR,
       body: { success: false, error: { code: "internal_error", message: error instanceof Error ? error.message : "internal_error" }, meta: ctx }
     };
   }
@@ -6743,19 +6804,19 @@ init_errors();
 var OrderController = class {
   orderRepo = new OrderRepository();
   cartRepo = new cart_repository_default();
-  async createOrder(request2) {
-    const ctx = this.createApiContext(request2);
+  async createOrder(request4) {
+    const ctx = this.createApiContext(request4);
     try {
-      const user = request2.user;
+      const user = request4.user;
       if (!user || !user.id) {
-        return this.errorResponse("unauthorized", "authentication_required", HTTP_STATUS.UNAUTHORIZED, ctx);
+        return this.errorResponse("unauthorized", "authentication_required", HTTP_STATUS2.UNAUTHORIZED, ctx);
       }
       let customer = await this.cartRepo.findCustomerByUserIdOrEmail(user.id, user.email);
       if (!customer) {
         customer = await this.cartRepo.createCustomerForUser(user.id, user.email);
       }
-      const body = request2.body || {};
-      const headers = request2.headers || {};
+      const body = request4.body || {};
+      const headers = request4.headers || {};
       const idempotencyKey = headers["idempotency-key"] || headers["x-idempotency-key"] || body.idempotencyKey || void 0;
       const tenantId = user.tenantId || body.tenantId || void 0;
       const storeId = user.storeId || body.storeId || void 0;
@@ -6768,25 +6829,25 @@ var OrderController = class {
         storeId,
         branchId
       });
-      return created(order, ctx);
+      return created2(order, ctx);
     } catch (error) {
       return this.mapError(error, ctx);
     }
   }
-  async listOrders(request2) {
-    const ctx = this.createApiContext(request2);
+  async listOrders(request4) {
+    const ctx = this.createApiContext(request4);
     try {
-      const user = request2.user;
+      const user = request4.user;
       if (!user || !user.id) {
-        return this.errorResponse("unauthorized", "authentication_required", HTTP_STATUS.UNAUTHORIZED, ctx);
+        return this.errorResponse("unauthorized", "authentication_required", HTTP_STATUS2.UNAUTHORIZED, ctx);
       }
-      const query = request2.query || {};
+      const query = request4.query || {};
       const isCustomerOnly = user.role === "CUSTOMER" && !this.hasManagementPermissions(user);
       let customerIdFilter = void 0;
       if (isCustomerOnly) {
         const customer = await this.cartRepo.findCustomerByUserIdOrEmail(user.id, user.email);
         if (!customer) {
-          return success({ items: [], total: 0, page: 1, limit: 10, totalPages: 0 }, ctx);
+          return success2({ items: [], total: 0, page: 1, limit: 10, totalPages: 0 }, ctx);
         }
         customerIdFilter = customer.id;
       } else if (query.customerId) {
@@ -6801,71 +6862,71 @@ var OrderController = class {
         sort: query.sort ? String(query.sort) : "createdAt",
         order: query.order === "asc" ? "asc" : "desc"
       });
-      return success(result, ctx);
+      return success2(result, ctx);
     } catch (error) {
       return this.mapError(error, ctx);
     }
   }
-  async getOrderById(request2) {
-    const ctx = this.createApiContext(request2);
+  async getOrderById(request4) {
+    const ctx = this.createApiContext(request4);
     try {
-      const user = request2.user;
+      const user = request4.user;
       if (!user || !user.id) {
-        return this.errorResponse("unauthorized", "authentication_required", HTTP_STATUS.UNAUTHORIZED, ctx);
+        return this.errorResponse("unauthorized", "authentication_required", HTTP_STATUS2.UNAUTHORIZED, ctx);
       }
-      const orderId = request2.params?.id;
+      const orderId = request4.params?.id;
       if (!orderId) {
-        return this.errorResponse("bad_request", "order_id_required", HTTP_STATUS.BAD_REQUEST, ctx);
+        return this.errorResponse("bad_request", "order_id_required", HTTP_STATUS2.BAD_REQUEST, ctx);
       }
       const isCustomerOnly = user.role === "CUSTOMER" && !this.hasManagementPermissions(user);
       let customerIdCheck = void 0;
       if (isCustomerOnly) {
         const customer = await this.cartRepo.findCustomerByUserIdOrEmail(user.id, user.email);
         if (!customer) {
-          return this.errorResponse("not_found", "order_not_found", HTTP_STATUS.NOT_FOUND, ctx);
+          return this.errorResponse("not_found", "order_not_found", HTTP_STATUS2.NOT_FOUND, ctx);
         }
         customerIdCheck = customer.id;
       }
       const order = await this.orderRepo.findOrderById(orderId, customerIdCheck);
       if (!order) {
-        return this.errorResponse("not_found", "order_not_found", HTTP_STATUS.NOT_FOUND, ctx);
+        return this.errorResponse("not_found", "order_not_found", HTTP_STATUS2.NOT_FOUND, ctx);
       }
-      return success(order, ctx);
+      return success2(order, ctx);
     } catch (error) {
       return this.mapError(error, ctx);
     }
   }
-  async updateStatus(request2) {
-    const ctx = this.createApiContext(request2);
+  async updateStatus(request4) {
+    const ctx = this.createApiContext(request4);
     try {
-      const user = request2.user;
+      const user = request4.user;
       if (!user || !user.id) {
-        return this.errorResponse("unauthorized", "authentication_required", HTTP_STATUS.UNAUTHORIZED, ctx);
+        return this.errorResponse("unauthorized", "authentication_required", HTTP_STATUS2.UNAUTHORIZED, ctx);
       }
-      const orderId = request2.params?.id;
-      const status = request2.body?.status;
+      const orderId = request4.params?.id;
+      const status = request4.body?.status;
       if (!orderId || !status) {
-        return this.errorResponse("bad_request", "order_id_and_status_required", HTTP_STATUS.BAD_REQUEST, ctx);
+        return this.errorResponse("bad_request", "order_id_and_status_required", HTTP_STATUS2.BAD_REQUEST, ctx);
       }
       const isCustomerOnly = user.role === "CUSTOMER" && !this.hasManagementPermissions(user);
       let customerIdCheck = void 0;
       if (isCustomerOnly) {
         const customer = await this.cartRepo.findCustomerByUserIdOrEmail(user.id, user.email);
         if (!customer) {
-          return this.errorResponse("not_found", "order_not_found", HTTP_STATUS.NOT_FOUND, ctx);
+          return this.errorResponse("not_found", "order_not_found", HTTP_STATUS2.NOT_FOUND, ctx);
         }
         customerIdCheck = customer.id;
       }
       const updatedOrder = await this.orderRepo.updateOrderStatus(orderId, status, customerIdCheck);
-      return success(updatedOrder, ctx);
+      return success2(updatedOrder, ctx);
     } catch (error) {
       return this.mapError(error, ctx);
     }
   }
-  async cancelOrder(request2) {
+  async cancelOrder(request4) {
     const cancelReq = {
-      ...request2,
-      body: { ...request2.body || {}, status: "CANCELED" }
+      ...request4,
+      body: { ...request4.body || {}, status: "CANCELED" }
     };
     return this.updateStatus(cancelReq);
   }
@@ -6876,25 +6937,25 @@ var OrderController = class {
       return formatted === "orders:update" || formatted === "orders:delete" || formatted === "*";
     });
   }
-  createApiContext(request2) {
+  createApiContext(request4) {
     return {
-      timestamp: request2.context?.metadata?.timestamp ?? (/* @__PURE__ */ new Date()).toISOString(),
-      requestId: request2.context?.metadata?.requestId,
-      version: request2.context?.metadata?.version ?? "v1",
-      locale: request2.context?.metadata?.locale
+      timestamp: request4.context?.metadata?.timestamp ?? (/* @__PURE__ */ new Date()).toISOString(),
+      requestId: request4.context?.metadata?.requestId,
+      version: request4.context?.metadata?.version ?? "v1",
+      locale: request4.context?.metadata?.locale
     };
   }
   mapError(error, ctx) {
     if (error instanceof ValidationException) {
-      return this.errorResponse("bad_request", error.message || "bad_request", HTTP_STATUS.BAD_REQUEST, ctx);
+      return this.errorResponse("bad_request", error.message || "bad_request", HTTP_STATUS2.BAD_REQUEST, ctx);
     }
     if (error instanceof UnauthorizedError) {
-      return this.errorResponse("unauthorized", error.message || "unauthorized", HTTP_STATUS.UNAUTHORIZED, ctx);
+      return this.errorResponse("unauthorized", error.message || "unauthorized", HTTP_STATUS2.UNAUTHORIZED, ctx);
     }
     return this.errorResponse(
       "internal_error",
       error instanceof Error ? error.message : "internal_error",
-      HTTP_STATUS.INTERNAL_SERVER_ERROR,
+      HTTP_STATUS2.INTERNAL_SERVER_ERROR,
       ctx
     );
   }
@@ -7023,40 +7084,40 @@ function createOrderRoutes(controller = new OrderController()) {
 init_errors();
 var InventoryController = class {
   inventoryRepo = new InventoryRepository();
-  async listInventory(request2) {
-    const ctx = this.createApiContext(request2);
+  async listInventory(request4) {
+    const ctx = this.createApiContext(request4);
     try {
-      const user = request2.user;
+      const user = request4.user;
       if (!user || !user.id) {
-        return this.errorResponse("unauthorized", "authentication_required", HTTP_STATUS.UNAUTHORIZED, ctx);
+        return this.errorResponse("unauthorized", "authentication_required", HTTP_STATUS2.UNAUTHORIZED, ctx);
       }
-      const query = request2.query || {};
+      const query = request4.query || {};
       const result = await this.inventoryRepo.findInventoryList({
         status: query.status ? String(query.status) : void 0,
         search: query.search ? String(query.search) : void 0,
         page: query.page ? Number(query.page) : 1,
         limit: query.limit ? Number(query.limit) : 10
       });
-      return success(result, ctx);
+      return success2(result, ctx);
     } catch (error) {
       return this.mapError(error, ctx);
     }
   }
-  async adjustStock(request2) {
-    const ctx = this.createApiContext(request2);
+  async adjustStock(request4) {
+    const ctx = this.createApiContext(request4);
     try {
-      const user = request2.user;
+      const user = request4.user;
       if (!user || !user.id) {
-        return this.errorResponse("unauthorized", "authentication_required", HTTP_STATUS.UNAUTHORIZED, ctx);
+        return this.errorResponse("unauthorized", "authentication_required", HTTP_STATUS2.UNAUTHORIZED, ctx);
       }
-      const body = request2.body || {};
+      const body = request4.body || {};
       const { productId, type, quantity, reason } = body;
       if (!productId || !type || quantity === void 0) {
-        return this.errorResponse("bad_request", "product_id_type_and_quantity_required", HTTP_STATUS.BAD_REQUEST, ctx);
+        return this.errorResponse("bad_request", "product_id_type_and_quantity_required", HTTP_STATUS2.BAD_REQUEST, ctx);
       }
       const validTypes = ["IN", "OUT", "ADJUSTMENT"];
       if (!validTypes.includes(type)) {
-        return this.errorResponse("bad_request", "invalid_movement_type", HTTP_STATUS.BAD_REQUEST, ctx);
+        return this.errorResponse("bad_request", "invalid_movement_type", HTTP_STATUS2.BAD_REQUEST, ctx);
       }
       const updated = await this.inventoryRepo.adjustStock(
         productId,
@@ -7065,45 +7126,45 @@ var InventoryController = class {
         reason ? String(reason) : void 0,
         user.id
       );
-      return success(updated, ctx);
+      return success2(updated, ctx);
     } catch (error) {
       return this.mapError(error, ctx);
     }
   }
-  async listMovements(request2) {
-    const ctx = this.createApiContext(request2);
+  async listMovements(request4) {
+    const ctx = this.createApiContext(request4);
     try {
-      const user = request2.user;
+      const user = request4.user;
       if (!user || !user.id) {
-        return this.errorResponse("unauthorized", "authentication_required", HTTP_STATUS.UNAUTHORIZED, ctx);
+        return this.errorResponse("unauthorized", "authentication_required", HTTP_STATUS2.UNAUTHORIZED, ctx);
       }
-      const query = request2.query || {};
+      const query = request4.query || {};
       const inventoryId = query.inventoryId ? String(query.inventoryId) : void 0;
       const movements = await this.inventoryRepo.findMovements(inventoryId);
-      return success({ movements }, ctx);
+      return success2({ movements }, ctx);
     } catch (error) {
       return this.mapError(error, ctx);
     }
   }
-  createApiContext(request2) {
+  createApiContext(request4) {
     return {
-      timestamp: request2.context?.metadata?.timestamp ?? (/* @__PURE__ */ new Date()).toISOString(),
-      requestId: request2.context?.metadata?.requestId,
-      version: request2.context?.metadata?.version ?? "v1",
-      locale: request2.context?.metadata?.locale
+      timestamp: request4.context?.metadata?.timestamp ?? (/* @__PURE__ */ new Date()).toISOString(),
+      requestId: request4.context?.metadata?.requestId,
+      version: request4.context?.metadata?.version ?? "v1",
+      locale: request4.context?.metadata?.locale
     };
   }
   mapError(error, ctx) {
     if (error instanceof ValidationException) {
-      return this.errorResponse("bad_request", error.message || "bad_request", HTTP_STATUS.BAD_REQUEST, ctx);
+      return this.errorResponse("bad_request", error.message || "bad_request", HTTP_STATUS2.BAD_REQUEST, ctx);
     }
     if (error instanceof UnauthorizedError) {
-      return this.errorResponse("unauthorized", error.message || "unauthorized", HTTP_STATUS.UNAUTHORIZED, ctx);
+      return this.errorResponse("unauthorized", error.message || "unauthorized", HTTP_STATUS2.UNAUTHORIZED, ctx);
     }
     return this.errorResponse(
       "internal_error",
       error instanceof Error ? error.message : "internal_error",
-      HTTP_STATUS.INTERNAL_SERVER_ERROR,
+      HTTP_STATUS2.INTERNAL_SERVER_ERROR,
       ctx
     );
   }
@@ -7196,29 +7257,431 @@ function createInventoryRoutes(controller = new InventoryController()) {
   return builder.build();
 }
 
+// ../backend/src/repositories/delivery-driver-repository.ts
+var DeliveryDriverRepository = class extends base_repository_default {
+  constructor() {
+    super("deliveryDriver");
+  }
+  async list(options = {}) {
+    const page = Math.max(1, Math.floor(options.page ?? 1));
+    const limit = Math.max(1, Math.min(100, Math.floor(options.limit ?? 25)));
+    const search = options.search?.trim();
+    const where = {
+      tenantId: options.tenantId ?? null
+    };
+    if (search) {
+      where.OR = [
+        { name: { contains: search, mode: "insensitive" } },
+        { phone: { contains: search, mode: "insensitive" } },
+        { vehicleInfo: { contains: search, mode: "insensitive" } }
+      ];
+    }
+    const [data, total] = await Promise.all([
+      this.model.findMany({
+        where,
+        orderBy: { createdAt: "desc" },
+        skip: (page - 1) * limit,
+        take: limit,
+        include: { _count: { select: { deliveries: true } } }
+      }),
+      this.model.count({ where })
+    ]);
+    return { data, total, page, limit };
+  }
+  async findByIdForTenant(id, tenantId) {
+    return this.model.findFirst({
+      where: { id, tenantId: tenantId ?? null },
+      include: { _count: { select: { deliveries: true } } }
+    });
+  }
+  async createForTenant(payload) {
+    return this.model.create({
+      data: {
+        tenantId: payload.tenantId ?? null,
+        name: payload.name,
+        phone: payload.phone ?? null,
+        vehicleInfo: payload.vehicleInfo ?? null
+      },
+      include: { _count: { select: { deliveries: true } } }
+    });
+  }
+  async updateForTenant(id, tenantId, payload) {
+    const existing = await this.findByIdForTenant(id, tenantId);
+    if (!existing) return null;
+    return this.model.update({
+      where: { id },
+      data: {
+        ...payload.name !== void 0 ? { name: payload.name } : {},
+        ...payload.phone !== void 0 ? { phone: payload.phone } : {},
+        ...payload.vehicleInfo !== void 0 ? { vehicleInfo: payload.vehicleInfo } : {}
+      },
+      include: { _count: { select: { deliveries: true } } }
+    });
+  }
+  async deleteForTenant(id, tenantId) {
+    const existing = await this.findByIdForTenant(id, tenantId);
+    if (!existing) return false;
+    await this.model.delete({ where: { id } });
+    return true;
+  }
+};
+var delivery_driver_repository_default = DeliveryDriverRepository;
+
+// ../backend/src/modules/delivery/controller.ts
+var DeliveryController = class {
+  driverRepo = new delivery_driver_repository_default();
+  context(request4) {
+    return {
+      timestamp: request4.context?.metadata?.timestamp ?? (/* @__PURE__ */ new Date()).toISOString(),
+      requestId: request4.context?.metadata?.requestId,
+      version: request4.context?.metadata?.version ?? "v1",
+      locale: request4.context?.metadata?.locale
+    };
+  }
+  tenantId(request4) {
+    return request4.context?.user?.tenantId ?? null;
+  }
+  value(value) {
+    return Array.isArray(value) ? value[0] : value;
+  }
+  mapDriver(entity) {
+    return {
+      id: entity.id,
+      name: entity.name,
+      phone: entity.phone,
+      vehicleInfo: entity.vehicleInfo,
+      deliveriesCount: entity._count?.deliveries ?? 0,
+      createdAt: entity.createdAt?.toISOString?.() ?? entity.createdAt
+    };
+  }
+  async list(request4) {
+    const ctx = this.context(request4);
+    try {
+      this.requireUser(request4);
+      const query = request4.query ?? {};
+      const page = this.integer(this.value(query.page), 1, 1e5);
+      const limit = this.integer(this.value(query.limit), 25, 100);
+      const search = this.value(query.search)?.trim();
+      if (search && search.length > 120) throw new ValidationException("search_too_long");
+      const result = await this.driverRepo.list({ tenantId: this.tenantId(request4), search, page, limit });
+      return paginated(result.data.map((entry) => this.mapDriver(entry)), result.page, result.limit, result.total, ctx);
+    } catch (error) {
+      return this.error(error, ctx);
+    }
+  }
+  async get(request4) {
+    const ctx = this.context(request4);
+    try {
+      this.requireUser(request4);
+      const id = request4.params?.id ?? "";
+      if (!id) throw new ValidationException("driver_id_required");
+      const entity = await this.driverRepo.findByIdForTenant(id, this.tenantId(request4));
+      return entity ? success(this.mapDriver(entity), ctx) : notFound("driver_not_found", ctx);
+    } catch (error) {
+      return this.error(error, ctx);
+    }
+  }
+  async create(request4) {
+    const ctx = this.context(request4);
+    try {
+      this.requireUser(request4);
+      const body = request4.body ?? {};
+      const name = this.text(body.name, "driver_name_required", 120);
+      const phone = this.optionalText(body.phone, 40);
+      const vehicleInfo = this.optionalText(body.vehicleInfo, 160);
+      const entity = await this.driverRepo.createForTenant({ tenantId: this.tenantId(request4), name, phone, vehicleInfo });
+      return created(this.mapDriver(entity), ctx);
+    } catch (error) {
+      return this.error(error, ctx);
+    }
+  }
+  async update(request4) {
+    const ctx = this.context(request4);
+    try {
+      this.requireUser(request4);
+      const id = request4.params?.id ?? "";
+      if (!id) throw new ValidationException("driver_id_required");
+      const body = request4.body ?? {};
+      const payload = {
+        ...body.name !== void 0 ? { name: this.text(body.name, "driver_name_required", 120) } : {},
+        ...body.phone !== void 0 ? { phone: this.optionalText(body.phone, 40) } : {},
+        ...body.vehicleInfo !== void 0 ? { vehicleInfo: this.optionalText(body.vehicleInfo, 160) } : {}
+      };
+      if (Object.keys(payload).length === 0) throw new ValidationException("driver_update_empty");
+      const entity = await this.driverRepo.updateForTenant(id, this.tenantId(request4), payload);
+      return entity ? success(this.mapDriver(entity), ctx) : notFound("driver_not_found", ctx);
+    } catch (error) {
+      return this.error(error, ctx);
+    }
+  }
+  async remove(request4) {
+    const ctx = this.context(request4);
+    try {
+      this.requireUser(request4);
+      const id = request4.params?.id ?? "";
+      if (!id) throw new ValidationException("driver_id_required");
+      const removed = await this.driverRepo.deleteForTenant(id, this.tenantId(request4));
+      if (!removed) throw new NotFoundException("driver_not_found");
+      return noContent(ctx);
+    } catch (error) {
+      return this.error(error, ctx);
+    }
+  }
+  requireUser(request4) {
+    if (!request4.context?.user?.id) throw new Error("authentication_required");
+  }
+  text(value, errorCode, maxLength) {
+    if (typeof value !== "string" || !value.trim() || value.trim().length > maxLength) throw new ValidationException(errorCode);
+    return value.trim();
+  }
+  optionalText(value, maxLength) {
+    if (value === null || value === void 0 || value === "") return null;
+    if (typeof value !== "string" || value.trim().length > maxLength) throw new ValidationException("driver_field_invalid");
+    return value.trim();
+  }
+  integer(value, fallback, max) {
+    if (value === void 0) return fallback;
+    const parsed = Number(value);
+    if (!Number.isInteger(parsed) || parsed < 1 || parsed > max) throw new ValidationException("pagination_invalid");
+    return parsed;
+  }
+  error(error, ctx) {
+    if (error instanceof ValidationException) return validationError(error.message, ctx);
+    if (error instanceof NotFoundException) return notFound(error.message, ctx);
+    if (error instanceof Error && error.message === "authentication_required") return unauthorized("authentication_required", ctx);
+    return { statusCode: HTTP_STATUS.INTERNAL_SERVER_ERROR, body: { success: false, error: { code: "internal_error", message: "internal_error" }, meta: ctx } };
+  }
+};
+var controller_default7 = DeliveryController;
+
+// ../backend/src/modules/delivery/routes.ts
+function request2(ctx) {
+  return {
+    body: ctx.body,
+    headers: ctx.headers,
+    params: ctx.params,
+    query: ctx.query,
+    context: {
+      user: ctx.user,
+      metadata: { timestamp: (/* @__PURE__ */ new Date()).toISOString(), version: "v1" }
+    }
+  };
+}
+function createDeliveryRoutes(controller = new controller_default7()) {
+  const builder = new RouterBuilder();
+  const options = (permission) => ({
+    mode: "private",
+    publicRoute: false,
+    privateRoute: true,
+    authenticationRequired: true,
+    authorizationRequired: true,
+    requiredPermissions: [permission],
+    tags: ["delivery"],
+    middleware: []
+  });
+  const register = (name, method, path3, permission, handler2) => builder.register({ name, method, path: path3, version: "v1", handler: handler2, options: options(permission) });
+  register("delivery-drivers-list", "GET", "/delivery/drivers", "delivery:read", (ctx) => controller.list(request2(ctx)));
+  register("delivery-drivers-get", "GET", "/delivery/drivers/:id", "delivery:read", (ctx) => controller.get(request2(ctx)));
+  register("delivery-drivers-create", "POST", "/delivery/drivers", "delivery:create", (ctx) => controller.create(request2(ctx)));
+  register("delivery-drivers-update", "PUT", "/delivery/drivers/:id", "delivery:update", (ctx) => controller.update(request2(ctx)));
+  register("delivery-drivers-delete", "DELETE", "/delivery/drivers/:id", "delivery:delete", (ctx) => controller.remove(request2(ctx)));
+  return builder.build();
+}
+
+// ../backend/src/repositories/supplier-admin-repository.ts
+var SupplierAdminRepository = class extends base_repository_default {
+  constructor() {
+    super("supplier");
+  }
+  where(options = {}) {
+    const where = { tenantId: options.tenantId ?? null, deletedAt: null };
+    if (options.search?.trim()) {
+      const search = options.search.trim();
+      where.OR = [
+        { name: { contains: search, mode: "insensitive" } },
+        { code: { contains: search, mode: "insensitive" } }
+      ];
+    }
+    return where;
+  }
+  async list(options = {}) {
+    const page = Math.max(1, Math.floor(options.page ?? 1));
+    const limit = Math.max(1, Math.min(100, Math.floor(options.limit ?? 25)));
+    const where = this.where(options);
+    const [data, total] = await Promise.all([
+      this.model.findMany({
+        where,
+        orderBy: { createdAt: "desc" },
+        skip: (page - 1) * limit,
+        take: limit,
+        include: {
+          _count: { select: { contacts: true, addresses: true, purchaseOrders: true } }
+        }
+      }),
+      this.model.count({ where })
+    ]);
+    return { data, total, page, limit };
+  }
+  async findByIdForTenant(id, tenantId) {
+    return this.model.findFirst({
+      where: { id, tenantId: tenantId ?? null, deletedAt: null },
+      include: { contacts: true, addresses: { include: { address: true } }, _count: { select: { purchaseOrders: true } } }
+    });
+  }
+  async createForTenant(data) {
+    return this.model.create({
+      data: { tenantId: data.tenantId ?? null, name: data.name, code: data.code ?? null },
+      include: { _count: { select: { contacts: true, addresses: true, purchaseOrders: true } } }
+    });
+  }
+  async updateForTenant(id, tenantId, data) {
+    const existing = await this.findByIdForTenant(id, tenantId);
+    if (!existing) return null;
+    return this.model.update({ where: { id }, data, include: { _count: { select: { contacts: true, addresses: true, purchaseOrders: true } } } });
+  }
+  async softDeleteForTenant(id, tenantId) {
+    const existing = await this.findByIdForTenant(id, tenantId);
+    if (!existing) return false;
+    await this.model.update({ where: { id }, data: { deletedAt: /* @__PURE__ */ new Date() } });
+    return true;
+  }
+};
+var supplier_admin_repository_default = SupplierAdminRepository;
+
+// ../backend/src/modules/suppliers-admin/controller.ts
+var SupplierAdminController = class {
+  repository = new supplier_admin_repository_default();
+  context(request4) {
+    return { timestamp: request4.context?.metadata?.timestamp ?? (/* @__PURE__ */ new Date()).toISOString(), requestId: request4.context?.metadata?.requestId, version: "v1", locale: request4.context?.metadata?.locale };
+  }
+  tenantId(request4) {
+    return request4.context?.user?.tenantId ?? null;
+  }
+  value(value) {
+    return Array.isArray(value) ? value[0] : value;
+  }
+  map(entity) {
+    return { id: entity.id, name: entity.name, code: entity.code, contactsCount: entity._count?.contacts ?? entity.contacts?.length ?? 0, addressesCount: entity._count?.addresses ?? entity.addresses?.length ?? 0, purchaseOrdersCount: entity._count?.purchaseOrders ?? 0, createdAt: entity.createdAt?.toISOString?.() ?? entity.createdAt, updatedAt: entity.updatedAt?.toISOString?.() ?? entity.updatedAt };
+  }
+  async list(request4) {
+    const ctx = this.context(request4);
+    try {
+      const query = request4.query ?? {};
+      const page = this.integer(this.value(query.page), 1, 1e5);
+      const limit = this.integer(this.value(query.limit), 25, 100);
+      const search = this.value(query.search)?.trim();
+      if (search && search.length > 120) throw new ValidationException("search_too_long");
+      const result = await this.repository.list({ tenantId: this.tenantId(request4), search, page, limit });
+      return paginated(result.data.map((entry) => this.map(entry)), result.page, result.limit, result.total, ctx);
+    } catch (error) {
+      return this.error(error, ctx);
+    }
+  }
+  async get(request4) {
+    const ctx = this.context(request4);
+    try {
+      const entity = await this.repository.findByIdForTenant(request4.params?.id ?? "", this.tenantId(request4));
+      return entity ? success(this.map(entity), ctx) : notFound("supplier_not_found", ctx);
+    } catch (error) {
+      return this.error(error, ctx);
+    }
+  }
+  async create(request4) {
+    const ctx = this.context(request4);
+    try {
+      const body = request4.body ?? {};
+      const name = this.text(body.name, "supplier_name_required", 160);
+      const code = this.optionalText(body.code, 80);
+      const entity = await this.repository.createForTenant({ tenantId: this.tenantId(request4), name, code });
+      return created(this.map(entity), ctx);
+    } catch (error) {
+      return this.error(error, ctx);
+    }
+  }
+  async update(request4) {
+    const ctx = this.context(request4);
+    try {
+      const body = request4.body ?? {};
+      const data = { ...body.name !== void 0 ? { name: this.text(body.name, "supplier_name_required", 160) } : {}, ...body.code !== void 0 ? { code: this.optionalText(body.code, 80) } : {} };
+      if (!Object.keys(data).length) throw new ValidationException("supplier_update_empty");
+      const entity = await this.repository.updateForTenant(request4.params?.id ?? "", this.tenantId(request4), data);
+      return entity ? success(this.map(entity), ctx) : notFound("supplier_not_found", ctx);
+    } catch (error) {
+      return this.error(error, ctx);
+    }
+  }
+  async remove(request4) {
+    const ctx = this.context(request4);
+    try {
+      const removed = await this.repository.softDeleteForTenant(request4.params?.id ?? "", this.tenantId(request4));
+      if (!removed) throw new NotFoundException("supplier_not_found");
+      return noContent(ctx);
+    } catch (error) {
+      return this.error(error, ctx);
+    }
+  }
+  text(value, code, max) {
+    if (typeof value !== "string" || !value.trim() || value.trim().length > max) throw new ValidationException(code);
+    return value.trim();
+  }
+  optionalText(value, max) {
+    if (value === void 0 || value === null || value === "") return null;
+    if (typeof value !== "string" || value.trim().length > max) throw new ValidationException("supplier_field_invalid");
+    return value.trim();
+  }
+  integer(value, fallback, max) {
+    if (value === void 0) return fallback;
+    const parsed = Number(value);
+    if (!Number.isInteger(parsed) || parsed < 1 || parsed > max) throw new ValidationException("pagination_invalid");
+    return parsed;
+  }
+  error(error, ctx) {
+    if (error instanceof ValidationException) return validationError(error.message, ctx);
+    if (error instanceof NotFoundException) return notFound(error.message, ctx);
+    return { statusCode: HTTP_STATUS.INTERNAL_SERVER_ERROR, body: { success: false, error: { code: "internal_error", message: "internal_error" }, meta: ctx } };
+  }
+};
+var controller_default8 = SupplierAdminController;
+
+// ../backend/src/modules/suppliers-admin/routes.ts
+function request3(ctx) {
+  return { body: ctx.body, headers: ctx.headers, params: ctx.params, query: ctx.query, context: { user: ctx.user, metadata: { timestamp: (/* @__PURE__ */ new Date()).toISOString(), version: "v1" } } };
+}
+function createSupplierAdminRoutes(controller = new controller_default8()) {
+  const builder = new RouterBuilder();
+  const options = (permission) => ({ mode: "private", publicRoute: false, privateRoute: true, authenticationRequired: true, authorizationRequired: true, requiredPermissions: [permission], tags: ["suppliers"], middleware: [] });
+  const register = (name, method, path3, permission, handler2) => builder.register({ name, method, path: path3, version: "v1", handler: handler2, options: options(permission) });
+  register("suppliers-admin-list", "GET", "/admin/suppliers", "suppliers:read", (ctx) => controller.list(request3(ctx)));
+  register("suppliers-admin-get", "GET", "/admin/suppliers/:id", "suppliers:read", (ctx) => controller.get(request3(ctx)));
+  register("suppliers-admin-create", "POST", "/admin/suppliers", "suppliers:create", (ctx) => controller.create(request3(ctx)));
+  register("suppliers-admin-update", "PUT", "/admin/suppliers/:id", "suppliers:update", (ctx) => controller.update(request3(ctx)));
+  register("suppliers-admin-delete", "DELETE", "/admin/suppliers/:id", "suppliers:delete", (ctx) => controller.remove(request3(ctx)));
+  return builder.build();
+}
+
 // ../backend/src/modules/payments/controller.ts
 init_errors();
 var PaymentController = class {
   paymentRepo = new PaymentRepository();
   cartRepo = new cart_repository_default();
-  async createPayment(request2) {
-    const ctx = this.createApiContext(request2);
+  async createPayment(request4) {
+    const ctx = this.createApiContext(request4);
     try {
-      const user = request2.user;
+      const user = request4.user;
       if (!user || !user.id) {
-        return this.errorResponse("unauthorized", "authentication_required", HTTP_STATUS.UNAUTHORIZED, ctx);
+        return this.errorResponse("unauthorized", "authentication_required", HTTP_STATUS2.UNAUTHORIZED, ctx);
       }
-      const body = request2.body || {};
+      const body = request4.body || {};
       const { orderId, paymentMethod, idempotencyKey } = body;
       if (!orderId || !paymentMethod) {
-        return this.errorResponse("bad_request", "order_id_and_payment_method_required", HTTP_STATUS.BAD_REQUEST, ctx);
+        return this.errorResponse("bad_request", "order_id_and_payment_method_required", HTTP_STATUS2.BAD_REQUEST, ctx);
       }
       const isCustomerOnly = user.role === "CUSTOMER";
       let customerIdCheck = void 0;
       if (isCustomerOnly) {
         const customer = await this.cartRepo.findCustomerByUserIdOrEmail(user.id, user.email);
         if (!customer) {
-          return this.errorResponse("not_found", "order_not_found", HTTP_STATUS.NOT_FOUND, ctx);
+          return this.errorResponse("not_found", "order_not_found", HTTP_STATUS2.NOT_FOUND, ctx);
         }
         customerIdCheck = customer.id;
       }
@@ -7228,84 +7691,84 @@ var PaymentController = class {
         idempotencyKey: idempotencyKey ? String(idempotencyKey) : void 0,
         customerIdCheck
       });
-      return created(transaction, ctx);
+      return created2(transaction, ctx);
     } catch (error) {
       return this.mapError(error, ctx);
     }
   }
-  async getPaymentForOrder(request2) {
-    const ctx = this.createApiContext(request2);
+  async getPaymentForOrder(request4) {
+    const ctx = this.createApiContext(request4);
     try {
-      const user = request2.user;
+      const user = request4.user;
       if (!user || !user.id) {
-        return this.errorResponse("unauthorized", "authentication_required", HTTP_STATUS.UNAUTHORIZED, ctx);
+        return this.errorResponse("unauthorized", "authentication_required", HTTP_STATUS2.UNAUTHORIZED, ctx);
       }
-      const orderId = request2.params?.orderId;
+      const orderId = request4.params?.orderId;
       if (!orderId) {
-        return this.errorResponse("bad_request", "order_id_required", HTTP_STATUS.BAD_REQUEST, ctx);
+        return this.errorResponse("bad_request", "order_id_required", HTTP_STATUS2.BAD_REQUEST, ctx);
       }
       const isCustomerOnly = user.role === "CUSTOMER";
       let customerIdCheck = void 0;
       if (isCustomerOnly) {
         const customer = await this.cartRepo.findCustomerByUserIdOrEmail(user.id, user.email);
         if (!customer) {
-          return this.errorResponse("not_found", "payment_not_found", HTTP_STATUS.NOT_FOUND, ctx);
+          return this.errorResponse("not_found", "payment_not_found", HTTP_STATUS2.NOT_FOUND, ctx);
         }
         customerIdCheck = customer.id;
       }
       const payment = await this.paymentRepo.findPaymentByOrderId(orderId, customerIdCheck);
       if (!payment) {
-        return this.errorResponse("not_found", "payment_not_found", HTTP_STATUS.NOT_FOUND, ctx);
+        return this.errorResponse("not_found", "payment_not_found", HTTP_STATUS2.NOT_FOUND, ctx);
       }
-      return success(payment, ctx);
+      return success2(payment, ctx);
     } catch (error) {
       return this.mapError(error, ctx);
     }
   }
-  async verifyPayment(request2) {
-    const ctx = this.createApiContext(request2);
+  async verifyPayment(request4) {
+    const ctx = this.createApiContext(request4);
     try {
-      const user = request2.user;
+      const user = request4.user;
       if (!user || !user.id) {
-        return this.errorResponse("unauthorized", "authentication_required", HTTP_STATUS.UNAUTHORIZED, ctx);
+        return this.errorResponse("unauthorized", "authentication_required", HTTP_STATUS2.UNAUTHORIZED, ctx);
       }
-      const body = request2.body || {};
+      const body = request4.body || {};
       const { paymentId, status, providerReference } = body;
       if (!paymentId) {
-        return this.errorResponse("bad_request", "payment_id_required", HTTP_STATUS.BAD_REQUEST, ctx);
+        return this.errorResponse("bad_request", "payment_id_required", HTTP_STATUS2.BAD_REQUEST, ctx);
       }
       const verified = await this.paymentRepo.verifyPaymentTransaction(
         String(paymentId),
         status ? String(status) : "COMPLETED",
         providerReference ? String(providerReference) : void 0
       );
-      return success(verified, ctx);
+      return success2(verified, ctx);
     } catch (error) {
       return this.mapError(error, ctx);
     }
   }
-  createApiContext(request2) {
+  createApiContext(request4) {
     return {
-      timestamp: request2.context?.metadata?.timestamp ?? (/* @__PURE__ */ new Date()).toISOString(),
-      requestId: request2.context?.metadata?.requestId,
-      version: request2.context?.metadata?.version ?? "v1",
-      locale: request2.context?.metadata?.locale
+      timestamp: request4.context?.metadata?.timestamp ?? (/* @__PURE__ */ new Date()).toISOString(),
+      requestId: request4.context?.metadata?.requestId,
+      version: request4.context?.metadata?.version ?? "v1",
+      locale: request4.context?.metadata?.locale
     };
   }
   mapError(error, ctx) {
     if (error instanceof NotFoundException) {
-      return this.errorResponse("not_found", error.message || "not_found", HTTP_STATUS.NOT_FOUND, ctx);
+      return this.errorResponse("not_found", error.message || "not_found", HTTP_STATUS2.NOT_FOUND, ctx);
     }
     if (error instanceof ValidationException) {
-      return this.errorResponse("bad_request", error.message || "bad_request", HTTP_STATUS.BAD_REQUEST, ctx);
+      return this.errorResponse("bad_request", error.message || "bad_request", HTTP_STATUS2.BAD_REQUEST, ctx);
     }
     if (error instanceof UnauthorizedError) {
-      return this.errorResponse("unauthorized", error.message || "unauthorized", HTTP_STATUS.UNAUTHORIZED, ctx);
+      return this.errorResponse("unauthorized", error.message || "unauthorized", HTTP_STATUS2.UNAUTHORIZED, ctx);
     }
     return this.errorResponse(
       "internal_error",
       error instanceof Error ? error.message : "internal_error",
-      HTTP_STATUS.INTERNAL_SERVER_ERROR,
+      HTTP_STATUS2.INTERNAL_SERVER_ERROR,
       ctx
     );
   }
@@ -7486,61 +7949,61 @@ var settings_repository_default = SettingsRepository;
 // ../backend/src/modules/settings/controller.ts
 var SettingsController = class {
   settingsRepo = new SettingsRepository();
-  async getPublicSettings(request2) {
-    const ctx = this.createApiContext(request2);
+  async getPublicSettings(request4) {
+    const ctx = this.createApiContext(request4);
     try {
       const publicSettings = await this.settingsRepo.getPublicSettings();
-      return success(publicSettings, ctx);
+      return success2(publicSettings, ctx);
     } catch (error) {
       return this.mapError(error, ctx);
     }
   }
-  async getAdminSettings(request2) {
-    const ctx = this.createApiContext(request2);
+  async getAdminSettings(request4) {
+    const ctx = this.createApiContext(request4);
     try {
-      const user = request2.user;
+      const user = request4.user;
       if (!user || !user.id) {
-        return this.errorResponse("unauthorized", "authentication_required", HTTP_STATUS.UNAUTHORIZED, ctx);
+        return this.errorResponse("unauthorized", "authentication_required", HTTP_STATUS2.UNAUTHORIZED, ctx);
       }
       const allSettings = await this.settingsRepo.getAllSettings();
-      return success(allSettings, ctx);
+      return success2(allSettings, ctx);
     } catch (error) {
       return this.mapError(error, ctx);
     }
   }
-  async updateAdminSettings(request2) {
-    const ctx = this.createApiContext(request2);
+  async updateAdminSettings(request4) {
+    const ctx = this.createApiContext(request4);
     try {
-      const user = request2.user;
+      const user = request4.user;
       if (!user || !user.id) {
-        return this.errorResponse("unauthorized", "authentication_required", HTTP_STATUS.UNAUTHORIZED, ctx);
+        return this.errorResponse("unauthorized", "authentication_required", HTTP_STATUS2.UNAUTHORIZED, ctx);
       }
-      const body = request2.body || {};
+      const body = request4.body || {};
       const updated = await this.settingsRepo.updateSettings(body);
-      return success(updated, ctx);
+      return success2(updated, ctx);
     } catch (error) {
       return this.mapError(error, ctx);
     }
   }
-  createApiContext(request2) {
+  createApiContext(request4) {
     return {
-      timestamp: request2.context?.metadata?.timestamp ?? (/* @__PURE__ */ new Date()).toISOString(),
-      requestId: request2.context?.metadata?.requestId,
-      version: request2.context?.metadata?.version ?? "v1",
-      locale: request2.context?.metadata?.locale
+      timestamp: request4.context?.metadata?.timestamp ?? (/* @__PURE__ */ new Date()).toISOString(),
+      requestId: request4.context?.metadata?.requestId,
+      version: request4.context?.metadata?.version ?? "v1",
+      locale: request4.context?.metadata?.locale
     };
   }
   mapError(error, ctx) {
     if (error instanceof ValidationException) {
-      return this.errorResponse("bad_request", error.message || "bad_request", HTTP_STATUS.BAD_REQUEST, ctx);
+      return this.errorResponse("bad_request", error.message || "bad_request", HTTP_STATUS2.BAD_REQUEST, ctx);
     }
     if (error instanceof UnauthorizedError) {
-      return this.errorResponse("unauthorized", error.message || "unauthorized", HTTP_STATUS.UNAUTHORIZED, ctx);
+      return this.errorResponse("unauthorized", error.message || "unauthorized", HTTP_STATUS2.UNAUTHORIZED, ctx);
     }
     return this.errorResponse(
       "internal_error",
       error instanceof Error ? error.message : "internal_error",
-      HTTP_STATUS.INTERNAL_SERVER_ERROR,
+      HTTP_STATUS2.INTERNAL_SERVER_ERROR,
       ctx
     );
   }
@@ -7637,68 +8100,68 @@ function createSettingsRoutes(controller = new SettingsController()) {
 init_errors();
 var NotificationsController = class {
   notificationRepo = new NotificationRepository();
-  async listUserNotifications(request2) {
-    const ctx = this.createApiContext(request2);
+  async listUserNotifications(request4) {
+    const ctx = this.createApiContext(request4);
     try {
-      const user = request2.user;
+      const user = request4.user;
       if (!user || !user.id) {
-        return this.errorResponse("unauthorized", "authentication_required", HTTP_STATUS.UNAUTHORIZED, ctx);
+        return this.errorResponse("unauthorized", "authentication_required", HTTP_STATUS2.UNAUTHORIZED, ctx);
       }
       const result = await this.notificationRepo.findUserNotifications(user.id);
-      return success(result, ctx);
+      return success2(result, ctx);
     } catch (error) {
       return this.mapError(error, ctx);
     }
   }
-  async markAsRead(request2) {
-    const ctx = this.createApiContext(request2);
+  async markAsRead(request4) {
+    const ctx = this.createApiContext(request4);
     try {
-      const user = request2.user;
+      const user = request4.user;
       if (!user || !user.id) {
-        return this.errorResponse("unauthorized", "authentication_required", HTTP_STATUS.UNAUTHORIZED, ctx);
+        return this.errorResponse("unauthorized", "authentication_required", HTTP_STATUS2.UNAUTHORIZED, ctx);
       }
-      const notificationId = request2.params?.id;
+      const notificationId = request4.params?.id;
       if (!notificationId) {
-        return this.errorResponse("bad_request", "notification_id_required", HTTP_STATUS.BAD_REQUEST, ctx);
+        return this.errorResponse("bad_request", "notification_id_required", HTTP_STATUS2.BAD_REQUEST, ctx);
       }
       const updated = await this.notificationRepo.markAsRead(notificationId, user.id);
-      return success(updated, ctx);
+      return success2(updated, ctx);
     } catch (error) {
       return this.mapError(error, ctx);
     }
   }
-  async markAllAsRead(request2) {
-    const ctx = this.createApiContext(request2);
+  async markAllAsRead(request4) {
+    const ctx = this.createApiContext(request4);
     try {
-      const user = request2.user;
+      const user = request4.user;
       if (!user || !user.id) {
-        return this.errorResponse("unauthorized", "authentication_required", HTTP_STATUS.UNAUTHORIZED, ctx);
+        return this.errorResponse("unauthorized", "authentication_required", HTTP_STATUS2.UNAUTHORIZED, ctx);
       }
       const count = await this.notificationRepo.markAllAsRead(user.id);
-      return success({ count }, ctx);
+      return success2({ count }, ctx);
     } catch (error) {
       return this.mapError(error, ctx);
     }
   }
-  createApiContext(request2) {
+  createApiContext(request4) {
     return {
-      timestamp: request2.context?.metadata?.timestamp ?? (/* @__PURE__ */ new Date()).toISOString(),
-      requestId: request2.context?.metadata?.requestId,
-      version: request2.context?.metadata?.version ?? "v1",
-      locale: request2.context?.metadata?.locale
+      timestamp: request4.context?.metadata?.timestamp ?? (/* @__PURE__ */ new Date()).toISOString(),
+      requestId: request4.context?.metadata?.requestId,
+      version: request4.context?.metadata?.version ?? "v1",
+      locale: request4.context?.metadata?.locale
     };
   }
   mapError(error, ctx) {
     if (error instanceof ValidationException) {
-      return this.errorResponse("bad_request", error.message || "bad_request", HTTP_STATUS.BAD_REQUEST, ctx);
+      return this.errorResponse("bad_request", error.message || "bad_request", HTTP_STATUS2.BAD_REQUEST, ctx);
     }
     if (error instanceof UnauthorizedError) {
-      return this.errorResponse("unauthorized", error.message || "unauthorized", HTTP_STATUS.UNAUTHORIZED, ctx);
+      return this.errorResponse("unauthorized", error.message || "unauthorized", HTTP_STATUS2.UNAUTHORIZED, ctx);
     }
     return this.errorResponse(
       "internal_error",
       error instanceof Error ? error.message : "internal_error",
-      HTTP_STATUS.INTERNAL_SERVER_ERROR,
+      HTTP_STATUS2.INTERNAL_SERVER_ERROR,
       ctx
     );
   }
@@ -7914,26 +8377,26 @@ var support_repository_default = SupportRepository;
 var SupportController = class {
   supportRepo = new SupportRepository();
   cartRepo = new cart_repository_default();
-  async getSupportContacts(request2) {
-    const ctx = this.createApiContext(request2);
+  async getSupportContacts(request4) {
+    const ctx = this.createApiContext(request4);
     try {
       const contacts = await this.supportRepo.getSupportContacts();
-      return success(contacts, ctx);
+      return success2(contacts, ctx);
     } catch (error) {
       return this.mapError(error, ctx);
     }
   }
-  async createTicket(request2) {
-    const ctx = this.createApiContext(request2);
+  async createTicket(request4) {
+    const ctx = this.createApiContext(request4);
     try {
-      const user = request2.user;
+      const user = request4.user;
       if (!user || !user.id) {
-        return this.errorResponse("unauthorized", "authentication_required", HTTP_STATUS.UNAUTHORIZED, ctx);
+        return this.errorResponse("unauthorized", "authentication_required", HTTP_STATUS2.UNAUTHORIZED, ctx);
       }
-      const body = request2.body || {};
+      const body = request4.body || {};
       const { subject, description, priority } = body;
       if (!subject || !description) {
-        return this.errorResponse("bad_request", "subject_and_description_required", HTTP_STATUS.BAD_REQUEST, ctx);
+        return this.errorResponse("bad_request", "subject_and_description_required", HTTP_STATUS2.BAD_REQUEST, ctx);
       }
       const ticket = await this.supportRepo.createTicket({
         customerId: user.id,
@@ -7943,17 +8406,17 @@ var SupportController = class {
         description: String(description),
         priority: priority ? String(priority) : "MEDIUM"
       });
-      return created(ticket, ctx);
+      return created2(ticket, ctx);
     } catch (error) {
       return this.mapError(error, ctx);
     }
   }
-  async listTickets(request2) {
-    const ctx = this.createApiContext(request2);
+  async listTickets(request4) {
+    const ctx = this.createApiContext(request4);
     try {
-      const user = request2.user;
+      const user = request4.user;
       if (!user || !user.id) {
-        return this.errorResponse("unauthorized", "authentication_required", HTTP_STATUS.UNAUTHORIZED, ctx);
+        return this.errorResponse("unauthorized", "authentication_required", HTTP_STATUS2.UNAUTHORIZED, ctx);
       }
       const isStaffOrAdmin = user.role === "ADMIN" || user.role === "MANAGER" || user.role === "EMPLOYEE";
       let tickets;
@@ -7962,21 +8425,21 @@ var SupportController = class {
       } else {
         tickets = await this.supportRepo.findCustomerTickets(user.id);
       }
-      return success({ tickets }, ctx);
+      return success2({ tickets }, ctx);
     } catch (error) {
       return this.mapError(error, ctx);
     }
   }
-  async getTicketById(request2) {
-    const ctx = this.createApiContext(request2);
+  async getTicketById(request4) {
+    const ctx = this.createApiContext(request4);
     try {
-      const user = request2.user;
+      const user = request4.user;
       if (!user || !user.id) {
-        return this.errorResponse("unauthorized", "authentication_required", HTTP_STATUS.UNAUTHORIZED, ctx);
+        return this.errorResponse("unauthorized", "authentication_required", HTTP_STATUS2.UNAUTHORIZED, ctx);
       }
-      const ticketId = request2.params?.id;
+      const ticketId = request4.params?.id;
       if (!ticketId) {
-        return this.errorResponse("bad_request", "ticket_id_required", HTTP_STATUS.BAD_REQUEST, ctx);
+        return this.errorResponse("bad_request", "ticket_id_required", HTTP_STATUS2.BAD_REQUEST, ctx);
       }
       const isStaffOrAdmin = user.role === "ADMIN" || user.role === "MANAGER" || user.role === "EMPLOYEE";
       const ticket = await this.supportRepo.findTicketById(
@@ -7984,29 +8447,29 @@ var SupportController = class {
         isStaffOrAdmin ? void 0 : user.id
       );
       if (!ticket) {
-        return this.errorResponse("not_found", "ticket_not_found", HTTP_STATUS.NOT_FOUND, ctx);
+        return this.errorResponse("not_found", "ticket_not_found", HTTP_STATUS2.NOT_FOUND, ctx);
       }
-      return success(ticket, ctx);
+      return success2(ticket, ctx);
     } catch (error) {
       return this.mapError(error, ctx);
     }
   }
-  async replyTicket(request2) {
-    const ctx = this.createApiContext(request2);
+  async replyTicket(request4) {
+    const ctx = this.createApiContext(request4);
     try {
-      const user = request2.user;
+      const user = request4.user;
       if (!user || !user.id) {
-        return this.errorResponse("unauthorized", "authentication_required", HTTP_STATUS.UNAUTHORIZED, ctx);
+        return this.errorResponse("unauthorized", "authentication_required", HTTP_STATUS2.UNAUTHORIZED, ctx);
       }
-      const ticketId = request2.params?.id;
-      const message = request2.body?.message;
+      const ticketId = request4.params?.id;
+      const message = request4.body?.message;
       if (!ticketId || !message) {
-        return this.errorResponse("bad_request", "ticket_id_and_message_required", HTTP_STATUS.BAD_REQUEST, ctx);
+        return this.errorResponse("bad_request", "ticket_id_and_message_required", HTTP_STATUS2.BAD_REQUEST, ctx);
       }
       const isStaffOrAdmin = user.role === "ADMIN" || user.role === "MANAGER" || user.role === "EMPLOYEE";
       const ticketCheck = await this.supportRepo.findTicketById(ticketId, isStaffOrAdmin ? void 0 : user.id);
       if (!ticketCheck) {
-        return this.errorResponse("not_found", "ticket_not_found", HTTP_STATUS.NOT_FOUND, ctx);
+        return this.errorResponse("not_found", "ticket_not_found", HTTP_STATUS2.NOT_FOUND, ctx);
       }
       const updated = await this.supportRepo.replyToTicket({
         ticketId,
@@ -8015,51 +8478,51 @@ var SupportController = class {
         senderRole: user.role ?? "CUSTOMER",
         message: String(message)
       });
-      return success(updated, ctx);
+      return success2(updated, ctx);
     } catch (error) {
       return this.mapError(error, ctx);
     }
   }
-  async updateTicketStatus(request2) {
-    const ctx = this.createApiContext(request2);
+  async updateTicketStatus(request4) {
+    const ctx = this.createApiContext(request4);
     try {
-      const user = request2.user;
+      const user = request4.user;
       if (!user || !user.id) {
-        return this.errorResponse("unauthorized", "authentication_required", HTTP_STATUS.UNAUTHORIZED, ctx);
+        return this.errorResponse("unauthorized", "authentication_required", HTTP_STATUS2.UNAUTHORIZED, ctx);
       }
-      const ticketId = request2.params?.id;
-      const status = request2.body?.status;
+      const ticketId = request4.params?.id;
+      const status = request4.body?.status;
       if (!ticketId || !status) {
-        return this.errorResponse("bad_request", "ticket_id_and_status_required", HTTP_STATUS.BAD_REQUEST, ctx);
+        return this.errorResponse("bad_request", "ticket_id_and_status_required", HTTP_STATUS2.BAD_REQUEST, ctx);
       }
       const updated = await this.supportRepo.updateTicketStatus(ticketId, status);
-      return success(updated, ctx);
+      return success2(updated, ctx);
     } catch (error) {
       return this.mapError(error, ctx);
     }
   }
-  createApiContext(request2) {
+  createApiContext(request4) {
     return {
-      timestamp: request2.context?.metadata?.timestamp ?? (/* @__PURE__ */ new Date()).toISOString(),
-      requestId: request2.context?.metadata?.requestId,
-      version: request2.context?.metadata?.version ?? "v1",
-      locale: request2.context?.metadata?.locale
+      timestamp: request4.context?.metadata?.timestamp ?? (/* @__PURE__ */ new Date()).toISOString(),
+      requestId: request4.context?.metadata?.requestId,
+      version: request4.context?.metadata?.version ?? "v1",
+      locale: request4.context?.metadata?.locale
     };
   }
   mapError(error, ctx) {
     if (error instanceof NotFoundException) {
-      return this.errorResponse("not_found", error.message || "not_found", HTTP_STATUS.NOT_FOUND, ctx);
+      return this.errorResponse("not_found", error.message || "not_found", HTTP_STATUS2.NOT_FOUND, ctx);
     }
     if (error instanceof ValidationException) {
-      return this.errorResponse("bad_request", error.message || "bad_request", HTTP_STATUS.BAD_REQUEST, ctx);
+      return this.errorResponse("bad_request", error.message || "bad_request", HTTP_STATUS2.BAD_REQUEST, ctx);
     }
     if (error instanceof UnauthorizedError) {
-      return this.errorResponse("unauthorized", error.message || "unauthorized", HTTP_STATUS.UNAUTHORIZED, ctx);
+      return this.errorResponse("unauthorized", error.message || "unauthorized", HTTP_STATUS2.UNAUTHORIZED, ctx);
     }
     return this.errorResponse(
       "internal_error",
       error instanceof Error ? error.message : "internal_error",
-      HTTP_STATUS.INTERNAL_SERVER_ERROR,
+      HTTP_STATUS2.INTERNAL_SERVER_ERROR,
       ctx
     );
   }
@@ -8392,108 +8855,108 @@ var ReportsRepository = class extends base_repository_default {
 // ../backend/src/modules/reports/controller.ts
 var ReportsController = class {
   reportsRepo = new ReportsRepository();
-  async getDashboardKpis(request2) {
-    const ctx = this.createApiContext(request2);
+  async getDashboardKpis(request4) {
+    const ctx = this.createApiContext(request4);
     try {
-      const user = request2.user;
+      const user = request4.user;
       if (!user || !user.id) {
-        return this.errorResponse("unauthorized", "authentication_required", HTTP_STATUS.UNAUTHORIZED, ctx);
+        return this.errorResponse("unauthorized", "authentication_required", HTTP_STATUS2.UNAUTHORIZED, ctx);
       }
       const kpis = await this.reportsRepo.getDashboardKpis();
-      return success(kpis, ctx);
+      return success2(kpis, ctx);
     } catch (error) {
       return this.mapError(error, ctx);
     }
   }
-  async getSalesReport(request2) {
-    const ctx = this.createApiContext(request2);
+  async getSalesReport(request4) {
+    const ctx = this.createApiContext(request4);
     try {
-      const user = request2.user;
+      const user = request4.user;
       if (!user || !user.id) {
-        return this.errorResponse("unauthorized", "authentication_required", HTTP_STATUS.UNAUTHORIZED, ctx);
+        return this.errorResponse("unauthorized", "authentication_required", HTTP_STATUS2.UNAUTHORIZED, ctx);
       }
-      const { startDate, endDate, status } = request2.query || {};
+      const { startDate, endDate, status } = request4.query || {};
       const report = await this.reportsRepo.getSalesReport(
         startDate ? String(startDate) : void 0,
         endDate ? String(endDate) : void 0,
         status ? String(status) : void 0
       );
-      return success(report, ctx);
+      return success2(report, ctx);
     } catch (error) {
       return this.mapError(error, ctx);
     }
   }
-  async getProductAnalytics(request2) {
-    const ctx = this.createApiContext(request2);
+  async getProductAnalytics(request4) {
+    const ctx = this.createApiContext(request4);
     try {
-      const user = request2.user;
+      const user = request4.user;
       if (!user || !user.id) {
-        return this.errorResponse("unauthorized", "authentication_required", HTTP_STATUS.UNAUTHORIZED, ctx);
+        return this.errorResponse("unauthorized", "authentication_required", HTTP_STATUS2.UNAUTHORIZED, ctx);
       }
       const analytics = await this.reportsRepo.getProductAnalytics();
-      return success(analytics, ctx);
+      return success2(analytics, ctx);
     } catch (error) {
       return this.mapError(error, ctx);
     }
   }
-  async getInventoryAnalytics(request2) {
-    const ctx = this.createApiContext(request2);
+  async getInventoryAnalytics(request4) {
+    const ctx = this.createApiContext(request4);
     try {
-      const user = request2.user;
+      const user = request4.user;
       if (!user || !user.id) {
-        return this.errorResponse("unauthorized", "authentication_required", HTTP_STATUS.UNAUTHORIZED, ctx);
+        return this.errorResponse("unauthorized", "authentication_required", HTTP_STATUS2.UNAUTHORIZED, ctx);
       }
       const analytics = await this.reportsRepo.getInventoryAnalytics();
-      return success(analytics, ctx);
+      return success2(analytics, ctx);
     } catch (error) {
       return this.mapError(error, ctx);
     }
   }
-  async getCustomerAnalytics(request2) {
-    const ctx = this.createApiContext(request2);
+  async getCustomerAnalytics(request4) {
+    const ctx = this.createApiContext(request4);
     try {
-      const user = request2.user;
+      const user = request4.user;
       if (!user || !user.id) {
-        return this.errorResponse("unauthorized", "authentication_required", HTTP_STATUS.UNAUTHORIZED, ctx);
+        return this.errorResponse("unauthorized", "authentication_required", HTTP_STATUS2.UNAUTHORIZED, ctx);
       }
       const analytics = await this.reportsRepo.getCustomerAnalytics();
-      return success(analytics, ctx);
+      return success2(analytics, ctx);
     } catch (error) {
       return this.mapError(error, ctx);
     }
   }
-  async getPaymentAnalytics(request2) {
-    const ctx = this.createApiContext(request2);
+  async getPaymentAnalytics(request4) {
+    const ctx = this.createApiContext(request4);
     try {
-      const user = request2.user;
+      const user = request4.user;
       if (!user || !user.id) {
-        return this.errorResponse("unauthorized", "authentication_required", HTTP_STATUS.UNAUTHORIZED, ctx);
+        return this.errorResponse("unauthorized", "authentication_required", HTTP_STATUS2.UNAUTHORIZED, ctx);
       }
       const analytics = await this.reportsRepo.getPaymentAnalytics();
-      return success(analytics, ctx);
+      return success2(analytics, ctx);
     } catch (error) {
       return this.mapError(error, ctx);
     }
   }
-  createApiContext(request2) {
+  createApiContext(request4) {
     return {
-      timestamp: request2.context?.metadata?.timestamp ?? (/* @__PURE__ */ new Date()).toISOString(),
-      requestId: request2.context?.metadata?.requestId,
-      version: request2.context?.metadata?.version ?? "v1",
-      locale: request2.context?.metadata?.locale
+      timestamp: request4.context?.metadata?.timestamp ?? (/* @__PURE__ */ new Date()).toISOString(),
+      requestId: request4.context?.metadata?.requestId,
+      version: request4.context?.metadata?.version ?? "v1",
+      locale: request4.context?.metadata?.locale
     };
   }
   mapError(error, ctx) {
     if (error instanceof ValidationException) {
-      return this.errorResponse("bad_request", error.message || "bad_request", HTTP_STATUS.BAD_REQUEST, ctx);
+      return this.errorResponse("bad_request", error.message || "bad_request", HTTP_STATUS2.BAD_REQUEST, ctx);
     }
     if (error instanceof UnauthorizedError) {
-      return this.errorResponse("unauthorized", error.message || "unauthorized", HTTP_STATUS.UNAUTHORIZED, ctx);
+      return this.errorResponse("unauthorized", error.message || "unauthorized", HTTP_STATUS2.UNAUTHORIZED, ctx);
     }
     return this.errorResponse(
       "internal_error",
       error instanceof Error ? error.message : "internal_error",
-      HTTP_STATUS.INTERNAL_SERVER_ERROR,
+      HTTP_STATUS2.INTERNAL_SERVER_ERROR,
       ctx
     );
   }
@@ -8638,14 +9101,14 @@ function createReportsRoutes(controller = new ReportsController()) {
 init_errors();
 var AuditController = class {
   auditRepo = new AuditRepository();
-  async listAuditLogs(request2) {
-    const ctx = this.createApiContext(request2);
+  async listAuditLogs(request4) {
+    const ctx = this.createApiContext(request4);
     try {
-      const user = request2.user;
+      const user = request4.user;
       if (!user || !user.id) {
-        return this.errorResponse("unauthorized", "authentication_required", HTTP_STATUS.UNAUTHORIZED, ctx);
+        return this.errorResponse("unauthorized", "authentication_required", HTTP_STATUS2.UNAUTHORIZED, ctx);
       }
-      const { resource, action, actorId, page, limit } = request2.query || {};
+      const { resource, action, actorId, page, limit } = request4.query || {};
       const result = await this.auditRepo.findAuditLogs({
         resource: resource ? String(resource) : void 0,
         action: action ? String(action) : void 0,
@@ -8653,30 +9116,30 @@ var AuditController = class {
         page: page ? Number(page) : 1,
         limit: limit ? Number(limit) : 20
       });
-      return success(result, ctx);
+      return success2(result, ctx);
     } catch (error) {
       return this.mapError(error, ctx);
     }
   }
-  createApiContext(request2) {
+  createApiContext(request4) {
     return {
-      timestamp: request2.context?.metadata?.timestamp ?? (/* @__PURE__ */ new Date()).toISOString(),
-      requestId: request2.context?.metadata?.requestId,
-      version: request2.context?.metadata?.version ?? "v1",
-      locale: request2.context?.metadata?.locale
+      timestamp: request4.context?.metadata?.timestamp ?? (/* @__PURE__ */ new Date()).toISOString(),
+      requestId: request4.context?.metadata?.requestId,
+      version: request4.context?.metadata?.version ?? "v1",
+      locale: request4.context?.metadata?.locale
     };
   }
   mapError(error, ctx) {
     if (error instanceof ValidationException) {
-      return this.errorResponse("bad_request", error.message || "bad_request", HTTP_STATUS.BAD_REQUEST, ctx);
+      return this.errorResponse("bad_request", error.message || "bad_request", HTTP_STATUS2.BAD_REQUEST, ctx);
     }
     if (error instanceof UnauthorizedError) {
-      return this.errorResponse("unauthorized", error.message || "unauthorized", HTTP_STATUS.UNAUTHORIZED, ctx);
+      return this.errorResponse("unauthorized", error.message || "unauthorized", HTTP_STATUS2.UNAUTHORIZED, ctx);
     }
     return this.errorResponse(
       "internal_error",
       error instanceof Error ? error.message : "internal_error",
-      HTTP_STATUS.INTERNAL_SERVER_ERROR,
+      HTTP_STATUS2.INTERNAL_SERVER_ERROR,
       ctx
     );
   }
@@ -8739,8 +9202,8 @@ function createAuditRoutes(controller = new AuditController()) {
 
 // ../backend/src/system/server.ts
 init_errors();
-async function readBody(request2) {
-  const reqAny = request2;
+async function readBody(request4) {
+  const reqAny = request4;
   if (reqAny.body !== void 0 && reqAny.body !== null) {
     if (typeof reqAny.body === "object") return reqAny.body;
     if (typeof reqAny.body === "string") {
@@ -8753,7 +9216,7 @@ async function readBody(request2) {
   }
   const chunks = [];
   try {
-    for await (const chunk of request2) {
+    for await (const chunk of request4) {
       chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
     }
   } catch {
@@ -8776,13 +9239,13 @@ function createSystemRequestHandler() {
   const resolver = new RouteResolver();
   const protection = new RouteProtectionFactory();
   const authService = AuthController.createAuthService();
-  const routes = [...createSystemRoutes(), ...createAuthRoutes(), ...createUserRoutes(), ...createRoleRoutes(), ...createPermissionRoutes(), ...createProductRoutes(), ...createCustomerRoutes(), ...createCartRoutes(), ...createOrderRoutes(), ...createInventoryRoutes(), ...createPaymentRoutes(), ...createSettingsRoutes(), ...createNotificationRoutes(), ...createSupportRoutes(), ...createReportsRoutes(), ...createAuditRoutes()];
+  const routes = [...createSystemRoutes(), ...createAuthRoutes(), ...createUserRoutes(), ...createRoleRoutes(), ...createPermissionRoutes(), ...createProductRoutes(), ...createCustomerRoutes(), ...createCartRoutes(), ...createOrderRoutes(), ...createInventoryRoutes(), ...createDeliveryRoutes(), ...createSupplierAdminRoutes(), ...createPaymentRoutes(), ...createSettingsRoutes(), ...createNotificationRoutes(), ...createSupportRoutes(), ...createReportsRoutes(), ...createAuditRoutes()];
   for (const route of routes) {
     registry.register(route);
   }
-  return async (request2, response) => {
+  return async (request4, response) => {
     try {
-      const origin = request2.headers.origin || "*";
+      const origin = request4.headers.origin || "*";
       response.setHeader("Access-Control-Allow-Origin", origin);
       response.setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, PATCH, OPTIONS");
       response.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Requested-With");
@@ -8792,18 +9255,18 @@ function createSystemRequestHandler() {
       response.setHeader("X-XSS-Protection", "1; mode=block");
       response.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
       response.setHeader("Strict-Transport-Security", "max-age=31536000; includeSubDomains");
-      if (request2.method === "OPTIONS") {
+      if (request4.method === "OPTIONS") {
         response.writeHead(204);
         response.end();
         return;
       }
-      const url = new URL(request2.url ?? "/", `http://${request2.headers.host ?? "localhost"}`);
+      const url = new URL(request4.url ?? "/", `http://${request4.headers.host ?? "localhost"}`);
       let targetPath = url.searchParams.get("path") || url.pathname;
       if (targetPath.startsWith("/api/")) {
         targetPath = targetPath.substring(4);
       }
       const resolved = resolver.resolve(registry, {
-        method: request2.method ?? "GET",
+        method: request4.method ?? "GET",
         path: targetPath,
         version: "v1"
       });
@@ -8813,8 +9276,8 @@ function createSystemRequestHandler() {
         return;
       }
       const route = resolved;
-      const body = await readBody(request2);
-      const headers = request2.headers;
+      const body = await readBody(request4);
+      const headers = request4.headers;
       const query = {};
       for (const [key, value] of url.searchParams.entries()) {
         if (key !== "path") {
@@ -8828,7 +9291,7 @@ function createSystemRequestHandler() {
         const authorizationHeader = Array.isArray(authorization) ? authorization[0] : authorization;
         const tokenMatch = authorizationHeader?.match(/^Bearer\s+(.+)$/i);
         if (!tokenMatch) {
-          const result = unauthorized("authentication_required", {
+          const result = unauthorized2("authentication_required", {
             timestamp: (/* @__PURE__ */ new Date()).toISOString(),
             version: "v1"
           });
@@ -8839,7 +9302,7 @@ function createSystemRequestHandler() {
         const tokenPayload = await validateAccessToken(tokenMatch[1]);
         const user = await authService.getCurrentUser(String(tokenPayload.sub));
         if (!user) {
-          const result = unauthorized("authentication_required", {
+          const result = unauthorized2("authentication_required", {
             timestamp: (/* @__PURE__ */ new Date()).toISOString(),
             version: "v1"
           });
