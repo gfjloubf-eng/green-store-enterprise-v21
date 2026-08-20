@@ -1980,6 +1980,254 @@ init_rate_limiter();
 init_prisma_service();
 init_errors();
 import crypto3 from "crypto";
+
+// ../backend/src/rbac/constants.ts
+var MODULE_SCOPES = {
+  users: "tenant",
+  roles: "tenant",
+  permissions: "tenant",
+  products: "tenant",
+  categories: "tenant",
+  inventory: "tenant",
+  orders: "tenant",
+  customers: "tenant",
+  branches: "tenant",
+  stores: "tenant",
+  suppliers: "tenant",
+  payments: "tenant",
+  reports: "tenant",
+  settings: "tenant",
+  audit: "tenant",
+  notifications: "tenant",
+  carts: "tenant",
+  delivery: "tenant"
+};
+function createPermissionDefinition(module, action, description) {
+  return {
+    key: `${module}:${action}`,
+    module,
+    action,
+    scope: MODULE_SCOPES[module],
+    description
+  };
+}
+function createPermissionMap(module, descriptions) {
+  return {
+    create: createPermissionDefinition(module, "create", descriptions.create),
+    read: createPermissionDefinition(module, "read", descriptions.read),
+    update: createPermissionDefinition(module, "update", descriptions.update),
+    delete: createPermissionDefinition(module, "delete", descriptions.delete),
+    list: createPermissionDefinition(module, "list", descriptions.list)
+  };
+}
+var PERMISSION_DEFINITIONS = {
+  users: createPermissionMap("users", {
+    create: "Create users",
+    read: "Read users",
+    update: "Update users",
+    delete: "Delete users",
+    list: "List users"
+  }),
+  roles: createPermissionMap("roles", {
+    create: "Create roles",
+    read: "Read roles",
+    update: "Update roles",
+    delete: "Delete roles",
+    list: "List roles"
+  }),
+  permissions: createPermissionMap("permissions", {
+    create: "Create permissions",
+    read: "Read permissions",
+    update: "Update permissions",
+    delete: "Delete permissions",
+    list: "List permissions"
+  }),
+  products: createPermissionMap("products", {
+    create: "Create products",
+    read: "Read products",
+    update: "Update products",
+    delete: "Delete products",
+    list: "List products"
+  }),
+  categories: createPermissionMap("categories", {
+    create: "Create categories",
+    read: "Read categories",
+    update: "Update categories",
+    delete: "Delete categories",
+    list: "List categories"
+  }),
+  inventory: createPermissionMap("inventory", {
+    create: "Create inventory records",
+    read: "Read inventory records",
+    update: "Update inventory records",
+    delete: "Delete inventory records",
+    list: "List inventory records"
+  }),
+  orders: createPermissionMap("orders", {
+    create: "Create orders",
+    read: "Read orders",
+    update: "Update orders",
+    delete: "Delete orders",
+    list: "List orders"
+  }),
+  customers: createPermissionMap("customers", {
+    create: "Create customers",
+    read: "Read customers",
+    update: "Update customers",
+    delete: "Delete customers",
+    list: "List customers"
+  }),
+  branches: createPermissionMap("branches", {
+    create: "Create branches",
+    read: "Read branches",
+    update: "Update branches",
+    delete: "Delete branches",
+    list: "List branches"
+  }),
+  stores: createPermissionMap("stores", {
+    create: "Create stores",
+    read: "Read stores",
+    update: "Update stores",
+    delete: "Delete stores",
+    list: "List stores"
+  }),
+  suppliers: createPermissionMap("suppliers", {
+    create: "Create suppliers",
+    read: "Read suppliers",
+    update: "Update suppliers",
+    delete: "Delete suppliers",
+    list: "List suppliers"
+  }),
+  payments: createPermissionMap("payments", {
+    create: "Create payments",
+    read: "Read payments",
+    update: "Update payments",
+    delete: "Delete payments",
+    list: "List payments"
+  }),
+  reports: createPermissionMap("reports", {
+    create: "Create reports",
+    read: "Read reports",
+    update: "Update reports",
+    delete: "Delete reports",
+    list: "List reports"
+  }),
+  settings: createPermissionMap("settings", {
+    create: "Create settings",
+    read: "Read settings",
+    update: "Update settings",
+    delete: "Delete settings",
+    list: "List settings"
+  }),
+  audit: createPermissionMap("audit", {
+    create: "Create audit entries",
+    read: "Read audit entries",
+    update: "Update audit entries",
+    delete: "Delete audit entries",
+    list: "List audit entries"
+  }),
+  notifications: createPermissionMap("notifications", {
+    create: "Create notifications",
+    read: "Read notifications",
+    update: "Update notifications",
+    delete: "Delete notifications",
+    list: "List notifications"
+  }),
+  carts: createPermissionMap("carts", {
+    create: "Create cart items",
+    read: "Read cart",
+    update: "Update cart items",
+    delete: "Delete cart items",
+    list: "List cart items"
+  }),
+  delivery: createPermissionMap("delivery", {
+    create: "Create delivery records",
+    read: "Read delivery records",
+    update: "Update delivery records",
+    delete: "Delete delivery records",
+    list: "List delivery records"
+  })
+};
+var PERMISSION_GROUPS = Object.entries(PERMISSION_DEFINITIONS).map(
+  ([module, definitions]) => ({
+    module,
+    scope: MODULE_SCOPES[module],
+    permissions: Object.values(definitions)
+  })
+);
+var PERMISSION_REGISTRY = PERMISSION_GROUPS.reduce(
+  (registry, group) => {
+    for (const permission of group.permissions) {
+      registry[permission.key] = permission;
+    }
+    return registry;
+  },
+  {}
+);
+var ALL_PERMISSIONS = Object.keys(PERMISSION_REGISTRY);
+function createRoleDefinition(name, description, permissions) {
+  return {
+    name,
+    description,
+    scope: "tenant",
+    permissions
+  };
+}
+function getModulePermissions(module) {
+  return Object.values(PERMISSION_DEFINITIONS[module]).map((permission) => permission.key);
+}
+function getPermissionsForModules(modules) {
+  return modules.flatMap((module) => getModulePermissions(module));
+}
+function getPermissionsForModuleActions(module, actions) {
+  return Object.values(PERMISSION_DEFINITIONS[module]).filter((permission) => actions.includes(permission.action)).map((permission) => permission.key);
+}
+var ROLE_DEFINITIONS = [
+  createRoleDefinition("SUPER_ADMIN", "Full access across every module", [...ALL_PERMISSIONS]),
+  createRoleDefinition("ADMIN", "Administrative access with audit excluded", ALL_PERMISSIONS.filter((permission) => !permission.startsWith("audit:"))),
+  createRoleDefinition("MANAGER", "Operational access for products, inventory, orders, customers, and delivery", getPermissionsForModules(["products", "inventory", "orders", "customers", "delivery"])),
+  createRoleDefinition("EMPLOYEE", "Staff operational access for reading products, customers, inventory, and updating orders", [
+    ...getPermissionsForModuleActions("products", ["read", "list"]),
+    ...getPermissionsForModuleActions("customers", ["read", "list"]),
+    ...getPermissionsForModuleActions("orders", ["read", "list", "update"]),
+    ...getPermissionsForModuleActions("inventory", ["read", "list"]),
+    ...getPermissionsForModuleActions("delivery", ["read", "list", "update"])
+  ]),
+  createRoleDefinition("CUSTOMER", "Read and create access for self-service orders and customer profile", [
+    ...getPermissionsForModuleActions("customers", ["read", "list"]),
+    ...getPermissionsForModuleActions("orders", ["create", "read", "list"]),
+    ...getPermissionsForModules(["carts"])
+  ])
+];
+var ROLE_PERMISSION_REGISTRY = ROLE_DEFINITIONS.flatMap(
+  (role) => role.permissions.map((permission) => ({ role: role.name, permission }))
+);
+
+// ../backend/src/rbac/utils.ts
+function normalizePermission(permission) {
+  const key = permission.toString();
+  if (key in PERMISSION_REGISTRY) {
+    return key;
+  }
+  return key;
+}
+function normalizePermissions(permissions) {
+  return [...permissions ?? []].map((permission) => normalizePermission(permission));
+}
+function hasPermission(permissions, permission) {
+  const normalizedPermission = normalizePermission(permission);
+  return normalizePermissions(permissions).includes(normalizedPermission);
+}
+function hasAnyPermission(permissions, ...requiredPermissions) {
+  return requiredPermissions.some((permission) => hasPermission(permissions, permission));
+}
+function getRolePermissions(role) {
+  const normalizedRole = role.toString().toUpperCase();
+  const roleDefinition = ROLE_DEFINITIONS.find((definition) => definition.name === normalizedRole);
+  return roleDefinition?.permissions ?? [];
+}
+
+// ../backend/src/services/auth-service.ts
 var AuthService = class {
   constructor(userLookup) {
     this.userLookup = userLookup;
@@ -2273,7 +2521,11 @@ var AuthService = class {
       primaryRole = primaryAssignment?.role?.name ?? null;
       for (const assignment of user.roles) {
         if (assignment.role?.name) {
-          roles.push(String(assignment.role.name));
+          const roleName = String(assignment.role.name);
+          roles.push(roleName);
+          for (const permission of getRolePermissions(roleName)) {
+            permissions.add(permission);
+          }
         }
         if (Array.isArray(assignment.role?.permissions)) {
           for (const rp of assignment.role.permissions) {
@@ -2860,247 +3112,6 @@ function createAuthRoutes(controller = new AuthController()) {
     }
   });
   return builder.build();
-}
-
-// ../backend/src/rbac/constants.ts
-var MODULE_SCOPES = {
-  users: "tenant",
-  roles: "tenant",
-  permissions: "tenant",
-  products: "tenant",
-  categories: "tenant",
-  inventory: "tenant",
-  orders: "tenant",
-  customers: "tenant",
-  branches: "tenant",
-  stores: "tenant",
-  suppliers: "tenant",
-  payments: "tenant",
-  reports: "tenant",
-  settings: "tenant",
-  audit: "tenant",
-  notifications: "tenant",
-  carts: "tenant",
-  delivery: "tenant"
-};
-function createPermissionDefinition(module, action, description) {
-  return {
-    key: `${module}:${action}`,
-    module,
-    action,
-    scope: MODULE_SCOPES[module],
-    description
-  };
-}
-function createPermissionMap(module, descriptions) {
-  return {
-    create: createPermissionDefinition(module, "create", descriptions.create),
-    read: createPermissionDefinition(module, "read", descriptions.read),
-    update: createPermissionDefinition(module, "update", descriptions.update),
-    delete: createPermissionDefinition(module, "delete", descriptions.delete),
-    list: createPermissionDefinition(module, "list", descriptions.list)
-  };
-}
-var PERMISSION_DEFINITIONS = {
-  users: createPermissionMap("users", {
-    create: "Create users",
-    read: "Read users",
-    update: "Update users",
-    delete: "Delete users",
-    list: "List users"
-  }),
-  roles: createPermissionMap("roles", {
-    create: "Create roles",
-    read: "Read roles",
-    update: "Update roles",
-    delete: "Delete roles",
-    list: "List roles"
-  }),
-  permissions: createPermissionMap("permissions", {
-    create: "Create permissions",
-    read: "Read permissions",
-    update: "Update permissions",
-    delete: "Delete permissions",
-    list: "List permissions"
-  }),
-  products: createPermissionMap("products", {
-    create: "Create products",
-    read: "Read products",
-    update: "Update products",
-    delete: "Delete products",
-    list: "List products"
-  }),
-  categories: createPermissionMap("categories", {
-    create: "Create categories",
-    read: "Read categories",
-    update: "Update categories",
-    delete: "Delete categories",
-    list: "List categories"
-  }),
-  inventory: createPermissionMap("inventory", {
-    create: "Create inventory records",
-    read: "Read inventory records",
-    update: "Update inventory records",
-    delete: "Delete inventory records",
-    list: "List inventory records"
-  }),
-  orders: createPermissionMap("orders", {
-    create: "Create orders",
-    read: "Read orders",
-    update: "Update orders",
-    delete: "Delete orders",
-    list: "List orders"
-  }),
-  customers: createPermissionMap("customers", {
-    create: "Create customers",
-    read: "Read customers",
-    update: "Update customers",
-    delete: "Delete customers",
-    list: "List customers"
-  }),
-  branches: createPermissionMap("branches", {
-    create: "Create branches",
-    read: "Read branches",
-    update: "Update branches",
-    delete: "Delete branches",
-    list: "List branches"
-  }),
-  stores: createPermissionMap("stores", {
-    create: "Create stores",
-    read: "Read stores",
-    update: "Update stores",
-    delete: "Delete stores",
-    list: "List stores"
-  }),
-  suppliers: createPermissionMap("suppliers", {
-    create: "Create suppliers",
-    read: "Read suppliers",
-    update: "Update suppliers",
-    delete: "Delete suppliers",
-    list: "List suppliers"
-  }),
-  payments: createPermissionMap("payments", {
-    create: "Create payments",
-    read: "Read payments",
-    update: "Update payments",
-    delete: "Delete payments",
-    list: "List payments"
-  }),
-  reports: createPermissionMap("reports", {
-    create: "Create reports",
-    read: "Read reports",
-    update: "Update reports",
-    delete: "Delete reports",
-    list: "List reports"
-  }),
-  settings: createPermissionMap("settings", {
-    create: "Create settings",
-    read: "Read settings",
-    update: "Update settings",
-    delete: "Delete settings",
-    list: "List settings"
-  }),
-  audit: createPermissionMap("audit", {
-    create: "Create audit entries",
-    read: "Read audit entries",
-    update: "Update audit entries",
-    delete: "Delete audit entries",
-    list: "List audit entries"
-  }),
-  notifications: createPermissionMap("notifications", {
-    create: "Create notifications",
-    read: "Read notifications",
-    update: "Update notifications",
-    delete: "Delete notifications",
-    list: "List notifications"
-  }),
-  carts: createPermissionMap("carts", {
-    create: "Create cart items",
-    read: "Read cart",
-    update: "Update cart items",
-    delete: "Delete cart items",
-    list: "List cart items"
-  }),
-  delivery: createPermissionMap("delivery", {
-    create: "Create delivery records",
-    read: "Read delivery records",
-    update: "Update delivery records",
-    delete: "Delete delivery records",
-    list: "List delivery records"
-  })
-};
-var PERMISSION_GROUPS = Object.entries(PERMISSION_DEFINITIONS).map(
-  ([module, definitions]) => ({
-    module,
-    scope: MODULE_SCOPES[module],
-    permissions: Object.values(definitions)
-  })
-);
-var PERMISSION_REGISTRY = PERMISSION_GROUPS.reduce(
-  (registry, group) => {
-    for (const permission of group.permissions) {
-      registry[permission.key] = permission;
-    }
-    return registry;
-  },
-  {}
-);
-var ALL_PERMISSIONS = Object.keys(PERMISSION_REGISTRY);
-function createRoleDefinition(name, description, permissions) {
-  return {
-    name,
-    description,
-    scope: "tenant",
-    permissions
-  };
-}
-function getModulePermissions(module) {
-  return Object.values(PERMISSION_DEFINITIONS[module]).map((permission) => permission.key);
-}
-function getPermissionsForModules(modules) {
-  return modules.flatMap((module) => getModulePermissions(module));
-}
-function getPermissionsForModuleActions(module, actions) {
-  return Object.values(PERMISSION_DEFINITIONS[module]).filter((permission) => actions.includes(permission.action)).map((permission) => permission.key);
-}
-var ROLE_DEFINITIONS = [
-  createRoleDefinition("SUPER_ADMIN", "Full access across every module", [...ALL_PERMISSIONS]),
-  createRoleDefinition("ADMIN", "Administrative access with audit excluded", ALL_PERMISSIONS.filter((permission) => !permission.startsWith("audit:"))),
-  createRoleDefinition("MANAGER", "Operational access for products, inventory, orders, customers, and delivery", getPermissionsForModules(["products", "inventory", "orders", "customers", "delivery"])),
-  createRoleDefinition("EMPLOYEE", "Staff operational access for reading products, customers, inventory, and updating orders", [
-    ...getPermissionsForModuleActions("products", ["read", "list"]),
-    ...getPermissionsForModuleActions("customers", ["read", "list"]),
-    ...getPermissionsForModuleActions("orders", ["read", "list", "update"]),
-    ...getPermissionsForModuleActions("inventory", ["read", "list"]),
-    ...getPermissionsForModuleActions("delivery", ["read", "list", "update"])
-  ]),
-  createRoleDefinition("CUSTOMER", "Read and create access for self-service orders and customer profile", [
-    ...getPermissionsForModuleActions("customers", ["read", "list"]),
-    ...getPermissionsForModuleActions("orders", ["create", "read", "list"]),
-    ...getPermissionsForModules(["carts"])
-  ])
-];
-var ROLE_PERMISSION_REGISTRY = ROLE_DEFINITIONS.flatMap(
-  (role) => role.permissions.map((permission) => ({ role: role.name, permission }))
-);
-
-// ../backend/src/rbac/utils.ts
-function normalizePermission(permission) {
-  const key = permission.toString();
-  if (key in PERMISSION_REGISTRY) {
-    return key;
-  }
-  return key;
-}
-function normalizePermissions(permissions) {
-  return [...permissions ?? []].map((permission) => normalizePermission(permission));
-}
-function hasPermission(permissions, permission) {
-  const normalizedPermission = normalizePermission(permission);
-  return normalizePermissions(permissions).includes(normalizedPermission);
-}
-function hasAnyPermission(permissions, ...requiredPermissions) {
-  return requiredPermissions.some((permission) => hasPermission(permissions, permission));
 }
 
 // ../backend/src/authorization/errors.ts
