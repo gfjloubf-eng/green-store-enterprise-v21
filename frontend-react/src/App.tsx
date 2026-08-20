@@ -37,6 +37,7 @@ const AdminSupportPage = lazy(() => import('@/features/admin/pages/AdminSupportP
 const AdminOrdersPage = lazy(() => import('@/features/admin/pages/AdminOrdersPage'));
 const AdminDriversPage = lazy(() => import('@/features/admin/pages/AdminDriversPage'));
 const AdminSuppliersPage = lazy(() => import('@/features/admin/pages/AdminSuppliersPage'));
+const AdminEducationArticlesPage = lazy(() => import('@/features/education/pages/AdminEducationArticlesPage'));
 const ReportsDashboardPage = lazy(() => import('@/features/reports/pages/ReportsDashboardPage').then((m) => ({ default: m.ReportsDashboardPage })));
 const InventoryDashboard = lazy(() => import('@/features/inventory/pages/InventoryDashboard').then((m) => ({ default: m.InventoryDashboard })));
 const StockOverview = lazy(() => import('@/features/inventory/pages/StockOverview').then((m) => ({ default: m.StockOverview })));
@@ -139,6 +140,7 @@ export default function App() {
           </Route>
           <Route element={<ProtectedRoute requiredPermission="products:update" />}>
             <Route path="products/:id/edit" element={<EditProductPage />} />
+            <Route path="admin/education/articles" element={<AdminEducationArticlesPage />} />
           </Route>
           <Route element={<ProtectedRoute requiredPermission="products:read" />}>
             <Route path="products/categories" element={<CategoriesPage />} />

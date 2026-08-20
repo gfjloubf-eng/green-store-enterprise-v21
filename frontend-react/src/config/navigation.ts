@@ -20,6 +20,7 @@ import {
   ShieldCheck,
   Settings,
   LifeBuoy,
+  BookOpen,
   Info,
   Phone,
 } from 'lucide-react';
@@ -250,6 +251,13 @@ export const navConfig: NavGroup[] = [
         path: '/admin/reports',
         icon: BarChart3,
         requiredRoles: ['SUPER_ADMIN', 'ADMIN', 'MANAGER', 'EMPLOYEE'],
+      },
+      {
+        id: 'admin-education-articles',
+        label: 'مقالات مركز المعرفة',
+        path: '/admin/education/articles',
+        icon: BookOpen,
+        requiredPermission: 'products:update',
       },
       {
         id: 'users',

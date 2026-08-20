@@ -10,6 +10,7 @@
 
 import { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import { InventoryService } from '../services/inventoryService';
+import { getInventory, getStockMovements, type InventoryItem, type StockMovement } from '@/services/inventoryClient';
 import type { InventoryDTO } from '../domain/inventoryDTO';
 import type { MovementDTO } from '../domain/movementDTO';
 import type { InventoryFilterModel } from '../domain/inventoryFilterModel';
@@ -27,6 +28,67 @@ import {
   errorState,
   readyState,
 } from '../state/inventoryState';
+
+function mapApiInventoryToTableModel(item: InventoryItem): InventoryTableModel {
+  const quantityOnHand = Number(item.quantity ?? 0);
+  const quantityReserved = Number(item.reservedQuantity ?? 0);
+  const quantityAvailable = Number(item.availableQuantity ?? quantityOnHand - quantityReserved);
+  const minStock = Number(item.lowStockThreshold ?? 0);
+  const status = item.isOutOfStock
+    ? 'out_of_stock'
+    : item.isLowStock
+      ? 'low_stock'
+      : 'in_stock';
+
+  return {
+    id: item.id,
+    productId: item.productId,
+    productName: item.product?.name ?? item.productId,
+    sku: item.product?.sku ?? '—',
+    barcode: '—',
+    quantityOnHand,
+    quantityReserved,
+    quantityAvailable,
+    minStock,
+    maxStock: Math.max(minStock, quantityOnHand),
+    location: {
+      id: item.warehouseId,
+      name: item.warehouse?.name ?? item.warehouseId,
+      type: 'warehouse',
+    },
+    status,
+    lastMovementAt: item.updatedAt,
+    updatedAt: item.updatedAt,
+  };
+}
+
+function mapApiMovementToDTO(movement: StockMovement): MovementDTO {
+  const typeMap: Record<StockMovement['type'], MovementDTO['type']> = {
+    IN: 'stock_in',
+    OUT: 'stock_out',
+    TRANSFER: 'transfer',
+    ADJUSTMENT: 'adjustment',
+    RESERVATION: 'sale',
+    RELEASE: 'adjustment',
+  };
+  const productId = movement.inventory?.product?.id ?? movement.inventoryId;
+  const location = movement.inventory?.warehouse;
+  const performedBy = movement.performedBy?.displayName ?? movement.performedBy?.email;
+
+  return {
+    id: movement.id,
+    productId,
+    type: typeMap[movement.type],
+    status: 'completed',
+    quantity: Number(movement.quantity),
+    fromLocation: location ? { id: location.id, name: location.name } : undefined,
+    toLocation: undefined,
+    reference: movement.referenceId ?? undefined,
+    createdBy: performedBy ?? undefined,
+    performedAt: movement.createdAt,
+    createdAt: movement.createdAt,
+  };
+}
 
 /* ─── useInventoryTableData ────────────────────────────────── */
 
@@ -48,24 +110,44 @@ export function useInventoryTableData(
   const [totalPages, setTotalPages] = useState(0);
 
   useEffect(() => {
-    const timer = setTimeout(() => {
-      try {
-        const tableData = InventoryService.getTableData(filters);
-        setInventory(tableData.inventory);
-        setTotal(tableData.total);
-        setTotalPages(tableData.totalPages);
-      } catch {
+    let cancelled = false;
+    setIsLoading(true);
+
+    getInventory({
+      page: 1,
+      limit: 1000,
+      search: filters.search,
+      status: filters.status === 'all' ? undefined : filters.status,
+    })
+      .then((result) => {
+        if (cancelled) return;
+        let rows = result.items.map(mapApiInventoryToTableModel);
+        if (filters.locationId) {
+          rows = rows.filter((row) => row.location.id === filters.locationId);
+        }
+        rows.sort((a, b) => {
+          const left = String(a[filters.sortBy as keyof typeof a] ?? '');
+          const right = String(b[filters.sortBy as keyof typeof b] ?? '');
+          const numeric = Number(left) - Number(right);
+          const comparison = Number.isNaN(numeric) ? left.localeCompare(right) : numeric;
+          return filters.sortDirection === 'asc' ? comparison : -comparison;
+        });
+        setInventory(rows.slice(0, filters.rowsPerPage));
+        setTotal(rows.length);
+        setTotalPages(Math.max(1, Math.ceil(rows.length / filters.rowsPerPage)));
+      })
+      .catch(() => {
+        if (cancelled) return;
         setInventory([]);
         setTotal(0);
         setTotalPages(0);
-      } finally {
-        setIsLoading(false);
-      }
-    }, 0);
+      })
+      .finally(() => {
+        if (!cancelled) setIsLoading(false);
+      });
 
     return () => {
-      clearTimeout(timer);
-      setIsLoading(true);
+      cancelled = true;
     };
   }, [
     filters.search,
@@ -132,29 +214,35 @@ export function useMovementHistory(): MovementListState {
   const [state, setState] = useState<MovementListState>(loadingState);
 
   useEffect(() => {
-    const timer = setTimeout(() => {
-      try {
-        const movements = InventoryService.getMovementHistory();
+    let cancelled = false;
+    setState(loadingState());
+
+    getStockMovements()
+      .then((result) => {
+        if (cancelled) return;
+        const movements = result.movements.map(mapApiMovementToDTO);
         if (movements.length === 0) {
           setState(emptyState());
         } else {
           setState(
             successState({
               movements,
-              total: movements.length,
-              page: 1,
-              totalPages: 1,
+              total: result.total,
+              page: result.page,
+              totalPages: result.totalPages,
             }),
           );
         }
-      } catch (err) {
-        const message =
-          err instanceof Error ? err.message : 'An unexpected error occurred';
+      })
+      .catch((err) => {
+        if (cancelled) return;
+        const message = err instanceof Error ? err.message : 'تعذر تحميل حركات المخزون';
         setState(errorState(message));
-      }
-    }, 0);
+      });
 
-    return () => clearTimeout(timer);
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   return state;

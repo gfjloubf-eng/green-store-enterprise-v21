@@ -8,13 +8,13 @@
    - No business logic inside the component.
    ============================================================ */
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { History } from 'lucide-react';
 import { useI18n, type TranslationKey } from '@/i18n/useI18n';
 import { BreadcrumbEngine } from '@/components/layout/BreadcrumbEngine';
 import { MovementTable } from '../components/MovementTable';
 import { InventoryEmptyState } from '../components/InventoryEmptyState';
-import { useMovementHistory, useMovementFilter } from '../hooks/useInventoryService';
+import { useMovementHistory } from '../hooks/useInventoryService';
 import { isState } from '../state/inventoryState';
 import { MOVEMENT_TYPE_OPTIONS, MOVEMENT_STATUS_OPTIONS } from '../constants';
 import type { MovementDTO } from '../domain/movementDTO';
@@ -27,7 +27,15 @@ export function StockMovements() {
   const [typeFilter, setTypeFilter] = useState<MovementDTO['type'] | 'all'>('all');
   const [statusFilter, setStatusFilter] = useState<MovementDTO['status'] | 'all'>('all');
 
-  const filteredMovements = useMovementFilter(typeFilter, statusFilter);
+  const allMovements = state.status === 'success' ? state.data.movements : [];
+  const filteredMovements = useMemo(
+    () =>
+      allMovements.filter((movement) =>
+        (typeFilter === 'all' || movement.type === typeFilter) &&
+        (statusFilter === 'all' || movement.status === statusFilter),
+      ),
+    [allMovements, typeFilter, statusFilter],
+  );
 
   const handleSort = useCallback((columnId: string) => {
     setSortBy((prev) => {

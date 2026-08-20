@@ -35,6 +35,10 @@ export interface StockMovement {
       id: string;
       name: string;
     } | null;
+    warehouse?: {
+      id: string;
+      name: string;
+    } | null;
   } | null;
   performedBy?: {
     id: string;
@@ -112,8 +116,16 @@ export async function adjustStock(data: {
   return payload?.data;
 }
 
-export async function getStockMovements(inventoryId?: string): Promise<{ movements: StockMovement[] }> {
-  const q = inventoryId ? `?inventoryId=${inventoryId}` : '';
+export interface PaginatedStockMovements {
+  movements: StockMovement[];
+  total: number;
+  page: number;
+  limit: number;
+  totalPages: number;
+}
+
+export async function getStockMovements(inventoryId?: string): Promise<PaginatedStockMovements> {
+  const q = inventoryId ? `?inventoryId=${encodeURIComponent(inventoryId)}` : '';
   const res = await fetchWithAuth(`/inventory/movements${q}`, { method: 'GET' });
 
   const payload = await parseJsonSafe(res);
@@ -123,5 +135,22 @@ export async function getStockMovements(inventoryId?: string): Promise<{ movemen
     err.status = res.status;
     throw err;
   }
-  return payload?.data;
+
+  const data = payload?.data ?? {};
+  const pagination = data?.pagination ?? {};
+  const movements = Array.isArray(data?.movements)
+    ? data.movements
+    : Array.isArray(data?.items)
+      ? data.items
+      : Array.isArray(data)
+        ? data
+        : [];
+
+  return {
+    movements,
+    total: Number(pagination.total ?? data?.total ?? movements.length),
+    page: Number(pagination.page ?? data?.page ?? 1),
+    limit: Number(pagination.limit ?? data?.limit ?? (movements.length || 1)),
+    totalPages: Number(pagination.totalPages ?? data?.totalPages ?? 1),
+  };
 }
