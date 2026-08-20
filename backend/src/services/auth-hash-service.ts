@@ -1,17 +1,24 @@
-import argon2 from 'argon2';
+import { argon2Verify, argon2id } from 'hash-wasm';
 
 class HashService {
   async hash(password: string): Promise<string> {
-    return argon2.hash(password, {
-      type: argon2.argon2id,
-      memoryCost: 2 ** 16,
-      timeCost: 3,
+    return argon2id({
+      password,
+      salt: crypto.getRandomValues(new Uint8Array(16)),
       parallelism: 1,
+      iterations: 3,
+      memorySize: 2 ** 16,
+      hashLength: 32,
+      outputType: 'encoded',
     });
   }
 
   async verify(password: string, stored: string): Promise<boolean> {
-    return argon2.verify(stored, password);
+    try {
+      return await argon2Verify({ password, hash: stored });
+    } catch {
+      return false;
+    }
   }
 }
 
