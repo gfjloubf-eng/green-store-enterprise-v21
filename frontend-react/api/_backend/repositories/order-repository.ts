@@ -4,6 +4,7 @@ import type { Order, OrderItem, OrderStatus, Product } from '@prisma/client';
 import { NotFoundException } from './exceptions';
 import { ValidationException } from '../validation';
 import { InventoryRepository } from './inventory-repository';
+import NotificationRepository from './notification-repository';
 
 export type OrderWithRelations = Order & {
   items: (OrderItem & { product?: Product | null })[];
@@ -130,7 +131,24 @@ export class OrderRepository extends BaseRepository implements OrderRepositoryCo
       throw new Error('order_creation_failed');
     }
 
-    return createdOrder as OrderWithRelations;
+    const orderResult = createdOrder as OrderWithRelations;
+    try {
+      await new NotificationRepository().createForManagementUsers({
+        title: 'طلب جديد وصل',
+        body: `الطلب ${orderResult.code} بقيمة ${Number(orderResult.total).toLocaleString('ar-YE')} ر.ي.`,
+        channel: 'admin',
+        payload: {
+          type: 'order_created',
+          orderId: orderResult.id,
+          orderCode: orderResult.code,
+          total: orderResult.total,
+        },
+      });
+    } catch {
+      // Notification delivery must not make a successful order fail.
+    }
+
+    return orderResult;
   }
 
   async findOrders(options: {

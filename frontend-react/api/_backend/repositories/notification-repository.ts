@@ -26,6 +26,44 @@ export class NotificationRepository extends BaseRepository {
     });
   }
 
+  async createForManagementUsers(data: {
+    title: string;
+    body: string;
+    channel?: string;
+    payload?: any;
+  }): Promise<number> {
+    const managementUsers = await this.client.user.findMany({
+      where: {
+        isActive: true,
+        deletedAt: null,
+        roles: {
+          some: {
+            role: {
+              name: { in: ['SUPER_ADMIN', 'ADMIN', 'MANAGER', 'EMPLOYEE'] },
+              deletedAt: null,
+            },
+          },
+        },
+      },
+      select: { id: true },
+    });
+
+    if (managementUsers.length === 0) return 0;
+
+    const result = await this.client.notification.createMany({
+      data: managementUsers.map((user) => ({
+        userId: user.id,
+        title: data.title,
+        body: data.body,
+        channel: data.channel ?? 'admin',
+        read: false,
+        payload: data.payload ? JSON.stringify(data.payload) : null,
+      })),
+    });
+
+    return result.count;
+  }
+
   async findUserNotifications(userId: string, limit = 30) {
     const [items, unreadCount] = await Promise.all([
       this.client.notification.findMany({
