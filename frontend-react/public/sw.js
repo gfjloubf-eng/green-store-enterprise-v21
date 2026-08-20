@@ -1,4 +1,4 @@
-const CACHE = 'qutoof-static-v1';
+const CACHE = 'qutoof-static-v2-brand-logo';
 self.addEventListener('install', () => self.skipWaiting());
 self.addEventListener('activate', (event) => event.waitUntil(self.clients.claim()));
 self.addEventListener('fetch', (event) => {
