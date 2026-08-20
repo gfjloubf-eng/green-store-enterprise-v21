@@ -6,6 +6,7 @@ import { REFRESH_TOKEN_EXP_SECONDS } from './auth-constants';
 import AuthAuditService from './auth-audit-service';
 import TokenBlacklistRepository from '../repositories/token-blacklist-repository';
 import LoginHistoryRepository from '../repositories/login-history-repository';
+import NotificationRepository from '../repositories/notification-repository';
 import RateLimiter from '../common/security/rate-limiter';
 import PrismaService from '../repositories/prisma-service';
 import crypto from 'crypto';
@@ -105,6 +106,17 @@ export class AuthService {
         },
       });
     });
+
+    try {
+      await new NotificationRepository().createForManagementUsers({
+        title: 'عميل جديد سجل في المتجر',
+        body: `${name} (${email}) أنشأ حساب عميل جديد.`,
+        channel: 'admin',
+        payload: { type: 'customer_registered', customerEmail: email },
+      });
+    } catch {
+      // Notification delivery must not make a successful registration fail.
+    }
 
     return this.signIn(email, password);
   }
