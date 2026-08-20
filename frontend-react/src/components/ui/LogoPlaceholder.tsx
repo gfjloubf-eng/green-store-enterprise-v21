@@ -34,7 +34,7 @@ export function LogoPlaceholder({ size = 'md', showText = true, className }: Log
      >
        <img
          src="/qutoof-official.png"
-         alt="Qutoof Nature"
+         alt="قطوف الطبيعة — الطبيعة أقرب إليك"
          className="h-full w-full rounded-[1.125rem] object-contain"
          style={{ imageRendering: 'auto' }}
          decoding="async"
@@ -48,7 +48,7 @@ export function LogoPlaceholder({ size = 'md', showText = true, className }: Log
            className={cn('font-semibold tracking-tight', text)}
            style={{ color: 'var(--gs-foreground)' }}
          >
-           Qutoof Nature
+           قطوف الطبيعة
          </span>
          <span
            className="text-[0.75rem] leading-tight text-[var(--gs-foreground-muted)]"
