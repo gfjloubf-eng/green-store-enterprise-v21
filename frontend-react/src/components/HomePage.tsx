@@ -209,7 +209,7 @@ export function HomePage() {
   };
 
   return (
-    <div className="flex flex-col gap-6 sm:gap-8 pb-24 lg:pb-12 max-w-7xl mx-auto px-3 sm:px-4" dir="rtl">
+    <div className="qutoof-storefront-page flex flex-col gap-6 sm:gap-8 pb-24 lg:pb-12 max-w-7xl mx-auto px-3 sm:px-4" dir="rtl">
       {isPricesSyncing && (
         <div className="flex items-center justify-center gap-2 rounded-2xl border border-emerald-200/70 bg-emerald-50/80 px-4 py-2 text-xs font-semibold text-emerald-800 dark:border-emerald-900/60 dark:bg-emerald-950/40 dark:text-emerald-200" role="status">
           <RotateCcw className="h-3.5 w-3.5 animate-spin" />
@@ -218,7 +218,7 @@ export function HomePage() {
       )}
 
       {/* 1. Hero / Store Welcome Banner */}
-      <section className="gsd-card overflow-hidden rounded-3xl p-5 sm:p-8 bg-gradient-to-br from-emerald-950 via-emerald-900 to-emerald-950 text-white relative shadow-xl">
+      <section className="qutoof-vegetable-hero gsd-card overflow-hidden rounded-3xl p-5 sm:p-8 bg-gradient-to-br from-emerald-950 via-emerald-900 to-emerald-950 text-white relative shadow-xl">
         <div className="absolute top-0 right-0 left-0 h-1 bg-gradient-to-r from-emerald-400 via-amber-300 to-emerald-400" />
         <div className="grid gap-6 lg:grid-cols-[1.3fr_0.7fr] items-center relative z-10">
           <div className="space-y-4">

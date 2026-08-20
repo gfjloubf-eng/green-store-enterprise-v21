@@ -577,3 +577,112 @@
     animation: qutoof-splash-exit 1ms linear 900ms forwards;
   }
 }
+
+
+/* ============================================================
+   Qutoof Storefront Visual Identity — vegetables + mobile shell
+   ============================================================ */
+.gsd-appshell--storefront {
+  position: relative;
+  isolation: isolate;
+}
+
+.gsd-appshell--storefront::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background: url('/qutoof-official.png') center 58% / min(42vw, 360px) auto no-repeat;
+  opacity: 0.035;
+}
+
+.gsd-appshell--storefront > * {
+  position: relative;
+  z-index: 1;
+}
+
+.gsd-main--storefront {
+  background: transparent;
+}
+
+.qutoof-storefront-page {
+  min-height: 100%;
+  background-image:
+    linear-gradient(rgba(248, 251, 245, 0.86), rgba(248, 251, 245, 0.94)),
+    url('/qutoof-vegetables-mobile-background.webp');
+  background-position: center, center;
+  background-size: auto, cover;
+  background-repeat: no-repeat;
+  background-attachment: scroll;
+  border-radius: 1.5rem;
+}
+
+.qutoof-vegetable-hero {
+  background-image:
+    linear-gradient(110deg, rgba(4, 38, 18, 0.92), rgba(8, 72, 34, 0.76)),
+    url('/qutoof-vegetables-mobile-background.webp');
+  background-position: center, center;
+  background-size: cover, cover;
+  background-repeat: no-repeat;
+  background-blend-mode: normal, normal;
+}
+
+.dark .qutoof-storefront-page {
+  background-image:
+    linear-gradient(rgba(5, 24, 13, 0.86), rgba(5, 24, 13, 0.94)),
+    url('/qutoof-vegetables-mobile-background.webp');
+}
+
+.dark .gsd-appshell--storefront::before {
+  opacity: 0.055;
+}
+
+@media (max-width: 640px) {
+  .gsd-appshell--storefront::before {
+    background-position: center 54%;
+    background-size: 76vw auto;
+    opacity: 0.045;
+  }
+
+  .qutoof-storefront-page {
+    margin-inline: -0.35rem;
+    padding-inline: 0.35rem;
+    border-radius: 1.15rem;
+    background-position: center, center top;
+    background-size: auto, 100% auto;
+  }
+
+  .qutoof-vegetable-hero {
+    background-position: center, center top;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gsd-appshell--storefront::before {
+    transition: none;
+  }
+}
+
+
+.gsd-main--produce {
+  background-image:
+    linear-gradient(rgba(248, 251, 245, 0.74), rgba(248, 251, 245, 0.84)),
+    url('/qutoof-vegetables-mobile-background.webp');
+  background-position: center, center;
+  background-size: auto, cover;
+  background-repeat: no-repeat;
+}
+
+.dark .gsd-main--produce {
+  background-image:
+    linear-gradient(rgba(5, 24, 13, 0.74), rgba(5, 24, 13, 0.84)),
+    url('/qutoof-vegetables-mobile-background.webp');
+}
+
+@media (max-width: 640px) {
+  .gsd-main--produce {
+    background-position: center, center top;
+    background-size: auto, 100% auto;
+  }
+}

@@ -30,6 +30,11 @@ export function AppShell() {
     ['/cart', '/settings', '/about', '/contact', '/help', '/support', '/stores', '/education', '/consultation'].some(
       (path) => location.pathname === path || location.pathname.startsWith(`${path}/`),
     );
+  const isProduceStorefront =
+    location.pathname === '/' ||
+    ['/products', '/cart', '/stores'].some(
+      (path) => location.pathname === path || location.pathname.startsWith(`${path}/`),
+    );
   const [mobileOpen, setMobileOpen] = useState(false);
 
   const handleToggleExpanded = useCallback(() => {
@@ -45,7 +50,14 @@ export function AppShell() {
   }, []);
 
   return (
-    <div className="gsd-appshell flex h-screen overflow-hidden [background:var(--gs-background)]" dir="inherit">
+    <div
+      className={cn(
+        'gsd-appshell flex h-screen overflow-hidden [background:var(--gs-background)]',
+        isStorefront && 'gsd-appshell--storefront',
+        isProduceStorefront && 'gsd-appshell--produce',
+      )}
+      dir="inherit"
+    >
       {/* Storefront pages use a focused commerce shell; admin pages keep the full sidebar. */}
       {!isStorefront && (
         <Sidebar
@@ -66,6 +78,8 @@ export function AppShell() {
         <main
           className={cn(
             'gsd-main flex-1 overflow-y-auto p-3.5 sm:p-6 pb-20 lg:pb-6',
+            isStorefront && 'gsd-main--storefront',
+            isProduceStorefront && 'gsd-main--produce',
             'scrollbar-none',
           )}
         >
