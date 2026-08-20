@@ -1,5 +1,6 @@
 import { Routes, Route } from 'react-router-dom';
 import { lazy, Suspense } from 'react';
+import { BrandSplashScreen } from '@/components/branding/BrandSplashScreen';
 import { AppProviders } from '@/providers/AppProviders';
 import { AppShell } from '@/components/layout/AppShell';
 import { HomePage } from '@/components/HomePage';
@@ -75,7 +76,9 @@ import ConsultationPage from '@/features/education/pages/ConsultationPage';
 
 export default function App() {
   return (
-    <AppProviders>
+    <>
+      <BrandSplashScreen />
+      <AppProviders>
       <Suspense
         fallback={
           <div className="flex min-h-[40vh] items-center justify-center px-6 text-sm font-semibold text-emerald-700" dir="rtl">
@@ -192,7 +195,8 @@ export default function App() {
         </Route>
         </Routes>
       </Suspense>
-    </AppProviders>
+      </AppProviders>
+    </>
   );
 }
 

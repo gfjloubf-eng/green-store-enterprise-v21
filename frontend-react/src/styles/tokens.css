@@ -10,16 +10,16 @@
   /* ────────────────────────────────────────────────
      Color: Brand — Primary Green Palette
      ──────────────────────────────────────────────── */
-  --gs-primary: #059669;
-  --gs-primary-hover: #047857;
-  --gs-primary-active: #065F46;
-  --gs-primary-soft: rgba(5, 150, 105, 0.12);
-  --gs-primary-soft-hover: rgba(5, 150, 105, 0.2);
+  --gs-primary: #2F7D32;
+  --gs-primary-hover: #256628;
+  --gs-primary-active: #1E5424;
+  --gs-primary-soft: rgba(47, 125, 50, 0.12);
+  --gs-primary-soft-hover: rgba(47, 125, 50, 0.2);
   --gs-primary-contrast: #FFFFFF;
 
-  --gs-emerald-deep: #065F46;
-  --gs-emerald: #059669;
-  --gs-emerald-fresh: #10B981;
+  --gs-emerald-deep: #1E5424;
+  --gs-emerald: #2F7D32;
+  --gs-emerald-fresh: #55A630;
   --gs-mint: #6EE7B7;
 
   /* ────────────────────────────────────────────────
@@ -33,9 +33,9 @@
   /* ────────────────────────────────────────────────
      Color: Accent — Golden Amber & Sky Blue
      ──────────────────────────────────────────────── */
-  --gs-accent: #D97706;
-  --gs-accent-hover: #B45309;
-  --gs-accent-soft: rgba(217, 119, 6, 0.12);
+  --gs-accent: #F28C00;
+  --gs-accent-hover: #D87800;
+  --gs-accent-soft: rgba(242, 140, 0, 0.14);
   --gs-accent-contrast: #FFFFFF;
 
   --gs-accent-blue: #0EA5E9;
@@ -265,8 +265,8 @@
   --gs-muted-foreground: #5C7C6C;
 
   /* Primary soft */
-  --gs-primary-soft: rgba(5, 150, 105, 0.09);
-  --gs-primary-soft-hover: rgba(5, 150, 105, 0.16);
+  --gs-primary-soft: rgba(47, 125, 50, 0.09);
+  --gs-primary-soft-hover: rgba(47, 125, 50, 0.16);
 
   /* Shadows — Defined elevation for white cards on light canvas */
   --gs-shadow-xs: 0 1px 2px rgba(9, 23, 16, 0.05);
