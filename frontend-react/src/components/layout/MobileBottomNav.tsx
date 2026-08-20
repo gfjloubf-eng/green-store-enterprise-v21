@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Home, ShoppingBag, ShoppingCart, Settings, HelpCircle } from 'lucide-react';
+import { BookOpen, Home, PhoneCall, ShoppingBag, ShoppingCart, Settings, HelpCircle } from 'lucide-react';
 import { getCart } from '@/services/cartClient';
 
 interface MobileBottomNavProps {
@@ -29,8 +29,9 @@ export function MobileBottomNav({ storefront = false }: MobileBottomNavProps) {
     ? [
         { path: '/', label: 'الرئيسية', icon: Home },
         { path: '/products', label: 'المنتجات', icon: ShoppingBag },
+        { path: '/education', label: 'الإرشادات', icon: BookOpen },
         { path: '/cart', label: 'السلة', icon: ShoppingCart, badge: cartCount },
-        { path: '/support', label: 'الدعم', icon: HelpCircle },
+        { path: 'tel:+967712275038', label: 'اتصال', icon: PhoneCall, external: true },
       ]
     : [
         { path: '/', label: 'الرئيسية', icon: Home },
@@ -56,8 +57,15 @@ export function MobileBottomNav({ storefront = false }: MobileBottomNavProps) {
         return (
           <button
             key={item.path}
+            aria-label={item.label}
             type="button"
-            onClick={() => navigate(item.path)}
+            onClick={() => {
+              if (item.external) {
+                window.location.href = item.path;
+                return;
+              }
+              navigate(item.path);
+            }}
             className={`relative flex min-w-0 flex-1 flex-col items-center justify-center rounded-xl px-1 py-1.5 min-h-[48px] transition-all touch-manipulation ${
               isActive
                 ? 'text-emerald-600 font-bold bg-emerald-500/10'

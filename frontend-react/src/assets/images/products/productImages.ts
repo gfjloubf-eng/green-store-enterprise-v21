@@ -7,6 +7,7 @@ import bellPeppersImg from './Bell_Peppers__All_About_Them.jpg';
 import productPhoto1 from './pinterest_1761835345414.jpg';
 import productPhoto2 from './pinterest_1761835345414(1).jpg';
 import productPhoto3 from './pinterest_1761835353985.jpg';
+import bananasImg from './organic-bananas.jpg';
 import placeholderImg from './placeholder.svg';
 
 /* ── Named exports (per product) ──────────────────────────── */
@@ -33,7 +34,7 @@ export const freshBasil = placeholderImg;
 /** Greek Yogurt */
 export const greekYogurt = placeholderImg;
 /** Organic Bananas */
-export const bananas = placeholderImg;
+export const bananas = bananasImg;
 
 /** Generic placeholder fallback */
 export const placeholderImage = placeholderImg;
@@ -50,7 +51,7 @@ export const productImages = {
   appleJuice: placeholderImg,
   freshBasil: placeholderImg,
   greekYogurt: placeholderImg,
-  bananas: placeholderImg,
+  bananas: bananasImg,
   placeholder: placeholderImg,
 } as const;
 

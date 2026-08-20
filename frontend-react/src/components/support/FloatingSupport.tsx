@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { MessageSquare, X, Phone, MessageCircle, HelpCircle } from 'lucide-react';
+import { BookOpen, MessageSquare, X, Phone, PhoneCall, MessageCircle, HelpCircle } from 'lucide-react';
 import { SUPPORT_TEAM, buildWhatsAppGeneralUrl, buildTelUrl } from '@/config/supportTeam';
 import { useNavigate } from 'react-router-dom';
 
@@ -53,6 +53,8 @@ export const FloatingSupport: React.FC = () => {
                   { label: 'الدفع', path: '/help' },
                   { label: 'الشحن', path: '/help' },
                   { label: 'التواصل مع الفريق', path: '/contact' },
+                  { label: 'الإرشادات الغذائية', path: '/education' },
+                  { label: 'استشارة تغذية', path: '/consultation' },
                 ].map((cat) => (
                   <button
                     key={cat.label}
@@ -109,6 +111,24 @@ export const FloatingSupport: React.FC = () => {
                   </div>
                 );
               })}
+            </div>
+
+            <div className="grid grid-cols-2 gap-2">
+              <a
+                href="tel:+967712275038"
+                className="py-2.5 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-xs font-semibold text-white flex items-center justify-center gap-1.5 transition active:scale-[0.98]"
+              >
+                <PhoneCall className="h-4 w-4" />
+                <span>اتصل الآن</span>
+              </a>
+              <button
+                type="button"
+                onClick={() => handleNavigateHelp('/education')}
+                className="py-2.5 rounded-2xl bg-[var(--gs-muted)] hover:bg-[var(--gs-border)] text-xs font-semibold text-[var(--gs-foreground)] flex items-center justify-center gap-1.5 transition active:scale-[0.98]"
+              >
+                <BookOpen className="h-4 w-4 text-emerald-600" />
+                <span>المعرفة</span>
+              </button>
             </div>
 
             {/* Support Center Link */}

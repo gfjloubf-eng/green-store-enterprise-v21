@@ -7,6 +7,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   ArrowRight,
+  BookOpen,
   Heart,
   Search,
   Sparkles,
@@ -17,6 +18,7 @@ import {
   RotateCcw,
   Filter,
   Leaf,
+  PhoneCall,
   Award,
   Sun,
   ShieldCheck,
@@ -276,6 +278,41 @@ export function HomePage() {
         </div>
       </section>
 
+      {/* Mobile-first shortcuts for the storefront's main journeys */}
+      <section aria-label="روابط قطوف السريعة" className="grid grid-cols-2 gap-2 sm:grid-cols-4 sm:gap-3">
+        <button
+          type="button"
+          onClick={() => document.getElementById('qutoof-fruits-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
+          className="flex min-h-[72px] items-center gap-2 rounded-2xl border border-emerald-200/70 bg-emerald-50/80 px-3 py-2 text-right text-emerald-900 shadow-sm transition hover:-translate-y-0.5 hover:border-emerald-400 dark:border-emerald-900/60 dark:bg-emerald-950/30 dark:text-emerald-100"
+        >
+          <span className="text-2xl" aria-hidden="true">🍎</span>
+          <span><strong className="block text-xs">فواكه طازجة</strong><span className="text-[10px] opacity-75">تصفح الأصناف</span></span>
+        </button>
+        <button
+          type="button"
+          onClick={() => navigate('/education')}
+          className="flex min-h-[72px] items-center gap-2 rounded-2xl border border-amber-200/70 bg-amber-50/80 px-3 py-2 text-right text-amber-950 shadow-sm transition hover:-translate-y-0.5 hover:border-amber-400 dark:border-amber-900/60 dark:bg-amber-950/30 dark:text-amber-100"
+        >
+          <BookOpen className="h-5 w-5 shrink-0 text-amber-600" />
+          <span><strong className="block text-xs">الإرشادات</strong><span className="text-[10px] opacity-75">معرفة غذائية موثوقة</span></span>
+        </button>
+        <button
+          type="button"
+          onClick={() => navigate('/consultation')}
+          className="flex min-h-[72px] items-center gap-2 rounded-2xl border border-sky-200/70 bg-sky-50/80 px-3 py-2 text-right text-sky-950 shadow-sm transition hover:-translate-y-0.5 hover:border-sky-400 dark:border-sky-900/60 dark:bg-sky-950/30 dark:text-sky-100"
+        >
+          <span className="text-2xl" aria-hidden="true">🌿</span>
+          <span><strong className="block text-xs">استشارة طبيعية</strong><span className="text-[10px] opacity-75">معلومات عامة لا تشخيص</span></span>
+        </button>
+        <a
+          href="tel:+967712275038"
+          className="flex min-h-[72px] items-center gap-2 rounded-2xl border border-rose-200/70 bg-rose-50/80 px-3 py-2 text-right text-rose-950 shadow-sm transition hover:-translate-y-0.5 hover:border-rose-400 dark:border-rose-900/60 dark:bg-rose-950/30 dark:text-rose-100"
+        >
+          <PhoneCall className="h-5 w-5 shrink-0 text-rose-600" />
+          <span><strong className="block text-xs">اتصل بنا</strong><span className="text-[10px] opacity-75">712 275 038</span></span>
+        </a>
+      </section>
+
       {/* 2. Today's Offers Presentation Banner */}
       {todayOffers.length > 0 && !searchQuery && (
         <section className="space-y-4">
@@ -476,7 +513,7 @@ export function HomePage() {
         /* Standard Categorized Produce Marketplace Sections */
         <div className="space-y-10">
           {/* Fruits Section */}
-          <section className="space-y-4">
+          <section id="qutoof-fruits-section" className="scroll-mt-24 space-y-4">
             <div className="flex items-center justify-between border-b border-[var(--gs-border-subtle)] pb-3">
               <h2 className="text-xl sm:text-2xl font-bold text-[var(--gs-foreground)] flex items-center gap-2">
                 🍎 الفواكه الطازجة

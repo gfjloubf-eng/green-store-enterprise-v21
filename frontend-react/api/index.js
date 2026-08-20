@@ -4112,7 +4112,18 @@ var InventoryRepository = class extends base_repository_default {
         where,
         orderBy: { createdAt: "desc" },
         skip,
-        take: limit
+        take: limit,
+        include: {
+          inventory: {
+            select: {
+              id: true,
+              productId: true,
+              product: { select: { id: true, name: true } },
+              warehouse: { select: { id: true, name: true } }
+            }
+          },
+          performedBy: { select: { id: true, displayName: true, email: true } }
+        }
       }),
       this.client.stockMovement.count({ where })
     ]);
