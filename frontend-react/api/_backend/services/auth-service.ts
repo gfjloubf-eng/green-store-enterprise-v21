@@ -370,8 +370,21 @@ export class AuthService {
     let store: { id: string; name?: string | null } | null = null;
 
     if (Array.isArray(user.roles) && user.roles.length > 0) {
-      const r = user.roles[0];
-      primaryRole = r.role?.name ?? null;
+      const rolePriority: Record<string, number> = {
+        SUPER_ADMIN: 0,
+        ADMIN: 1,
+        MANAGER: 2,
+        EMPLOYEE: 3,
+        CUSTOMER: 4,
+        USER: 5,
+      };
+      const primaryAssignment = [...user.roles].sort((left, right) => {
+        const leftRank = rolePriority[String(left.role?.name ?? '').toUpperCase()] ?? 99;
+        const rightRank = rolePriority[String(right.role?.name ?? '').toUpperCase()] ?? 99;
+        return leftRank - rightRank;
+      })[0];
+      const branchAssignment = user.roles.find((assignment) => assignment.branch) ?? primaryAssignment;
+      primaryRole = primaryAssignment?.role?.name ?? null;
 
       for (const assignment of user.roles) {
         if (assignment.role?.name) {
@@ -387,11 +400,11 @@ export class AuthService {
         }
       }
 
-      if (r.branch) {
-        branch = { id: r.branch.id, name: r.branch.name };
+      if (branchAssignment?.branch) {
+        branch = { id: branchAssignment.branch.id, name: branchAssignment.branch.name };
         // try to load store name if storeId present
-        if (r.branch.storeId) {
-          const s = await client.store.findUnique({ where: { id: r.branch.storeId }, select: { id: true, name: true } });
+        if (branchAssignment.branch.storeId) {
+          const s = await client.store.findUnique({ where: { id: branchAssignment.branch.storeId }, select: { id: true, name: true } });
           if (s) store = { id: s.id, name: s.name };
         }
       }
