@@ -2,26 +2,26 @@
 <html lang="ar" dir="rtl">
   <head>
     <meta charset="UTF-8" />
-<link rel="icon" type="image/png" sizes="192x192" href="/qutoof-app-icon.png" />
-    <link rel="apple-touch-icon" sizes="180x180" href="/qutoof-app-icon.png" />
+<link rel="icon" type="image/png" sizes="192x192" href="/qutoof-app-icon-192.png" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/qutoof-app-icon-192.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="theme-color" content="#1E5424" />
     <meta name="color-scheme" content="dark light" />
-    <meta name="description" content="Qutoof Nature — الطبيعة أقرب إليك" />
-    <meta name="application-name" content="Qutoof Nature" />
-    <meta name="apple-mobile-web-app-title" content="Qutoof Nature" />
+    <meta name="description" content="قطوف الطبيعة — الطبيعة أقرب إليك" />
+    <meta name="application-name" content="قطوف الطبيعة" />
+    <meta name="apple-mobile-web-app-title" content="قطوف الطبيعة" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-    <meta property="og:title" content="Qutoof Nature" />
+    <meta property="og:title" content="قطوف الطبيعة" />
     <meta property="og:description" content="الطبيعة أقرب إليك" />
     <meta property="og:type" content="website" />
     <meta property="og:image" content="/qutoof-official.png" />
-    <meta property="og:site_name" content="Qutoof Nature" />
+    <meta property="og:site_name" content="قطوف الطبيعة" />
     <meta name="twitter:card" content="summary" />
-    <meta name="twitter:title" content="Qutoof Nature" />
+    <meta name="twitter:title" content="قطوف الطبيعة" />
     <meta name="twitter:description" content="الطبيعة أقرب إليك" />
     <meta name="twitter:image" content="/qutoof-official.png" />
-    <title>Green Store Enterprise v2 — قطوف الطبيعة</title>
+    <title>قطوف الطبيعة — الطبيعة أقرب إليك</title>
     <link rel="manifest" href="/manifest.webmanifest" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -40,6 +40,29 @@
     </script>
   </head>
   <body class="antialiased">
+    <div id="boot-splash" role="status" aria-live="polite" aria-label="جارٍ فتح قطوف الطبيعة">
+      <div class="boot-splash__glow boot-splash__glow--green" aria-hidden="true"></div>
+      <div class="boot-splash__glow boot-splash__glow--orange" aria-hidden="true"></div>
+      <div class="boot-splash__content">
+        <img src="/qutoof-official.png" width="256" height="171" alt="قطوف الطبيعة — الطبيعة أقرب إليك" fetchpriority="high" decoding="async" />
+        <p>الطبيعة أقرب إليك</p>
+        <span aria-hidden="true"><i></i></span>
+      </div>
+    </div>
+    <style>
+      #boot-splash{position:fixed;inset:0;z-index:99999;display:grid;place-items:center;overflow:hidden;background:#f8fbf5;color:#1e5424;transition:opacity .24s ease,visibility .24s ease}
+      #boot-splash.boot-splash--hide{opacity:0;visibility:hidden;pointer-events:none}
+      .boot-splash__content{position:relative;z-index:1;display:grid;justify-items:center;width:min(82vw,360px);text-align:center}
+      .boot-splash__content img{display:block;width:min(68vw,256px);height:auto;object-fit:contain;filter:drop-shadow(0 16px 28px rgba(30,84,36,.13))}
+      .boot-splash__content p{margin:8px 0 20px;font:600 15px/1.6 Cairo,system-ui,sans-serif;letter-spacing:.01em}
+      .boot-splash__content span{display:block;width:86px;height:4px;overflow:hidden;border-radius:999px;background:rgba(30,84,36,.14)}
+      .boot-splash__content i{display:block;width:38%;height:100%;border-radius:inherit;background:linear-gradient(90deg,#f39a16,#1e8b3b);animation:boot-progress 1.05s ease-in-out infinite}
+      .boot-splash__glow{position:absolute;border-radius:50%;filter:blur(28px);opacity:.28;pointer-events:none}
+      .boot-splash__glow--green{width:42vw;height:42vw;top:-15vw;right:-12vw;background:#8bcf3f}
+      .boot-splash__glow--orange{width:38vw;height:38vw;bottom:-16vw;left:-12vw;background:#f6aa35}
+      @keyframes boot-progress{0%{transform:translateX(0)}100%{transform:translateX(265%)} }
+      @media(prefers-reduced-motion:reduce){#boot-splash{transition:none}.boot-splash__content i{animation:none;margin-left:31%}}
+    </style>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>

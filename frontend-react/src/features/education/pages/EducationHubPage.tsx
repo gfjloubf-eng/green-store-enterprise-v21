@@ -8,7 +8,7 @@ export default function EducationHubPage() {
   const [query, setQuery] = useState('');
   useEffect(() => { listEducationArticles().then(setArticles); }, []);
   const filtered = useMemo(() => articles.filter((article) => `${article.title} ${article.summary ?? ''} ${article.family?.name ?? ''}`.toLowerCase().includes(query.toLowerCase())), [articles, query]);
-  return <main dir="rtl" className="min-h-screen bg-emerald-50/70 bg-cover bg-fixed px-4 py-8" style={{ backgroundImage: "linear-gradient(rgba(240,253,244,.88),rgba(240,253,244,.94)), url('/education-fruit-background.png')" }}>
+  return <main dir="rtl" className="min-h-screen bg-emerald-50/70 bg-cover bg-fixed px-4 py-8" style={{ backgroundImage: "linear-gradient(rgba(240,253,244,.88),rgba(240,253,244,.94)), url('/education-fruit-background.webp')" }}>
     <section className="mx-auto max-w-6xl">
       <div className="rounded-3xl bg-white/90 p-6 shadow-xl ring-1 ring-emerald-100 md:p-10">
         <div className="flex flex-col gap-5 md:flex-row md:items-end md:justify-between"><div><p className="mb-2 flex items-center gap-2 text-sm font-bold text-emerald-700"><Sparkles className="h-4 w-4" /> معرفة غذائية مبسطة</p><h1 className="text-3xl font-black text-slate-900 md:text-5xl">افهم منتجك قبل أن تختاره</h1><p className="mt-3 max-w-2xl leading-8 text-slate-600">شروحات عامة ومقارنات بين الأنواع، مع التأكيد أن المعلومات لا تغني عن استشارة المختص عند وجود حالة صحية خاصة.</p></div><Link to="/consultation" className="inline-flex items-center justify-center gap-2 rounded-2xl bg-emerald-600 px-5 py-3 font-bold text-white shadow-lg transition hover:bg-emerald-700"><MessageCircle className="h-5 w-5" /> استشارة تغذية</Link></div>

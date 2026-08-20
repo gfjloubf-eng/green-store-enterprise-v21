@@ -8,6 +8,13 @@ if (import.meta.env.PROD && 'serviceWorker' in navigator) {
   window.addEventListener('load', () => navigator.serviceWorker.register('/sw.js').catch(() => undefined));
 }
 
+const bootSplash = document.getElementById('boot-splash');
+const hideBootSplash = () => {
+  if (!bootSplash) return;
+  bootSplash.classList.add('boot-splash--hide');
+  window.setTimeout(() => bootSplash.remove(), 280);
+};
+
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <BrowserRouter>
@@ -15,3 +22,5 @@ createRoot(document.getElementById('root')!).render(
     </BrowserRouter>
   </StrictMode>,
 )
+
+window.setTimeout(hideBootSplash, 720);
