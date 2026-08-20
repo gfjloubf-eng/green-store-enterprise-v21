@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "npx --yes prisma generate --schema ./prisma/schema.prisma && npx --yes esbuild api-src/index.ts --bundle --platform=node --target=node20 --format=esm --outfile=api/index.js --external:@prisma/client --external:@prisma/adapter-pg --external:argon2 --external:pg && node -e \"import('node:fs').then(fs => { fs.mkdirSync('../api', {recursive: true}); fs.copyFileSync('api/index.js', '../api/index.js'); })\" && npx --yes tsc -b && npx --yes vite build",
+    "build": "npx --yes prisma generate --schema ./prisma/schema.prisma && npx --yes esbuild api-src/index.ts --bundle --platform=node --target=node20 --format=esm --outfile=api/index.js --external:@prisma/client --external:@prisma/adapter-pg --external:pg && node -e \"import('node:fs').then(fs => { fs.mkdirSync('../api', {recursive: true}); fs.copyFileSync('api/index.js', '../api/index.js'); })\" && npx --yes tsc -b && npx --yes vite build",
     "lint": "eslint .",
     "preview": "vite preview"
   },
@@ -13,7 +13,7 @@
     "@prisma/adapter-pg": "^7.9.1",
     "@prisma/client": "^7.9.1",
     "@prisma/config": "^7.9.1",
-    "argon2": "^0.30.0",
+    "hash-wasm": "^4.12.0",
     "clsx": "^2.1.1",
     "lucide-react": "^1.27.0",
     "pg": "^8.11.5",
