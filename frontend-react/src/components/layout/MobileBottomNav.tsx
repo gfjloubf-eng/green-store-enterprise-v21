@@ -44,7 +44,7 @@ export function MobileBottomNav({ storefront = false }: MobileBottomNavProps) {
   return (
     <nav
       aria-label="التنقل السريع للهاتف"
-      className="fixed inset-x-0 bottom-0 z-40 flex w-full max-w-full items-center justify-around overflow-x-hidden border-t border-[var(--gs-border)] bg-[var(--gs-surface)]/95 px-1 py-1 pb-[calc(0.25rem+env(safe-area-inset-bottom))] shadow-lg backdrop-blur-md lg:hidden"
+      className="qutoof-mobile-bottom-nav fixed inset-x-0 bottom-0 z-40 flex w-full max-w-full items-center justify-around overflow-x-hidden border-t border-[var(--gs-border)] bg-[var(--gs-surface)]/95 px-1 py-1 shadow-lg backdrop-blur-md lg:hidden"
       dir="rtl"
     >
       {navItems.map((item) => {
@@ -58,6 +58,7 @@ export function MobileBottomNav({ storefront = false }: MobileBottomNavProps) {
           <button
             key={item.path}
             aria-label={item.label}
+            aria-current={isActive ? 'page' : undefined}
             type="button"
             onClick={() => {
               if (item.external) {

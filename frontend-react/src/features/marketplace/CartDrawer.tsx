@@ -1,4 +1,5 @@
 import { useEffect, useState, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useCart } from './useCart';
 import { formatPrice } from '@/lib/formatters';
 import { useI18n } from '@/i18n/useI18n';
@@ -6,6 +7,7 @@ import { useI18n } from '@/i18n/useI18n';
 export default function CartDrawer() {
   const { items, totals, set, clear } = useCart();
   const { locale } = useI18n();
+  const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const panelRef = useRef<HTMLDivElement | null>(null);
 
@@ -28,24 +30,28 @@ export default function CartDrawer() {
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex">
+    <div className="fixed inset-0 z-50 flex" role="presentation">
       <button
-        aria-label="Close cart"
+        type="button"
+        aria-label="إغلاق سلة التسوق"
         className="absolute inset-0 bg-black/40 backdrop-blur-sm"
         onClick={() => setOpen(false)}
       />
       <aside
         ref={panelRef}
-        className="ml-auto w-[80%] max-w-[320px] bg-[var(--gs-surface)] text-[var(--gs-foreground)] border border-[var(--gs-border)] rounded-l-2xl shadow-2xl p-4 flex flex-col"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="cart-drawer-title"
+        className="ml-auto flex max-h-[100dvh] w-[min(88vw,360px)] flex-col overflow-hidden rounded-l-2xl border border-[var(--gs-border)] bg-[var(--gs-surface)] p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] text-[var(--gs-foreground)] shadow-2xl"
         style={{ transition: 'transform 250ms ease' }}
       >
-        <div className="flex items-center justify-between mb-3">
-          <h3 className="text-lg font-semibold">سلة التسوق</h3>
+        <div className="mb-3 flex items-center justify-between">
+          <h3 id="cart-drawer-title" className="text-lg font-semibold">سلة التسوق</h3>
           <div className="flex items-center gap-2">
-            <button className="text-sm text-red-600" onClick={() => clear()}>
+            <button type="button" className="min-h-10 rounded-lg px-2 text-sm text-red-600" onClick={() => clear()}>
               مسح
             </button>
-            <button className="text-2xl font-bold" onClick={() => setOpen(false)} aria-label="close">×</button>
+            <button type="button" className="min-h-10 min-w-10 rounded-lg text-2xl font-bold" onClick={() => setOpen(false)} aria-label="إغلاق">×</button>
           </div>
         </div>
 
@@ -55,7 +61,7 @@ export default function CartDrawer() {
           ) : (
             items.map(it => (
               <div key={it.product.id} className="flex items-center gap-3">
-                <img src={it.product.image || '/placeholder.svg'} alt="" className="w-16 h-16 rounded-lg object-cover" />
+                <img src={it.product.image || '/placeholder.svg'} alt={it.product.name} className="h-16 w-16 rounded-lg object-cover" loading="lazy" />
                 <div className="flex-1">
                   <div className="font-medium">{it.product.name}</div>
                   <div className="text-sm text-muted">{it.product.category?.name}</div>
@@ -63,9 +69,9 @@ export default function CartDrawer() {
                 <div className="flex flex-col items-end">
                   <div className="font-semibold">{formatPrice(it.product.sellingPrice * it.quantity, locale)}</div>
                   <div className="flex items-center gap-2 mt-2">
-                    <button onClick={() => set(it.product.id, it.quantity - 1)} className="w-8 h-8 bg-gray-100 rounded">−</button>
-                    <div className="w-10 text-center">{it.quantity}</div>
-                    <button onClick={() => set(it.product.id, it.quantity + 1)} className="w-8 h-8 bg-green-600 text-white rounded">+</button>
+                    <button type="button" onClick={() => set(it.product.id, it.quantity - 1)} className="h-10 w-10 rounded bg-gray-100" aria-label={`تقليل كمية ${it.product.name}`}>−</button>
+                    <div className="w-10 text-center" aria-label={`الكمية ${it.quantity}`}>{it.quantity}</div>
+                    <button type="button" onClick={() => set(it.product.id, it.quantity + 1)} className="h-10 w-10 rounded bg-green-600 text-white" aria-label={`زيادة كمية ${it.product.name}`}>+</button>
                   </div>
                 </div>
               </div>
@@ -93,8 +99,20 @@ export default function CartDrawer() {
           </div>
 
           <div className="space-y-2">
-            <button className="w-full bg-green-700 text-white rounded-md py-3">الدفع (عرضي)</button>
-            <button className="w-full border rounded-md py-3">متابعة التسوق</button>
+            <button
+              type="button"
+              className="min-h-12 w-full rounded-md bg-green-700 py-3 text-white"
+              onClick={() => {
+                setOpen(false);
+                navigate('/checkout');
+              }}
+              disabled={items.length === 0}
+            >
+              إتمام الطلب
+            </button>
+            <button type="button" className="min-h-12 w-full rounded-md border py-3" onClick={() => setOpen(false)}>
+              متابعة التسوق
+            </button>
           </div>
         </div>
       </aside>

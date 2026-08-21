@@ -28,6 +28,7 @@ import {
   Tag,
 } from 'lucide-react';
 import { formatPrice } from '@/lib/formatters';
+import { formatUnitLabel } from '@/lib/unitLabels';
 import { useI18n } from '@/i18n/useI18n';
 import { BreadcrumbEngine } from '@/components/layout/BreadcrumbEngine';
 import { placeholderImage } from '@/assets/images/products/productImages';
@@ -287,7 +288,7 @@ export function ProductDetailsPage() {
                               </span>
                             )}
                             <span className="text-sm font-normal text-emerald-800 dark:text-emerald-300">
-                              / {product.unit.name}
+                              / {formatUnitLabel(product.unit)}
                             </span>
                           </div>
                         </div>
@@ -314,7 +315,7 @@ export function ProductDetailsPage() {
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-[11px] font-semibold text-[var(--gs-foreground-secondary)]">
                         <div className="flex items-center gap-1.5 rounded-2xl bg-[var(--gs-muted)]/60 px-3 py-2 border border-[var(--gs-border-subtle)]">
                           <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600 shrink-0" />
-                          <span>السعر شامل حسب الوحدة الموضحة ({product.unit.name})</span>
+                          <span>السعر شامل حسب الوحدة الموضحة ({formatUnitLabel(product.unit)})</span>
                         </div>
                         <div className="flex items-center gap-1.5 rounded-2xl bg-[var(--gs-muted)]/60 px-3 py-2 border border-[var(--gs-border-subtle)]">
                           <ShieldCheck className="h-3.5 w-3.5 text-emerald-600 shrink-0" />
@@ -344,7 +345,7 @@ export function ProductDetailsPage() {
 
                   <div className="grid gap-3 sm:grid-cols-2">
                     <label className="text-xs font-semibold text-[var(--gs-foreground-secondary)]">
-                      <div className="mb-1.5">الكمية المطلوبة ({product.unit.abbreviation})</div>
+                      <div className="mb-1.5">الكمية المطلوبة ({formatUnitLabel(product.unit, true)})</div>
                       <div className="flex items-center gap-2">
                         <button
                           type="button"

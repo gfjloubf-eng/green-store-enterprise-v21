@@ -175,7 +175,9 @@ export function WhatsAppOrderAction({
       <button
         type="button"
         onClick={() => setOpenDropdown((prev) => !prev)}
-        className="w-full inline-flex items-center justify-between gap-2 rounded-2xl border border-emerald-500/30 bg-emerald-50 dark:bg-emerald-950/40 px-4 py-3 text-xs font-bold text-emerald-800 dark:text-emerald-300 hover:bg-emerald-100 transition shadow-xs touch-manipulation min-h-[44px]"
+        aria-haspopup="menu"
+        aria-expanded={openDropdown}
+        className="w-full inline-flex min-h-[44px] items-center justify-between gap-2 rounded-2xl border border-emerald-500/30 bg-emerald-50 px-4 py-3 text-xs font-bold text-emerald-800 shadow-xs transition hover:bg-emerald-100 touch-manipulation dark:bg-emerald-950/40 dark:text-emerald-300"
       >
         <div className="flex items-center gap-2">
           <MessageCircle className="h-4 w-4 text-emerald-600" />
@@ -185,15 +187,16 @@ export function WhatsAppOrderAction({
       </button>
 
       {openDropdown && (
-        <div className="absolute top-full right-0 left-0 mt-2 z-30 rounded-2xl bg-[var(--gs-surface)] border border-[var(--gs-border)] shadow-xl p-2 space-y-1.5 animate-in fade-in zoom-in-95 duration-150">
+        <div className="absolute bottom-full right-0 left-0 z-50 mb-2 max-h-[min(60dvh,420px)] space-y-1.5 overflow-y-auto rounded-2xl border border-[var(--gs-border)] bg-[var(--gs-surface)] p-2 shadow-xl animate-in fade-in zoom-in-95 duration-150">
           <div className="px-3 py-1.5 text-[10px] font-bold text-[var(--gs-foreground-muted)] border-b border-[var(--gs-border-subtle)]">
             اختر القناة المناسبة: الطلب الرئيسي أو متابعة التوصيل
           </div>
 
           <button
             type="button"
+            role="menuitem"
             onClick={() => handleOrder('store')}
-            className="w-full text-right p-3 rounded-xl hover:bg-emerald-50 dark:hover:bg-emerald-950/50 flex items-center justify-between text-xs transition"
+            className="flex min-h-12 w-full items-center justify-between rounded-xl p-3 text-right text-xs transition hover:bg-emerald-50 dark:hover:bg-emerald-950/50"
           >
             <div className="flex items-center gap-2.5">
               <div className="h-8 w-8 rounded-lg bg-emerald-100 dark:bg-emerald-900/60 flex items-center justify-center text-emerald-700 dark:text-emerald-300 font-bold shrink-0">
@@ -209,8 +212,9 @@ export function WhatsAppOrderAction({
 
           <button
             type="button"
+            role="menuitem"
             onClick={() => handleOrder('saqr')}
-            className="w-full text-right p-3 rounded-xl hover:bg-teal-50 dark:hover:bg-teal-950/50 flex items-center justify-between text-xs transition"
+            className="flex min-h-12 w-full items-center justify-between rounded-xl p-3 text-right text-xs transition hover:bg-teal-50 dark:hover:bg-teal-950/50"
           >
             <div className="flex items-center gap-2.5">
               <div className="h-8 w-8 rounded-lg bg-teal-100 dark:bg-teal-900/60 flex items-center justify-center text-teal-700 dark:text-teal-300 font-bold shrink-0">

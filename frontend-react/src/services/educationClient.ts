@@ -18,11 +18,12 @@ export interface EducationArticle {
 }
 
 export async function listEducationArticles(): Promise<EducationArticle[]> {
-  try {
-    const response = await fetchWithAuth('/education/articles');
-    const payload = await parseJsonSafe(response);
-    return response.ok && Array.isArray(payload?.data) ? payload.data : [];
-  } catch { return []; }
+  const response = await fetchWithAuth('/education/articles');
+  const payload = await parseJsonSafe(response);
+  if (!response.ok) {
+    throw new Error(payload?.error?.message ?? response.statusText ?? 'تعذر تحميل مركز المعرفة');
+  }
+  return Array.isArray(payload?.data) ? payload.data : [];
 }
 export async function getEducationArticle(slug: string): Promise<EducationArticle | null> {
   try {

@@ -77,7 +77,7 @@ export function AppShell() {
         {/* Content */}
         <main
           className={cn(
-            'gsd-main flex-1 overflow-y-auto p-3.5 sm:p-6 pb-20 lg:pb-6',
+            'gsd-main flex-1 overflow-y-auto p-3.5 pb-[calc(5rem+env(safe-area-inset-bottom))] sm:p-6 lg:pb-6',
             isStorefront && 'gsd-main--storefront',
             isProduceStorefront && 'gsd-main--produce',
             'scrollbar-none',

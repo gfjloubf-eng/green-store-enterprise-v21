@@ -29,6 +29,7 @@ import type { ProductDTO } from '@/features/products/domain/productDTO';
 import { placeholderImage } from '@/assets/images/products/productImages';
 import { WhatsAppOrderAction } from '@/components/ui/WhatsAppOrderAction';
 import { formatPrice } from '@/lib/formatters';
+import { formatUnitLabel } from '@/lib/unitLabels';
 import { useI18n } from '@/i18n/useI18n';
 import { useProductSearch } from '@/features/products/hooks/useProductService';
 import { useLocalStorageState } from '@/hooks/useLocalStorageState';
@@ -739,7 +740,7 @@ function ProduceCard({
           {product.name}
         </div>
         <div className="flex items-center justify-between text-[11px] text-[var(--gs-foreground-secondary)]">
-          <span>{product.unit.name}</span>
+          <span>{formatUnitLabel(product.unit)}</span>
           <span className="flex items-center gap-0.5 text-amber-600 font-bold">
             <Star className="h-3 w-3 fill-amber-400 text-amber-500" />
             {rating.toFixed(1)}
@@ -756,7 +757,7 @@ function ProduceCard({
             </div>
           )}
           <div className="text-xs font-black text-emerald-700 dark:text-emerald-400">
-            {formatPrice(priceInfo.finalPrice, locale)} <span className="text-[10px] font-normal text-emerald-800/80 dark:text-emerald-300/80">/ {product.unit.abbreviation}</span>
+            {formatPrice(priceInfo.finalPrice, locale)} <span className="text-[10px] font-normal text-emerald-800/80 dark:text-emerald-300/80">/ {formatUnitLabel(product.unit, true)}</span>
           </div>
         </div>
 

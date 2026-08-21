@@ -13,10 +13,10 @@ export const FloatingSupport: React.FC = () => {
   };
 
   return (
-    <div className="fixed bottom-20 left-3 sm:left-5 lg:bottom-5 z-30" dir="rtl">
+    <div className="qutoof-mobile-floating fixed left-3 z-30 sm:left-5" dir="rtl">
       {/* Expanded Modal / Popover */}
       {isOpen && (
-        <div className="mb-3 w-80 sm:w-96 max-w-[calc(100vw-2.5rem)] rounded-3xl border border-[var(--gs-border)] bg-[var(--gs-surface)] shadow-2xl overflow-hidden animate-in fade-in slide-in-from-bottom-3 duration-200">
+        <div className="mb-3 w-80 max-w-[calc(100vw-1.5rem)] overflow-hidden rounded-3xl border border-[var(--gs-border)] bg-[var(--gs-surface)] shadow-2xl animate-in fade-in slide-in-from-bottom-3 duration-200 sm:w-96">
           {/* Header */}
           <div className="bg-gradient-to-r from-emerald-600 to-teal-700 p-4 text-white flex items-center justify-between">
             <div className="flex items-center gap-2.5">
@@ -40,7 +40,7 @@ export const FloatingSupport: React.FC = () => {
           </div>
 
           {/* Body */}
-          <div className="p-4 space-y-4 max-h-[70vh] overflow-y-auto">
+          <div className="max-h-[calc(100dvh-10rem-env(safe-area-inset-bottom))] space-y-4 overflow-y-auto p-4">
             {/* Quick Categories */}
             <div className="space-y-1.5">
               <span className="text-[11px] font-semibold text-[var(--gs-foreground-secondary)] block">
@@ -60,7 +60,7 @@ export const FloatingSupport: React.FC = () => {
                     key={cat.label}
                     type="button"
                     onClick={() => handleNavigateHelp(cat.path)}
-                    className="px-3 py-1.5 rounded-xl border border-[var(--gs-border)] bg-[var(--gs-background)] hover:border-emerald-500 text-[11px] font-medium text-[var(--gs-foreground)] transition"
+                    className="min-h-10 rounded-xl border border-[var(--gs-border)] bg-[var(--gs-background)] px-3 py-2 text-[11px] font-medium text-[var(--gs-foreground)] transition hover:border-emerald-500"
                   >
                     {cat.label}
                   </button>
@@ -92,7 +92,7 @@ export const FloatingSupport: React.FC = () => {
                       {telUrl && (
                         <a
                           href={telUrl}
-                          className="h-8 w-8 rounded-xl bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/20 flex items-center justify-center transition"
+                          className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-600 transition hover:bg-emerald-500/20"
                           title="اتصال"
                         >
                           <Phone className="h-3.5 w-3.5" />
@@ -102,7 +102,7 @@ export const FloatingSupport: React.FC = () => {
                         href={waUrl}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="h-8 w-8 rounded-xl bg-emerald-600 text-white hover:bg-emerald-700 flex items-center justify-center transition"
+                        className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-600 text-white transition hover:bg-emerald-700"
                         title="واتساب"
                       >
                         <MessageCircle className="h-3.5 w-3.5" />
@@ -148,7 +148,7 @@ export const FloatingSupport: React.FC = () => {
       <button
         type="button"
         onClick={() => setIsOpen((prev) => !prev)}
-        className="gsd-btn min-h-[48px] px-4 rounded-full bg-emerald-600 text-white hover:bg-emerald-700 active:scale-95 shadow-lg flex items-center gap-2 text-xs font-bold transition-all duration-200"
+        className="gsd-btn min-h-12 rounded-full bg-emerald-600 px-4 text-xs font-bold text-white shadow-lg transition-all duration-200 hover:bg-emerald-700 active:scale-95"
         aria-label="فتح مركز الدعم"
       >
         {isOpen ? (

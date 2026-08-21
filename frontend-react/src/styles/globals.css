@@ -733,3 +733,31 @@
     background-size: auto, 100% auto;
   }
 }
+
+/* Shared mobile overlay geometry: keep fixed widgets above the bottom nav. */
+:root {
+  --qutoof-mobile-nav-height: calc(4rem + env(safe-area-inset-bottom));
+  --qutoof-mobile-overlay-bottom: calc(4.75rem + env(safe-area-inset-bottom));
+}
+
+.qutoof-mobile-bottom-nav {
+  min-height: var(--qutoof-mobile-nav-height);
+  padding-bottom: calc(0.25rem + env(safe-area-inset-bottom));
+}
+
+.qutoof-mobile-floating {
+  bottom: var(--qutoof-mobile-overlay-bottom);
+}
+
+.qutoof-mobile-install-prompt {
+  bottom: var(--qutoof-mobile-overlay-bottom);
+  max-height: calc(100dvh - 8rem - env(safe-area-inset-bottom));
+  overflow-y: auto;
+}
+
+@media (min-width: 1024px) {
+  .qutoof-mobile-floating,
+  .qutoof-mobile-install-prompt {
+    bottom: 1.25rem;
+  }
+}
