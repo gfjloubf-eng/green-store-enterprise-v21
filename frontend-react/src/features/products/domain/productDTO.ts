@@ -41,6 +41,7 @@ export interface ProductDTO {
   trackInventory: boolean;
   image?: string;
   status: ProductStatus;
+  produceKey?: string;
   createdAt: string;
   updatedAt: string;
 }

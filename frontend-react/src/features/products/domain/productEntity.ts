@@ -71,6 +71,8 @@ export interface ProductEntity {
   image?: string;
   /** Product status */
   status: ProductStatus;
+  /** Canonical produce identity key (e.g., 'apple', 'carrot') */
+  produceKey?: string;
   /** Created date ISO string */
   createdAt: string;
   /** Updated date ISO string */

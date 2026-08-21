@@ -50,13 +50,14 @@
       </div>
     </div>
     <style>
-      #boot-splash{position:fixed;inset:0;z-index:99999;display:grid;place-items:center;overflow:hidden;background:linear-gradient(rgba(248,251,245,.82),rgba(248,251,245,.9)),url('/qutoof-vegetables-mobile-background.webp') center/cover no-repeat;color:#1e5424;transition:opacity .24s ease,visibility .24s ease}
+      #boot-splash{position:fixed;inset:0;z-index:99999;display:grid;place-items:center;overflow:hidden;background:linear-gradient(rgba(248,251,245,.88),rgba(248,251,245,.96)),url('/qutoof-vegetables-mobile-background.webp') center/cover no-repeat;color:#1e5424;transition:opacity .35s ease-in-out,visibility .35s ease-in-out}
       #boot-splash.boot-splash--hide{opacity:0;visibility:hidden;pointer-events:none}
-      .boot-splash__content{position:relative;z-index:1;display:grid;justify-items:center;width:min(82vw,360px);text-align:center}
-      .boot-splash__content img{display:block;width:min(68vw,256px);height:auto;object-fit:contain;filter:drop-shadow(0 16px 28px rgba(30,84,36,.13))}
-      .boot-splash__content p{margin:8px 0 20px;font:600 15px/1.6 Cairo,system-ui,sans-serif;letter-spacing:.01em}
-      .boot-splash__content span{display:block;width:86px;height:4px;overflow:hidden;border-radius:999px;background:rgba(30,84,36,.14)}
-      .boot-splash__content i{display:block;width:38%;height:100%;border-radius:inherit;background:linear-gradient(90deg,#f39a16,#1e8b3b);animation:boot-progress 1.05s ease-in-out infinite}
+      .boot-splash__content{position:relative;z-index:1;display:grid;justify-items:center;width:min(85vw,400px);text-align:center;animation:boot-fade-in 0.6s ease-out}
+      .boot-splash__content img{display:block;width:min(72vw,280px);height:auto;object-fit:contain;filter:drop-shadow(0 20px 40px rgba(30,84,36,.18))}
+      .boot-splash__content p{margin:12px 0 24px;font:700 18px/1.6 Cairo,system-ui,sans-serif;letter-spacing:.02em;color:#1e5424;text-shadow: 0 2px 4px rgba(255,255,255,0.5)}
+      .boot-splash__content span{display:block;width:120px;height:6px;overflow:hidden;border-radius:999px;background:rgba(30,84,36,.1)}
+      .boot-splash__content i{display:block;width:40%;height:100%;border-radius:inherit;background:linear-gradient(90deg,#f39a16,#1e8b3b);animation:boot-progress 1.2s cubic-bezier(0.65, 0, 0.35, 1) infinite}
+      @keyframes boot-fade-in{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
       .boot-splash__glow{position:absolute;border-radius:50%;filter:blur(28px);opacity:.28;pointer-events:none}
       .boot-splash__glow--green{width:42vw;height:42vw;top:-15vw;right:-12vw;background:#8bcf3f}
       .boot-splash__glow--orange{width:38vw;height:38vw;bottom:-16vw;left:-12vw;background:#f6aa35}

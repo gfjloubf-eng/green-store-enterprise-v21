@@ -57,6 +57,7 @@ function mapBackendProductToEntity(item: any): ProductEntity {
     trackInventory: true,
     image: String(item.image || item.imageUrl || item.url || ''),
     status: (item.status === 'inactive' || item.status === 'out_of_stock' || item.status === 'active') ? item.status : 'active',
+    produceKey: String(item.produceKey || item.slug || ''),
     createdAt: String(item.createdAt || new Date().toISOString()),
     updatedAt: String(item.updatedAt || new Date().toISOString()),
   };
@@ -105,6 +106,7 @@ class ProductStore {
         trackInventory: true,
         image: mock.image,
         status: mock.status,
+        produceKey: mock.produceKey,
         createdAt: mock.createdAt,
         updatedAt: mock.updatedAt,
       });
@@ -264,8 +266,10 @@ export const ProductService = {
     if (!isAuthorizedStaffOrAdmin()) throw new Error('غير مصرح: هذه العملية تتطلب صلاحيات إدارة المتجر');
     const { fetchWithAuth } = await import('@/services/authClient');
     const body: Record<string, unknown> = { ...data };
-    if (typeof body.produceKey === 'string') body.slug = body.produceKey.trim();
-    delete body.produceKey;
+    if (typeof body.produceKey === 'string') {
+      body.slug = body.produceKey.trim();
+      body.produceKey = body.produceKey.trim();
+    }
     const res = await fetchWithAuth(`/products/${encodeURIComponent(id)}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },

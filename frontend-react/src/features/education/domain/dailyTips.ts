@@ -39,6 +39,27 @@ const DAILY_TIPS: DailyTip[] = [
     sourceLabel: 'منظمة الصحة العالمية — النظام الغذائي الصحي',
     sourceUrl: 'https://www.who.int/news-room/fact-sheets/detail/healthy-diet',
   },
+  {
+    id: 'zucchini-vs-carrot',
+    title: 'هل تعلم؟ الفرق بين الكوسا والجزر في التغذية',
+    body: 'الجزر غني بالبيتا كاروتين (فيتامين أ)، بينما الكوسا تحتوي على نسبة عالية من الماء والألياف، وكلاهما يدعم الهضم الصحي كجزء من نظام غذائي متكامل.',
+    sourceLabel: 'USDA FoodData Central',
+    sourceUrl: 'https://fdc.nal.usda.gov/',
+  },
+  {
+    id: 'apple-variety',
+    title: 'هل تعلم؟ أنواع التفاح تختلف في السكر والألياف',
+    body: 'التفاح الأخضر غالباً ما يكون أقل حلاوة وأكثر حموضة مقارنة بالأحمر، لكن كلاهما مصدر رائع للألياف التي تساعد على الشعور بالشبع.',
+    sourceLabel: 'Healthline Nutrition',
+    sourceUrl: 'https://www.healthline.com/nutrition/10-health-benefits-of-apples',
+  },
+  {
+    id: 'hydration-fruits',
+    title: 'هل تعلم؟ الفواكه وسيلة لذيذة للترطيب',
+    body: 'البطيخ والشمام يتكونان من أكثر من 90% ماء، مما يجعلهما خياراً ممتازاً لترطيب الجسم في الأجواء الحارة بجانب شرب الماء الكافي.',
+    sourceLabel: 'Mayo Clinic Health System',
+    sourceUrl: 'https://www.mayoclinichealthsystem.org/',
+  },
 ];
 
 export function getDailyTip(date = new Date()): DailyTip {
