@@ -4,7 +4,7 @@
    ============================================================ */
 
 import { useEffect, useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import {
   ArrowRight,
   BookOpen,
@@ -23,6 +23,7 @@ import {
   Sun,
   ShieldCheck,
   Truck,
+  Lightbulb,
 } from 'lucide-react';
 import { ProductService } from '@/features/products/services/productService';
 import type { ProductDTO } from '@/features/products/domain/productDTO';
@@ -43,6 +44,7 @@ import {
   isSeasonal,
   isYemeni,
 } from '@/features/marketplace/utils/productTags';
+import { getDailyTip } from '@/features/education/domain/dailyTips';
 
 import { calculateEffectivePrice } from '@/features/products/services/offerService';
 
@@ -180,6 +182,7 @@ export function HomePage() {
   }, [products]);
 
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const dailyTip = useMemo(() => getDailyTip(), []);
 
   const handleQuickAdd = async (product: ProductDTO) => {
     setAddingId(product.id);
@@ -279,6 +282,36 @@ export function HomePage() {
         </div>
       </section>
 
+      {/* Daily Tip Widget - AI/Curated Educational Content */}
+      <section className="rounded-3xl bg-emerald-900 p-5 text-white shadow-lg border border-emerald-700/50 relative overflow-hidden group">
+        <div className="absolute top-0 left-0 w-32 h-32 bg-amber-400/10 blur-3xl -translate-x-16 -translate-y-16 group-hover:bg-amber-400/20 transition-colors" />
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between relative z-10">
+          <div className="flex gap-4">
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-amber-300 text-emerald-950 shadow-inner">
+              <Lightbulb className="h-6 w-6" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <p className="text-[10px] font-black uppercase tracking-wider text-emerald-300">هل تعلم؟ · معلومة اليوم</p>
+                <Sparkles className="h-3 w-3 text-amber-300 animate-pulse" />
+              </div>
+              <h2 className="mt-1 text-lg font-black tracking-tight">{dailyTip.title}</h2>
+              <p className="mt-2 max-w-3xl text-sm leading-relaxed text-emerald-50/90 font-medium">
+                {dailyTip.body}
+              </p>
+            </div>
+          </div>
+          <div className="flex flex-col items-end gap-2">
+             <Link to="/education" className="text-[10px] font-bold text-emerald-900 bg-amber-300 px-3 py-1.5 rounded-full hover:bg-amber-400 transition-colors">
+              مركز المعرفة
+            </Link>
+            <a href={dailyTip.sourceUrl} target="_blank" rel="noreferrer" className="text-[9px] font-medium text-emerald-300/80 hover:text-emerald-200 transition-colors underline underline-offset-4">
+              المصدر: {dailyTip.sourceLabel}
+            </a>
+          </div>
+        </div>
+      </section>
+
       {/* Mobile-first shortcuts for the storefront's main journeys */}
       <section aria-label="روابط قطوف السريعة" className="grid grid-cols-2 gap-2 sm:grid-cols-4 sm:gap-3">
         <button
@@ -317,17 +350,23 @@ export function HomePage() {
       {/* 2. Today's Offers Presentation Banner */}
       {todayOffers.length > 0 && !searchQuery && (
         <section className="space-y-4">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between border-b border-[var(--gs-border-subtle)] pb-3">
             <h2 className="text-xl sm:text-2xl font-bold text-[var(--gs-foreground)] flex items-center gap-2">
-              <Sparkles className="h-6 w-6 text-amber-500" />
-              عروض اليوم المنتقاة
+              🔥 عروض قطوف اليوم
             </h2>
-            <span className="text-xs font-semibold text-emerald-700 bg-emerald-50 dark:bg-emerald-950/60 px-3 py-1 rounded-full border border-emerald-300/40">
-              أسعار خفيفة ونضارة مضمونة
-            </span>
+            <button
+              type="button"
+              onClick={() => {
+                setPriceFilter('all');
+                setSelectedCategory('');
+              }}
+              className="text-xs font-bold text-emerald-700 hover:text-emerald-800 flex items-center gap-1"
+            >
+              كل العروض
+              <ArrowRight className="h-3.5 w-3.5" />
+            </button>
           </div>
-
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-4">
             {todayOffers.map((product) => (
               <ProduceCard
                 key={`offer-${product.id}`}
@@ -337,7 +376,6 @@ export function HomePage() {
                 isAdded={addedIds[product.id]}
                 onQuickAdd={() => handleQuickAdd(product)}
                 onToggleFavorite={() => toggleFavorite(product.id)}
-                badgeText="عرض اليوم"
                 locale={locale}
               />
             ))}
@@ -345,153 +383,42 @@ export function HomePage() {
         </section>
       )}
 
-      {/* 3. Search & Comprehensive Filter Controls */}
-      <section className="gsd-card rounded-3xl p-4 sm:p-6 shadow-sm border border-[var(--gs-border-subtle)] space-y-4">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <h2 className="text-xl font-bold text-[var(--gs-foreground)]">تصفح كتالوج الخضروات والفواكه</h2>
-            <p className="text-xs text-[var(--gs-foreground-secondary)] mt-0.5">ابحث عن الفواكه، الخضروات، والأعشاب الطازجة بسهولة.</p>
+      {/* 3. Main Marketplace Browser / Search Results */}
+      {searchQuery.trim() || selectedCategory || selectedStore || priceFilter !== 'all' || freshToday || organicOnly || seasonalOnly || yemeniOnly ? (
+        <section className="space-y-4 min-h-[40vh]">
+          <div className="flex items-center justify-between border-b border-[var(--gs-border-subtle)] pb-3">
+            <h2 className="text-xl sm:text-2xl font-bold text-[var(--gs-foreground)]">
+              {searchQuery.trim() ? `نتائج البحث عن "${searchQuery}"` : 'تصفح المنتجات المختارة'}
+            </h2>
+            <span className="text-xs font-bold text-[var(--gs-foreground-muted)] bg-[var(--gs-surface-muted)] px-3 py-1 rounded-full">
+              {filteredProducts.length} منتج
+            </span>
           </div>
-
-          <div className="flex items-center gap-2 w-full sm:max-w-md">
-            <div className="relative flex-1">
-              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[var(--gs-foreground-muted)]" />
-              <input
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="ابحث عن تفاح، طماطم، رمان، مانجو..."
-                className="w-full rounded-2xl border border-[var(--gs-border-subtle)] bg-[var(--gs-surface)] py-2.5 pl-9 pr-9 text-sm outline-none text-[var(--gs-foreground)] focus:border-emerald-500 shadow-xs"
-              />
-              {searchQuery && (
-                <button
-                  type="button"
-                  onClick={() => setSearchQuery('')}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-[var(--gs-foreground-muted)] hover:text-[var(--gs-foreground)]"
-                  aria-label="مسح البحث"
-                >
-                  <X className="h-4 w-4" />
-                </button>
-              )}
-            </div>
-
-            <button
-              type="button"
-              onClick={() => setShowMobileFilters((prev) => !prev)}
-              className="sm:hidden gsd-btn gsd-btn--ghost gsd-btn--sm p-2.5 rounded-2xl border border-[var(--gs-border)] text-emerald-700 bg-emerald-50 font-bold shrink-0 flex items-center gap-1.5"
-              aria-label="فلاتر البحث"
-            >
-              <Filter className="h-4 w-4" />
-              <span className="text-xs">تصفية</span>
-            </button>
-          </div>
-        </div>
-
-        {/* Filter Pills & Selectors */}
-        <div className={`space-y-3 ${showMobileFilters ? 'block' : 'hidden sm:block'}`}>
-          <div className="flex flex-wrap items-center gap-2">
-            <button
-              type="button"
-              onClick={() => {
-                setSelectedCategory('');
-                setYemeniOnly(false);
-                setOrganicOnly(false);
-                setSeasonalOnly(false);
-                setFreshToday(false);
-              }}
-              className={`rounded-full px-4 py-2 text-xs font-bold transition ${
-                !selectedCategory && !yemeniOnly && !organicOnly && !seasonalOnly && !freshToday
-                  ? 'bg-emerald-600 text-white shadow-sm'
-                  : 'bg-[var(--gs-muted)] text-[var(--gs-foreground-secondary)] hover:bg-[var(--gs-surface)]'
-              }`}
-            >
-              الكل ({products.length})
-            </button>
-
-            {categories.map((cat) => (
-              <button
-                key={cat}
-                type="button"
-                onClick={() => setSelectedCategory(selectedCategory === cat ? '' : cat)}
-                className={`rounded-full px-4 py-2 text-xs font-bold transition ${
-                  selectedCategory === cat
-                    ? 'bg-emerald-600 text-white shadow-sm'
-                    : 'bg-[var(--gs-muted)] text-[var(--gs-foreground-secondary)] hover:bg-[var(--gs-surface)]'
-                }`}
-              >
-                {cat === 'Fruits' ? '🍎 فواكه طازجة' : cat === 'Vegetables' ? '🥦 خضروات' : cat === 'Herbs' ? '🌿 أعشاب عطرية' : cat}
-              </button>
-            ))}
-
-            <button
-              type="button"
-              onClick={() => setYemeniOnly((v) => !v)}
-              className={`rounded-full px-4 py-2 text-xs font-bold transition ${
-                yemeniOnly
-                  ? 'bg-amber-600 text-white shadow-sm'
-                  : 'bg-[var(--gs-muted)] text-[var(--gs-foreground-secondary)] hover:bg-[var(--gs-surface)]'
-              }`}
-            >
-              🇾🇪 بلدي يمني
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setOrganicOnly((v) => !v)}
-              className={`rounded-full px-4 py-2 text-xs font-bold transition ${
-                organicOnly
-                  ? 'bg-emerald-700 text-white shadow-sm'
-                  : 'bg-[var(--gs-muted)] text-[var(--gs-foreground-secondary)] hover:bg-[var(--gs-surface)]'
-              }`}
-            >
-              🌱 عضوي
-            </button>
-
-            <button
-              type="button"
-              onClick={() => setSeasonalOnly((v) => !v)}
-              className={`rounded-full px-4 py-2 text-xs font-bold transition ${
-                seasonalOnly
-                  ? 'bg-teal-700 text-white shadow-sm'
-                  : 'bg-[var(--gs-muted)] text-[var(--gs-foreground-secondary)] hover:bg-[var(--gs-surface)]'
-              }`}
-            >
-              ☀️ موسمي
-            </button>
-
-            {(selectedCategory || selectedStore || priceFilter !== 'all' || freshToday || organicOnly || seasonalOnly || yemeniOnly || searchQuery) && (
+          
+          {filteredProducts.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-16 px-6 text-center bg-white/50 rounded-3xl border border-dashed border-emerald-200">
+              <div className="h-20 w-20 rounded-full bg-emerald-50 flex items-center justify-center mb-4">
+                <Search className="h-10 w-10 text-emerald-200" />
+              </div>
+              <h3 className="text-lg font-bold text-emerald-900">عذراً، لم نجد ما تبحث عنه</h3>
+              <p className="mt-2 text-sm text-emerald-700/70 max-w-xs">
+                جرب البحث بكلمات أخرى أو تصفح الأقسام الرئيسية للفواكه والخضروات.
+              </p>
               <button
                 type="button"
                 onClick={() => {
                   setSearchQuery('');
                   setSelectedCategory('');
-                  setSelectedStore('');
                   setPriceFilter('all');
                   setFreshToday(false);
                   setOrganicOnly(false);
                   setSeasonalOnly(false);
                   setYemeniOnly(false);
                 }}
-                className="rounded-full px-3 py-2 text-xs font-medium text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 inline-flex items-center gap-1"
+                className="mt-6 gsd-btn gsd-btn--primary gsd-btn--md rounded-2xl"
               >
-                <RotateCcw className="h-3.5 w-3.5" />
-                إعادة ضبط
+                مسح جميع الفلاتر
               </button>
-            )}
-          </div>
-        </div>
-      </section>
-
-      {/* 4. Filtered Products Grid Result */}
-      {searchQuery || selectedCategory || yemeniOnly || organicOnly || seasonalOnly || priceFilter !== 'all' ? (
-        <section className="space-y-4">
-          <div className="flex items-center justify-between">
-            <h2 className="text-xl font-bold text-[var(--gs-foreground)]">نتائج التصفية والبحث ({filteredProducts.length})</h2>
-          </div>
-          {filteredProducts.length === 0 ? (
-            <div className="gsd-card rounded-3xl p-12 text-center space-y-3">
-              <Leaf className="h-12 w-12 text-[var(--gs-foreground-muted)] mx-auto" />
-              <div className="text-base font-bold text-[var(--gs-foreground)]">لا توجد منتجات مطابقة لخيارات التصفية الحالية</div>
-              <p className="text-xs text-[var(--gs-foreground-secondary)]">جرب البحث بكلمة مختلفة أو اختر فئة أوسع.</p>
             </div>
           ) : (
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2.5 sm:gap-4">

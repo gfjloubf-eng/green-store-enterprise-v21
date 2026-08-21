@@ -19,6 +19,7 @@ export interface WhatsAppContactInfo {
   phone: string;
   fullNumber: string;
   role: string;
+  avatar?: string; // Optional avatar URL or identifier
 }
 
 export const WHATSAPP_CONTACTS: Record<WhatsAppTarget, WhatsAppContactInfo> = {
@@ -65,16 +66,18 @@ export function buildWhatsAppWelcomeMessage(target: WhatsAppTarget = 'store'): s
   if (target === 'saqr') {
     return [
       'السلام عليكم ورحمة الله وبركاته 🌿',
-      'مرحبًا بك في قطوف الطبيعة، معك صقر أنور لمتابعة الطلبات وتنسيق التوصيل.',
-      'أرسل رقم طلبك أو استفسارك وسأتابع معك بإذن الله.',
-    ].join('\\n');
+      'مرحبًا بك في قطوف الطبيعة 🍎، معك صقر أنور لمتابعة الطلبات وتنسيق التوصيل.',
+      'كيف يمكنني مساعدتك في توصيل طلبك اليوم؟',
+      '----------------------------------------',
+    ].join('\n');
   }
 
   return [
     'السلام عليكم ورحمة الله وبركاته 🌿',
-    'مرحبًا بك في قطوف الطبيعة، معك عمار عادل لاستقبال طلبك الرئيسي.',
-    'أرسل تفاصيل طلبك وسنساعدك في تأكيده وترتيب التوصيل.',
-  ].join('\\n');
+    'مرحبًا بك في قطوف الطبيعة 🍎، معك عمار عادل لاستقبال طلبك الرئيسي.',
+    'يسعدني خدمتك في اختيار أفضل الفواكه والخضروات الطازجة.',
+    '----------------------------------------',
+  ].join('\n');
 }
 
 /**
@@ -95,7 +98,7 @@ export function buildSingleProductWhatsAppMessage(
   const unitName = product.unit?.name || product.unit?.abbreviation || 'وحدة';
   const total = (product.sellingPrice * quantity).toFixed(2);
 
-  let msg = `السلام عليكم ورحمة الله وبركاته،\nأرغب في طلب المنتج التالي من قطوف الطبيعة:\n\n`;
+  let msg = `أرغب في طلب المنتج التالي من قطوف الطبيعة:\n\n`;
   msg += `📍 المنتج: ${product.name}\n`;
   msg += `📦 الكمية: ${quantity} (${unitName})\n`;
   msg += `💰 السعر: ${formatPrice(product.sellingPrice)} / ${unitName}\n`;
@@ -116,7 +119,7 @@ export function buildCartWhatsAppMessage(
   items: Array<{ name: string; price: number; quantity: number; unitName?: string }>,
   grandTotal: number
 ): string {
-  let msg = `السلام عليكم ورحمة الله وبركاته،\nأرغب في طلب المنتجات التالية من قطوف الطبيعة:\n\n`;
+  let msg = `أرغب في طلب المنتجات التالية من قطوف الطبيعة:\n\n`;
 
   items.forEach((item, index) => {
     const itemTotal = item.price * item.quantity;
