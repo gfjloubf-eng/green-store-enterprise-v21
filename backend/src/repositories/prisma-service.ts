@@ -56,9 +56,19 @@ export class PrismaService {
         process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
       }
 
-      const connectionString = process.env.DATABASE_URL || 'postgresql://postgres:postgres@localhost:5432/postgres';
+      let connectionString = process.env.DATABASE_URL || 'postgresql://postgres:postgres@localhost:5432/postgres';
+      
+      // تحسين رابط الاتصال لـ Vercel/Serverless
+      if (process.env.NODE_ENV === 'production' && !connectionString.includes('pgbouncer=')) {
+        const separator = connectionString.includes('?') ? '&' : '?';
+        connectionString = `${connectionString}${separator}pgbouncer=true&connection_limit=1`;
+      }
+
       const adapter = new PrismaPg({ connectionString });
-      const createClient = () => new PrismaClient({ log: ['error'], adapter });
+      const createClient = () => new PrismaClient({ 
+        log: process.env.NODE_ENV === 'production' ? ['error'] : ['query', 'error', 'warn'],
+        adapter 
+      });
 
       if (process.env.NODE_ENV !== 'production') {
         if (!global.__prismaClient) {
