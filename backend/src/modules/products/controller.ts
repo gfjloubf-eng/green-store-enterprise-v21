@@ -20,9 +20,15 @@ export class ProductsController {
   }
 
   private mapToDto(entity: Product): ProductResponseDto {
+    const enriched = entity as Product & { produceKey?: string | null; familyId?: string | null; images?: Array<{ id: string; url: string; altText: string | null; sortOrder: number }> };
+    const images = Array.isArray(enriched.images)
+      ? enriched.images.map((image) => ({ id: image.id, url: image.url, altText: image.altText ?? null, sortOrder: image.sortOrder }))
+      : [];
     return {
       id: entity.id,
       sku: entity.sku ?? null,
+      produceKey: enriched.produceKey ?? null,
+      familyId: enriched.familyId ?? null,
       name: entity.name,
       slug: entity.slug,
       description: entity.description ?? null,
@@ -30,6 +36,9 @@ export class ProductsController {
       unitId: entity.unitId ?? null,
       categoryId: entity.categoryId ?? null,
       subcategoryId: entity.subcategoryId ?? null,
+      imageUrl: images[0]?.url ?? null,
+      imageAltText: images[0]?.altText ?? null,
+      images,
       isPublished: Boolean(entity.isPublished),
       createdAt: new Date(entity.createdAt).toISOString(),
       updatedAt: new Date(entity.updatedAt).toISOString(),

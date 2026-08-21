@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { SlidersHorizontal, Plus, Minus, CheckCircle2, AlertCircle, ArrowLeft, Package } from 'lucide-react';
 import { useI18n } from '@/i18n/useI18n';
 import { BreadcrumbEngine } from '@/components/layout/BreadcrumbEngine';
@@ -7,10 +7,12 @@ import { adjustStock as adjustInventoryStock, getInventory, type InventoryItem }
 
 export function StockAdjustment() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const requestedProductId = searchParams.get('productId') || '';
   const { t } = useI18n();
   const [inventoryItems, setInventoryItems] = useState<InventoryItem[]>([]);
   const [loadingProducts, setLoadingProducts] = useState(true);
-  const [selectedProductId, setSelectedProductId] = useState('');
+  const [selectedProductId, setSelectedProductId] = useState(requestedProductId);
   const [adjustmentType, setAdjustmentType] = useState<'IN' | 'OUT'>('IN');
   const [quantity, setQuantity] = useState<string>('1');
   const [reason, setReason] = useState<string>('');
@@ -27,7 +29,7 @@ export function StockAdjustment() {
       .then((result) => {
         if (!active) return;
         setInventoryItems(result.items);
-        setSelectedProductId((current) => current || result.items[0]?.productId || '');
+        setSelectedProductId((current) => current || requestedProductId || result.items[0]?.productId || '');
       })
       .catch((err: any) => {
         if (active) setErrorMsg(err?.message || 'تعذر تحميل المنتجات من المخزون الحقيقي');
@@ -38,7 +40,7 @@ export function StockAdjustment() {
     return () => {
       active = false;
     };
-  }, []);
+  }, [requestedProductId]);
 
   const handleSubmit = useCallback(
     async (e: React.FormEvent) => {

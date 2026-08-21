@@ -54,7 +54,7 @@ export function EditProductPage() {
           </div>
         </div>
       ) : (
-        <ProductForm isEdit initialData={initialData} />
+        <ProductForm isEdit productId={id} initialData={initialData} />
       )}
     </div>
   );

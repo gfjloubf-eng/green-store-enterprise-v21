@@ -82,7 +82,7 @@ export class ProductService extends BaseService implements ProductServiceContrac
   }
 
   private validateOptionalFields(payload: Record<string, unknown>, update = false): void {
-    const stringFields = ['sku', 'name', 'slug', 'description', 'brandId', 'unitId', 'categoryId', 'subcategoryId'];
+    const stringFields = ['sku', 'name', 'slug', 'description', 'brandId', 'unitId', 'categoryId', 'subcategoryId', 'produceKey', 'familyId', 'imageUrl', 'imageAltText'];
     const maxLengths: Record<string, number> = {
       sku: 100,
       name: 255,
@@ -92,6 +92,10 @@ export class ProductService extends BaseService implements ProductServiceContrac
       unitId: 36,
       categoryId: 36,
       subcategoryId: 36,
+      produceKey: 120,
+      familyId: 36,
+      imageUrl: 450000,
+      imageAltText: 255,
     };
     for (const field of stringFields) {
       if (payload[field] !== undefined && payload[field] !== null && typeof payload[field] !== 'string') {
@@ -113,13 +117,19 @@ export class ProductService extends BaseService implements ProductServiceContrac
     if (payload.isPublished !== undefined && typeof payload.isPublished !== 'boolean') {
       throw new ValidationException('isPublished_invalid');
     }
+    if (typeof payload.imageUrl === 'string' && payload.imageUrl.trim()) {
+      const imageUrl = payload.imageUrl.trim();
+      const isAllowedImage = /^(https?:\/\/|data:image\/(?:jpeg|jpg|png|webp);base64,)/i.test(imageUrl);
+      if (!isAllowedImage) throw new ValidationException('imageUrl_invalid');
+      if (imageUrl.length > maxLengths.imageUrl) throw new ValidationException('imageUrl_too_large');
+    }
     if (update && !stringFields.some((field) => payload[field] !== undefined) && payload.isPublished === undefined) {
       throw new ValidationException('data_required');
     }
   }
 
   private toPersistencePayload(payload: Record<string, unknown>, update = false): Record<string, unknown> {
-    const fields = ['sku', 'name', 'slug', 'description', 'brandId', 'unitId', 'categoryId', 'subcategoryId', 'isPublished'];
+    const fields = ['sku', 'produceKey', 'familyId', 'name', 'slug', 'description', 'brandId', 'unitId', 'categoryId', 'subcategoryId', 'imageUrl', 'imageAltText', 'isPublished'];
     const result: Record<string, unknown> = {};
     for (const field of fields) {
       if (payload[field] !== undefined) {

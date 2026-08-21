@@ -114,45 +114,35 @@ export function useProductMutations() {
   const [updateState, setUpdateState] = useState<ProductState<ProductDTO>>(readyState);
   const [deleteState, setDeleteState] = useState<ProductState<void>>(readyState);
 
-  const create = (
-    data: Parameters<typeof ProductService.create>[0],
+  const create = async (
+    data: Parameters<typeof ProductService.createRemote>[0],
   ): Promise<ProductDTO> => {
-    return new Promise((resolve, reject) => {
-      setCreateState(loadingState());
-      try {
-        const dto = ProductService.create(data);
-        setCreateState(successState(dto));
-        resolve(dto);
-      } catch (err) {
-        const message = err instanceof Error ? err.message : 'Create failed';
-        setCreateState(errorState(message));
-        reject(err);
-      }
-    });
+    setCreateState(loadingState());
+    try {
+      const dto = await ProductService.createRemote(data);
+      setCreateState(successState(dto));
+      return dto;
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Create failed';
+      setCreateState(errorState(message));
+      throw err;
+    }
   };
 
-  const update = (
+  const update = async (
     id: string,
-    updates: Parameters<typeof ProductService.update>[1],
+    updates: Parameters<typeof ProductService.updateRemote>[1],
   ): Promise<ProductDTO> => {
-    return new Promise((resolve, reject) => {
-      setUpdateState(loadingState());
-      try {
-        const dto = ProductService.update(id, updates);
-        if (dto) {
-          setUpdateState(successState(dto));
-          resolve(dto);
-        } else {
-          const msg = `Product with ID "${id}" not found for update`;
-          setUpdateState(errorState(msg));
-          reject(new Error(msg));
-        }
-      } catch (err) {
-        const message = err instanceof Error ? err.message : 'Update failed';
-        setUpdateState(errorState(message));
-        reject(err);
-      }
-    });
+    setUpdateState(loadingState());
+    try {
+      const dto = await ProductService.updateRemote(id, updates);
+      setUpdateState(successState(dto));
+      return dto;
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Update failed';
+      setUpdateState(errorState(message));
+      throw err;
+    }
   };
 
   const remove = (id: string): Promise<boolean> => {

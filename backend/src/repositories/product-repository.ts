@@ -10,7 +10,10 @@ export class ProductRepository extends BaseRepository implements ProductReposito
   }
 
   async findById(id: string): Promise<Product | null> {
-    return ((await this.model.findFirst({ where: { id, deletedAt: null } })) as Product | null) ?? null;
+    return ((await this.model.findFirst({
+      where: { id, deletedAt: null },
+      include: { images: { orderBy: { sortOrder: 'asc' } } },
+    })) as Product | null) ?? null;
   }
 
   async findBySlug(slug: string, excludeId?: string): Promise<Product | null> {
@@ -21,16 +24,51 @@ export class ProductRepository extends BaseRepository implements ProductReposito
   }
 
   async create(data: Partial<Product>): Promise<Product> {
-    return this.model.create({ data }) as Promise<Product>;
+    const { imageUrl, imageAltText, ...productData } = data as Partial<Product> & Record<string, unknown>;
+    const created = await this.model.create({
+      data: productData,
+      include: { images: { orderBy: { sortOrder: 'asc' } } },
+    });
+    if (typeof imageUrl === 'string' && imageUrl.trim()) {
+      await this.client.productImage.create({
+        data: {
+          productId: created.id,
+          url: imageUrl.trim(),
+          altText: typeof imageAltText === 'string' && imageAltText.trim() ? imageAltText.trim() : `${created.name} - قطوف الطبيعة`,
+          sortOrder: 0,
+        },
+      });
+    }
+    return this.findById(created.id) as Promise<Product>;
   }
 
   async update(id: string, data: Partial<Product>): Promise<Product> {
-    return this.model.update({ where: { id }, data }) as Promise<Product>;
+    const hasImageUpdate = Object.prototype.hasOwnProperty.call(data, 'imageUrl');
+    const { imageUrl, imageAltText, ...productData } = data as Partial<Product> & Record<string, unknown>;
+    const updated = await this.model.update({
+      where: { id },
+      data: productData,
+    });
+    if (hasImageUpdate) {
+      await this.client.productImage.deleteMany({ where: { productId: id } });
+      if (typeof imageUrl === 'string' && imageUrl.trim()) {
+        await this.client.productImage.create({
+          data: {
+            productId: id,
+            url: imageUrl.trim(),
+            altText: typeof imageAltText === 'string' && imageAltText.trim() ? imageAltText.trim() : `${updated.name} - قطوف الطبيعة`,
+            sortOrder: 0,
+          },
+        });
+      }
+    }
+    return this.findById(id) as Promise<Product>;
   }
 
   async findMany(filter?: Filter): Promise<Product[]> {
     return this.model.findMany({
       where: { AND: [{ deletedAt: null }, filter ?? {}] },
+      include: { images: { orderBy: { sortOrder: 'asc' } } },
     }) as Promise<Product[]>;
   }
 

@@ -302,6 +302,9 @@ export interface Translations {
   'form.generalInfo': string;
   'form.productName': string;
   'form.productNamePlaceholder': string;
+  'form.produceKey': string;
+  'form.produceKeyPlaceholder': string;
+  'form.produceKeyHint': string;
   'form.sku': string;
   'form.skuPlaceholder': string;
   'form.barcode': string;
@@ -331,6 +334,7 @@ export interface Translations {
   'form.unit.pack': string;
   'form.unit.gram': string;
   'form.pricing': string;
+  'form.pricingManagedSeparately': string;
   'form.purchasePrice': string;
   'form.purchasePricePlaceholder': string;
   'form.sellingPrice': string;
@@ -340,6 +344,7 @@ export interface Translations {
   'form.discount': string;
   'form.discountPlaceholder': string;
   'form.inventory': string;
+  'form.inventoryManagedSeparately': string;
   'form.initialStock': string;
   'form.initialStockPlaceholder': string;
   'form.minStock': string;
@@ -352,6 +357,8 @@ export interface Translations {
   'form.removeImage': string;
   'form.imageUpload': string;
   'form.imageUploadHint': string;
+  'form.imageCompressionHint': string;
+  'form.imageSizeLabel': string;
   'form.reset': string;
   'form.cancel': string;
   'form.save': string;
@@ -1096,6 +1103,9 @@ const ar: Translations = {
   'form.generalInfo': 'معلومات عامة',
   'form.productName': 'اسم المنتج',
   'form.productNamePlaceholder': 'أدخل اسم المنتج',
+  'form.produceKey': 'هوية الصنف الثابتة',
+  'form.produceKeyPlaceholder': 'مثال: carrot أو apple',
+  'form.produceKeyHint': 'استخدم مفتاحاً إنجليزياً ثابتاً حتى لا تختلط الصورة والوصف بين الأصناف.',
   'form.sku': 'رمز التخزين (SKU)',
   'form.skuPlaceholder': 'أدخل رمز التخزين',
   'form.barcode': 'الباركود',
@@ -1125,6 +1135,7 @@ const ar: Translations = {
   'form.unit.pack': 'علبة',
   'form.unit.gram': 'غرام',
   'form.pricing': 'التسعير',
+  'form.pricingManagedSeparately': 'تنبيه: هذه الحقول للعرض والتحضير فقط حالياً. يُحفظ سعر البيع الفعلي من متغير المنتج/مسار التسعير بعد إنشاء الصنف.',
   'form.purchasePrice': 'سعر الشراء',
   'form.purchasePricePlaceholder': 'أدخل سعر الشراء',
   'form.sellingPrice': 'سعر البيع',
@@ -1134,6 +1145,7 @@ const ar: Translations = {
   'form.discount': 'الخصم',
   'form.discountPlaceholder': 'أدخل قيمة الخصم',
   'form.inventory': 'المخزون',
+  'form.inventoryManagedSeparately': 'تنبيه: الكمية والحدود التشغيلية تُدار من لوحة المخزون بعد إنشاء المنتج، لضمان تسجيل حركة المخزون وتدقيقها.',
   'form.initialStock': 'المخزون الأولي',
   'form.initialStockPlaceholder': 'أدخل المخزون الأولي',
   'form.minStock': 'الحد الأدنى للمخزون',
@@ -1145,7 +1157,9 @@ const ar: Translations = {
   'form.imagePreview': 'معاينة الصورة',
   'form.removeImage': 'إزالة الصورة',
   'form.imageUpload': 'انقر لرفع صورة أو اسحب وأفلت',
-  'form.imageUploadHint': 'JPEG, PNG, WebP, GIF — حد أقصى 2 ميجابايت',
+  'form.imageUploadHint': 'JPEG أو PNG أو WebP — ستُضغط الصورة تلقائياً قبل الحفظ.',
+  'form.imageCompressionHint': 'الصورة ستُصغّر إلى 1200 بكسل كحد أقصى وتُحفظ بجودة مناسبة للأداء.',
+  'form.imageSizeLabel': 'الحجم بعد الضغط',
   'form.reset': 'إعادة تعيين',
   'form.cancel': 'إلغاء',
   'form.save': 'حفظ',
@@ -1886,6 +1900,9 @@ const en: Translations = {
   'form.generalInfo': 'General Information',
   'form.productName': 'Product Name',
   'form.productNamePlaceholder': 'Enter product name',
+  'form.produceKey': 'Stable produce key',
+  'form.produceKeyPlaceholder': 'Example: carrot or apple',
+  'form.produceKeyHint': 'Use one stable English key so the image and educational content never cross between products.',
   'form.sku': 'SKU',
   'form.skuPlaceholder': 'Enter SKU',
   'form.barcode': 'Barcode',
@@ -1915,6 +1932,7 @@ const en: Translations = {
   'form.unit.pack': 'Pack',
   'form.unit.gram': 'Gram',
   'form.pricing': 'Pricing',
+  'form.pricingManagedSeparately': 'Notice: these fields are currently for preparation/display. The live selling price is managed through the product variant/pricing flow after creation.',
   'form.purchasePrice': 'Purchase Price',
   'form.purchasePricePlaceholder': 'Enter purchase price',
   'form.sellingPrice': 'Selling Price',
@@ -1924,6 +1942,7 @@ const en: Translations = {
   'form.discount': 'Discount',
   'form.discountPlaceholder': 'Enter discount value',
   'form.inventory': 'Inventory',
+  'form.inventoryManagedSeparately': 'Notice: quantities and operational thresholds are managed from the inventory dashboard after product creation so stock movements remain auditable.',
   'form.initialStock': 'Initial Stock',
   'form.initialStockPlaceholder': 'Enter initial stock',
   'form.minStock': 'Min Stock',
@@ -1935,7 +1954,9 @@ const en: Translations = {
   'form.imagePreview': 'Image Preview',
   'form.removeImage': 'Remove Image',
   'form.imageUpload': 'Click to upload or drag and drop',
-  'form.imageUploadHint': 'JPEG, PNG, WebP, GIF — max 2MB',
+  'form.imageUploadHint': 'JPEG, PNG or WebP — the image is compressed automatically before saving.',
+  'form.imageCompressionHint': 'The image is resized to a maximum of 1200px and optimized for performance.',
+  'form.imageSizeLabel': 'Compressed size',
   'form.reset': 'Reset',
   'form.cancel': 'Cancel',
   'form.save': 'Save',

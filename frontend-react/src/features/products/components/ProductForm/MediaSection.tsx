@@ -1,58 +1,52 @@
-/* ============================================================
-   GSDS v1.1 — MediaSection Component
-   Green Store Design System — Enterprise UI Foundation
-   Milestone 4.2 — Media / Image upload form section
-   ============================================================ */
-
 import { useState, useCallback, useEffect } from 'react';
-import { Image, X, Upload } from 'lucide-react';
+import { Image, X, Upload, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useI18n } from '@/i18n/useI18n';
 import { placeholderImage } from '@/assets/images/products/productImages';
 import type { ProductFormData } from '../../types/productForm';
-
-/* ─── Props ────────────────────────────────────────────────── */
+import { compressProductImage, formatImageSize } from '../../utils/compressProductImage';
 
 interface MediaSectionProps {
   data: ProductFormData;
-  onChange: (field: 'imageUrl', value: string) => void;
+  onChange: (field: 'imageUrl' | 'imageAltText', value: string) => void;
 }
-
-/* ─── MediaSection ─────────────────────────────────────────── */
 
 export function MediaSection({ data, onChange }: MediaSectionProps) {
   const { t } = useI18n();
   const [preview, setPreview] = useState<string>(data.imageUrl || '');
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+  const [compressedSize, setCompressedSize] = useState<number | null>(null);
+  const [dimensions, setDimensions] = useState<{ width: number; height: number } | null>(null);
 
   useEffect(() => {
     setPreview(data.imageUrl || '');
   }, [data.imageUrl]);
 
-  const handleFileChange = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
-      const file = e.target.files?.[0];
-      if (!file) return;
-
-      // Validate file type
-      const allowedTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
-      if (!allowedTypes.includes(file.type)) return;
-
-      // Validate file size (max 2MB)
-      if (file.size > 2 * 1024 * 1024) return;
-
-      const reader = new FileReader();
-      reader.onload = (event) => {
-        const result = event.target?.result as string;
-        setPreview(result);
-        onChange('imageUrl', result);
-      };
-      reader.readAsDataURL(file);
-    },
-    [onChange],
-  );
+  const handleFileChange = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    setError('');
+    setBusy(true);
+    try {
+      const compressed = await compressProductImage(file);
+      setPreview(compressed.dataUrl);
+      setCompressedSize(compressed.bytes);
+      setDimensions({ width: compressed.width, height: compressed.height });
+      onChange('imageUrl', compressed.dataUrl);
+      if (!data.imageAltText.trim()) onChange('imageAltText', data.productName.trim());
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'image_processing_failed');
+    } finally {
+      setBusy(false);
+    }
+  }, [data.imageAltText, data.productName, onChange]);
 
   const handleRemove = useCallback(() => {
     setPreview('');
+    setCompressedSize(null);
+    setDimensions(null);
     onChange('imageUrl', '');
   }, [onChange]);
 
@@ -63,54 +57,48 @@ export function MediaSection({ data, onChange }: MediaSectionProps) {
         {t('form.media')}
       </legend>
 
-      <div className="flex flex-col items-center gap-4">
-        {/* Image Preview */}
+      <div className="grid grid-cols-1 md:grid-cols-[200px_1fr] gap-5 items-start">
         <div className="flex flex-col items-center gap-3 w-full max-w-[200px]">
           <div className="relative w-full">
             <img
               src={preview || placeholderImage}
-              alt={t('form.imagePreview')}
+              alt={data.imageAltText || data.productName || t('form.imagePreview')}
               className="w-full h-40 object-cover rounded-xl border [border-color:var(--gs-border)] [background:var(--gs-muted)]"
             />
             {preview && (
-              <button
-                type="button"
-                onClick={handleRemove}
-                className="absolute -top-2 -end-2 flex h-6 w-6 items-center justify-center rounded-full
-                           [background:var(--gs-danger)] text-white shadow-md hover:brightness-110
-                           transition-all duration-150"
-                aria-label={t('form.removeImage')}
-              >
+              <button type="button" onClick={handleRemove}
+                className="absolute -top-2 -end-2 flex h-7 w-7 items-center justify-center rounded-full [background:var(--gs-danger)] text-white shadow-md"
+                aria-label={t('form.removeImage')}>
                 <X className="h-3 w-3" />
               </button>
             )}
           </div>
+          {compressedSize !== null && (
+            <p className="text-xs text-center [color:var(--gs-foreground-muted)]">
+              {t('form.imageSizeLabel')}: {formatImageSize(compressedSize)}{dimensions ? ` · ${dimensions.width}×${dimensions.height}` : ''}
+            </p>
+          )}
         </div>
 
-        {/* Upload Area */}
-        <label
-          className={cn(
-            'flex flex-col items-center justify-center w-full h-24',
-            'rounded-xl border-2 border-dashed [border-color:var(--gs-border)]',
-            'cursor-pointer hover:[border-color:var(--gs-primary)]',
-            'transition-all duration-150',
-            '[background:var(--gs-muted)]',
-          )}
-        >
-          <div className="flex flex-col items-center gap-1">
-            <Upload className="h-6 w-6 [color:var(--gs-foreground-muted)]" aria-hidden="true" />
-            <span className="text-xs font-medium [color:var(--gs-foreground-secondary)]">
-              {t('form.imageUpload')}
+        <div className="flex flex-col gap-3">
+          <label className={cn(
+            'flex flex-col items-center justify-center w-full min-h-[120px] rounded-xl border-2 border-dashed [border-color:var(--gs-border)]',
+            'cursor-pointer hover:[border-color:var(--gs-primary)] [background:var(--gs-muted)]',
+          )}>
+            {busy ? <Loader2 className="h-7 w-7 animate-spin [color:var(--gs-primary)]" aria-hidden="true" /> : <Upload className="h-7 w-7 [color:var(--gs-foreground-muted)]" aria-hidden="true" />}
+            <span className="mt-2 text-xs font-medium [color:var(--gs-foreground-secondary)]">
+              {busy ? 'جارٍ ضغط الصورة…' : t('form.imageUpload')}
             </span>
-          </div>
-          <input
-            type="file"
-            accept="image/jpeg,image/png,image/webp,image/gif"
-            onChange={handleFileChange}
-            className="hidden"
-            aria-label={t('form.imageUpload')}
-          />
-        </label>
+            <input type="file" accept="image/jpeg,image/png,image/webp" onChange={handleFileChange} disabled={busy} className="hidden" aria-label={t('form.imageUpload')} />
+          </label>
+          <p className="text-xs [color:var(--gs-foreground-muted)]">{t('form.imageUploadHint')}</p>
+          <p className="text-xs [color:var(--gs-foreground-muted)]">{t('form.imageCompressionHint')}</p>
+          <label className="flex flex-col gap-1.5 text-sm font-medium [color:var(--gs-foreground)]">
+            النص البديل للصورة
+            <input value={data.imageAltText} onChange={(e) => onChange('imageAltText', e.target.value)} className="gsd-input" placeholder="مثال: جزر طازج" maxLength={255} />
+          </label>
+          {error && <p className="text-xs [color:var(--gs-danger)]" role="alert">تعذر تجهيز الصورة: {error}</p>}
+        </div>
       </div>
     </fieldset>
   );

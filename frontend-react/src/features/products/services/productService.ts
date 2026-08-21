@@ -209,6 +209,74 @@ export const ProductService = {
   },
 
   /**
+   * Create a product through the authenticated backend API.
+   * The local method below remains for compatibility with older screens.
+   */
+  async createRemote(data: {
+    name: string;
+    produceKey: string;
+    sku: string;
+    description?: string;
+    imageUrl?: string;
+    imageAltText?: string;
+    categoryId?: string;
+    brandId?: string;
+    unitId?: string;
+    isPublished?: boolean;
+  }): Promise<ProductDTO> {
+    if (!isAuthorizedStaffOrAdmin()) throw new Error('غير مصرح: هذه العملية تتطلب صلاحيات إدارة المتجر');
+    const { fetchWithAuth } = await import('@/services/authClient');
+    const res = await fetchWithAuth('/products', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        name: data.name.trim(),
+        slug: data.produceKey.trim(),
+        produceKey: data.produceKey.trim(),
+        sku: data.sku.trim(),
+        description: data.description?.trim() || undefined,
+        imageUrl: data.imageUrl || undefined,
+        imageAltText: data.imageAltText?.trim() || data.name.trim(),
+        categoryId: data.categoryId || undefined,
+        brandId: data.brandId || undefined,
+        unitId: data.unitId || undefined,
+        isPublished: data.isPublished ?? true,
+      }),
+    });
+    const payload = await parseJsonSafe(res);
+    if (!res.ok) throw new Error(payload?.error?.message || payload?.error || `HTTP ${res.status}`);
+    return toDTO(mapBackendProductToEntity(payload?.data || payload));
+  },
+
+  /** Update a product through the authenticated backend API. */
+  async updateRemote(id: string, data: {
+    name?: string;
+    produceKey?: string;
+    sku?: string;
+    description?: string;
+    imageUrl?: string;
+    imageAltText?: string;
+    categoryId?: string;
+    brandId?: string;
+    unitId?: string;
+    isPublished?: boolean;
+  }): Promise<ProductDTO> {
+    if (!isAuthorizedStaffOrAdmin()) throw new Error('غير مصرح: هذه العملية تتطلب صلاحيات إدارة المتجر');
+    const { fetchWithAuth } = await import('@/services/authClient');
+    const body: Record<string, unknown> = { ...data };
+    if (typeof body.produceKey === 'string') body.slug = body.produceKey.trim();
+    delete body.produceKey;
+    const res = await fetchWithAuth(`/products/${encodeURIComponent(id)}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    const payload = await parseJsonSafe(res);
+    if (!res.ok) throw new Error(payload?.error?.message || payload?.error || `HTTP ${res.status}`);
+    return toDTO(mapBackendProductToEntity(payload?.data || payload));
+  },
+
+  /**
    * Create a new product.
    * Accepts the raw entity data (without id/timestamps).
    * Returns the created DTO.

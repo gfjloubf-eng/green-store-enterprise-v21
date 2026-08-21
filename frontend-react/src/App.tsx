@@ -37,6 +37,7 @@ const AdminSupportPage = lazy(() => import('@/features/admin/pages/AdminSupportP
 const AdminOrdersPage = lazy(() => import('@/features/admin/pages/AdminOrdersPage'));
 const AdminDriversPage = lazy(() => import('@/features/admin/pages/AdminDriversPage'));
 const AdminSuppliersPage = lazy(() => import('@/features/admin/pages/AdminSuppliersPage'));
+const AdminCatalogPage = lazy(() => import('@/features/admin/pages/AdminCatalogPage'));
 const AdminEducationArticlesPage = lazy(() => import('@/features/education/pages/AdminEducationArticlesPage'));
 const ReportsDashboardPage = lazy(() => import('@/features/reports/pages/ReportsDashboardPage').then((m) => ({ default: m.ReportsDashboardPage })));
 const InventoryDashboard = lazy(() => import('@/features/inventory/pages/InventoryDashboard').then((m) => ({ default: m.InventoryDashboard })));
@@ -126,6 +127,9 @@ export default function App() {
             <Route path="admin/drivers" element={<AdminDriversPage />} />
             <Route path="admin/suppliers" element={<AdminSuppliersPage />} />
             <Route path="admin/reports" element={<ReportsDashboardPage />} />
+          </Route>
+          <Route element={<ProtectedRoute requiredPermission="products:read" />}>
+            <Route path="admin/catalog" element={<AdminCatalogPage />} />
           </Route>
           <Route element={<ProtectedRoute requiredPermission="users:read" />}>
             <Route path="admin/users" element={<AdminUsersPage />} />

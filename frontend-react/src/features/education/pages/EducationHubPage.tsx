@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { BookOpen, MessageCircle, RefreshCw, Search, Sparkles } from 'lucide-react';
+import { BookOpen, Lightbulb, MessageCircle, RefreshCw, Search, Sparkles } from 'lucide-react';
 import { listEducationArticles, type EducationArticle } from '@/services/educationClient';
+import { getDailyTip } from '../domain/dailyTips';
 
 export default function EducationHubPage() {
   const [articles, setArticles] = useState<EducationArticle[]>([]);
@@ -30,6 +31,7 @@ export default function EducationHubPage() {
     () => articles.filter((article) => `${article.title} ${article.summary ?? ''} ${article.family?.name ?? ''}`.toLowerCase().includes(query.toLowerCase())),
     [articles, query],
   );
+  const dailyTip = useMemo(() => getDailyTip(), []);
 
   return (
     <main dir="rtl" className="min-h-screen bg-emerald-50/70 bg-cover bg-fixed px-4 py-8" style={{ backgroundImage: "linear-gradient(rgba(240,253,244,.88),rgba(240,253,244,.94)), url('/education-fruit-background.webp')" }}>
@@ -45,6 +47,20 @@ export default function EducationHubPage() {
           </div>
           <label className="mt-8 flex min-h-12 items-center gap-3 rounded-2xl border border-emerald-100 bg-emerald-50 px-4 py-3"><Search className="h-5 w-5 text-emerald-700" /><span className="sr-only">البحث في مركز المعرفة</span><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="ابحث عن التفاح أو البرتقال..." className="w-full bg-transparent outline-none" /></label>
         </div>
+
+        <section className="mt-6 rounded-3xl bg-emerald-900 p-6 text-white shadow-xl" aria-labelledby="daily-tip-title">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+            <div className="flex gap-4">
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-amber-300 text-emerald-950"><Lightbulb className="h-6 w-6" /></div>
+              <div>
+                <p className="text-xs font-bold text-emerald-200">معلومة اليوم · للتثقيف العام</p>
+                <h2 id="daily-tip-title" className="mt-1 text-xl font-black">{dailyTip.title}</h2>
+                <p className="mt-2 max-w-3xl leading-8 text-emerald-50">{dailyTip.body}</p>
+              </div>
+            </div>
+            <a href={dailyTip.sourceUrl} target="_blank" rel="noreferrer" className="shrink-0 text-xs font-bold text-amber-200 underline underline-offset-4">المصدر: {dailyTip.sourceLabel}</a>
+          </div>
+        </section>
 
         {loading && <div className="mt-6 rounded-3xl bg-white/90 p-8 text-center text-slate-600" role="status">جارٍ تحميل الإرشادات الغذائية...</div>}
 

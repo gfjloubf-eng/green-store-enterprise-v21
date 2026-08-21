@@ -68,6 +68,17 @@ export function GeneralSection({ data, errors, onChange }: GeneralSectionProps) 
           className="md:col-span-2"
         />
 
+        {/* Stable produce identity */}
+        <FormField
+          labelKey="form.produceKey"
+          placeholderKey="form.produceKeyPlaceholder"
+          value={data.produceKey}
+          onChange={(v) => onChange('produceKey', v)}
+          hintKey="form.produceKeyHint"
+          required
+          className="md:col-span-2"
+        />
+
         {/* SKU */}
         <FormField
           labelKey="form.sku"

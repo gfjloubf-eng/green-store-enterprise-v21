@@ -20,9 +20,6 @@ import { BreadcrumbEngine } from '@/components/layout/BreadcrumbEngine';
 import { ProductTable } from '../components/ProductTable';
 import { ProductFilters as ProductFiltersBar } from '../components/ProductFilters';
 import { EmptyState } from '../components/EmptyState';
-import { CreateProductDialog } from '../components/dialogs/CreateProductDialog';
-import { EditProductDialog } from '../components/dialogs/EditProductDialog';
-import { DeleteConfirmDialog } from '../components/dialogs/DeleteConfirmDialog';
 import { useProductTableData } from '../hooks/useProductService';
 
 import { addItemToCart } from '@/services/cartClient';
@@ -34,9 +31,6 @@ export function ProductsListPage() {
   const { t } = useI18n();
   const { user, hasRole, hasPermission } = useAuth();
   const [filters, setFilters] = useState<ProductFilters>(DEFAULT_PRODUCT_FILTERS);
-  const [createOpen, setCreateOpen] = useState(false);
-  const [editOpen, setEditOpen] = useState(false);
-  const [deleteOpen, setDeleteOpen] = useState(false);
   const [cartSuccess, setCartSuccess] = useState<string | null>(null);
 
   const canManage =
@@ -93,13 +87,9 @@ export function ProductsListPage() {
     [navigate],
   );
 
-  const handleEdit = useCallback(() => {
-    setEditOpen(true);
-  }, []);
-
-  const handleDelete = useCallback(() => {
-    setDeleteOpen(true);
-  }, []);
+  const handleEdit = useCallback((product: ProductSummary) => {
+    navigate(`/products/${encodeURIComponent(product.id)}/edit`);
+  }, [navigate]);
 
   const hasProducts = products.length > 0;
 
@@ -127,7 +117,7 @@ export function ProductsListPage() {
             </button>
             <button
               type="button"
-              onClick={() => setCreateOpen(true)}
+              onClick={() => navigate('/products/create')}
               className="gsd-btn gsd-btn--primary gsd-btn--md"
             >
               <Plus className="h-4 w-4" aria-hidden="true" />
@@ -167,7 +157,7 @@ export function ProductsListPage() {
           title={t('messages.noProducts.title')}
           description={t('messages.noProducts.description')}
           actionLabel={canManage ? t('messages.noProducts.action') : undefined}
-          onAction={canManage ? () => setCreateOpen(true) : undefined}
+          onAction={canManage ? () => navigate('/products/create') : undefined}
         />
       ) : products.length === 0 ? (
         <EmptyState
@@ -185,15 +175,10 @@ export function ProductsListPage() {
           onSort={handleSort}
           onView={handleView}
           onEdit={canManage ? handleEdit : undefined}
-          onDelete={canManage ? handleDelete : undefined}
           onAddToCart={handleAddToCart}
         />
       )}
 
-      {/* ── Dialogs ──────────────────────────────────── */}
-      <CreateProductDialog open={createOpen} onClose={() => setCreateOpen(false)} />
-      <EditProductDialog open={editOpen} onClose={() => setEditOpen(false)} />
-      <DeleteConfirmDialog open={deleteOpen} onClose={() => setDeleteOpen(false)} />
     </div>
   );
 }

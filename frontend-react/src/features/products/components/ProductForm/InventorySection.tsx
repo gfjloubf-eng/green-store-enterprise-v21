@@ -29,6 +29,9 @@ export function InventorySection({ data, errors, onChange, onToggle }: Inventory
         <Package className="h-5 w-5 [color:var(--gs-primary)]" aria-hidden="true" />
         {t('form.inventory')}
       </legend>
+      <p className="mb-4 rounded-xl border border-sky-500/20 bg-sky-500/10 px-3 py-2 text-xs leading-5 text-sky-800 [color:var(--gs-foreground)]">
+        {t('form.inventoryManagedSeparately')}
+      </p>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* Initial Stock */}

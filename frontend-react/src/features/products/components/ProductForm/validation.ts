@@ -81,6 +81,15 @@ export function validateForm(data: ProductFormData): FormErrors {
   });
   if (nameErr) errors.productName = nameErr;
 
+  const produceKeyErr = validateField(data.produceKey, {
+    fieldName: 'form.produceKey',
+    required: true,
+    minLength: 2,
+    pattern: /^[a-z0-9]+(?:-[a-z0-9]+)*$/,
+    patternMessage: 'form.validation.alphanumeric',
+  });
+  if (produceKeyErr) errors.produceKey = produceKeyErr;
+
   const skuErr = validateField(data.sku, {
     fieldName: 'form.sku',
     required: true,

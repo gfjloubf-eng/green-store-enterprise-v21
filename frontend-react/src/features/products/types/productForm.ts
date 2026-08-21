@@ -12,6 +12,7 @@
 export interface ProductFormData {
   /* ── General Information ──────────────────────────────── */
   productName: string;
+  produceKey: string;
   sku: string;
   barcode: string;
   categoryId: string;
@@ -33,6 +34,7 @@ export interface ProductFormData {
 
   /* ── Media ────────────────────────────────────────────── */
   imageUrl: string;
+  imageAltText: string;
 
   /* ── Status ───────────────────────────────────────────── */
   status: 'active' | 'inactive';
@@ -43,6 +45,7 @@ export interface ProductFormData {
  */
 export const DEFAULT_FORM_DATA: ProductFormData = {
   productName: '',
+  produceKey: '',
   sku: '',
   barcode: '',
   categoryId: '',
@@ -58,6 +61,7 @@ export const DEFAULT_FORM_DATA: ProductFormData = {
   maxStock: '',
   trackInventory: true,
   imageUrl: '',
+  imageAltText: '',
   status: 'active',
 };
 

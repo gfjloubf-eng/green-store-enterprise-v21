@@ -4,8 +4,8 @@
    Milestone 4.2 — Main product form composition
    ============================================================
    Composes all section components into a single form.
-   Manages form state, validation, and interaction.
-   No CRUD, no API, no backend — UI only.
+   Manages form state, validation, and the remote catalog save flow.
+   Pricing and inventory operations remain separate backend workflows.
    ============================================================ */
 
 import { useState, useCallback, useMemo, useEffect } from 'react';
@@ -26,6 +26,9 @@ import {
 /* ─── Props ────────────────────────────────────────────────── */
 
 import { ProductService } from '../../services/productService';
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const validReference = (value: string) => UUID_RE.test(value) ? value : undefined;
 
 interface ProductFormProps {
   /** Optional initial data for edit mode */
@@ -52,6 +55,8 @@ export function ProductForm({ initialData, productId, isEdit = false, onSuccess,
 
   const [errors, setErrors] = useState<FormErrors>({});
   const [touched, setTouched] = useState<Set<keyof ProductFormData>>(new Set());
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveError, setSaveError] = useState('');
 
   /* ── Field change handlers ──────────────────────────── */
 
@@ -94,62 +99,48 @@ export function ProductForm({ initialData, productId, isEdit = false, onSuccess,
 
   /* ── Actions ────────────────────────────────────────── */
 
-  const handleSave = useCallback(() => {
+  const handleSave = useCallback(async () => {
     const allKeys = Object.keys(DEFAULT_FORM_DATA) as (keyof ProductFormData)[];
     setTouched(new Set(allKeys));
 
     const validationErrors = validateForm(formData);
     setErrors(validationErrors);
+    setSaveError('');
 
-    if (isFormValid(validationErrors)) {
-      try {
-        if (isEdit && productId) {
-          ProductService.update(productId, {
-            name: formData.productName,
-            sku: formData.sku,
-            barcode: formData.barcode,
-            description: formData.description,
-            purchasePrice: parseFloat(formData.purchasePrice) || 0,
-            sellingPrice: parseFloat(formData.sellingPrice) || 0,
-            tax: parseFloat(formData.tax) || 0,
-            discount: parseFloat(formData.discount) || 0,
-            stock: parseInt(formData.initialStock, 10) || 0,
-            minStock: parseInt(formData.minStock, 10) || 0,
-            maxStock: parseInt(formData.maxStock, 10) || 0,
-            trackInventory: formData.trackInventory,
-            image: formData.imageUrl,
-            status: formData.status,
-          });
-        } else {
-          ProductService.create({
-            name: formData.productName,
-            sku: formData.sku || `SKU-${Math.floor(100000 + Math.random() * 900000)}`,
-            barcode: formData.barcode,
-            category: { id: formData.categoryId || 'c1', name: 'General' },
-            brand: { id: formData.brandId || 'b1', name: 'Generic' },
-            unit: { id: formData.unitId || 'u1', name: 'Piece', abbreviation: 'pc' },
-            description: formData.description,
-            purchasePrice: parseFloat(formData.purchasePrice) || 0,
-            sellingPrice: parseFloat(formData.sellingPrice) || 0,
-            tax: parseFloat(formData.tax) || 0,
-            discount: parseFloat(formData.discount) || 0,
-            stock: parseInt(formData.initialStock, 10) || 0,
-            minStock: parseInt(formData.minStock, 10) || 0,
-            maxStock: parseInt(formData.maxStock, 10) || 0,
-            trackInventory: formData.trackInventory,
-            image: formData.imageUrl,
-            status: formData.status,
-          });
-        }
+    if (!isFormValid(validationErrors)) return;
+    if (isEdit && !productId) {
+      setSaveError('تعذر التعديل: معرّف المنتج غير موجود.');
+      return;
+    }
 
-        if (onSuccess) {
-          onSuccess();
-        } else {
-          navigate('/products');
-        }
-      } catch (err) {
-        console.error('Error saving product:', err);
+    setIsSaving(true);
+    try {
+      const payload = {
+        name: formData.productName,
+        produceKey: formData.produceKey,
+        sku: formData.sku || `SKU-${Math.floor(100000 + Math.random() * 900000)}`,
+        description: formData.description,
+        imageUrl: formData.imageUrl || undefined,
+        imageAltText: formData.imageAltText || formData.productName,
+        categoryId: validReference(formData.categoryId),
+        brandId: validReference(formData.brandId),
+        unitId: validReference(formData.unitId),
+        isPublished: formData.status === 'active',
+      };
+
+      if (isEdit && productId) {
+        await ProductService.updateRemote(productId, payload);
+      } else {
+        await ProductService.createRemote(payload);
       }
+
+      onSuccess?.();
+      if (!onSuccess) navigate('/products');
+    } catch (err) {
+      console.error('Error saving product:', err);
+      setSaveError(err instanceof Error ? err.message : 'تعذر حفظ المنتج.');
+    } finally {
+      setIsSaving(false);
     }
   }, [formData, isEdit, productId, onSuccess, navigate]);
 
@@ -206,10 +197,14 @@ export function ProductForm({ initialData, productId, isEdit = false, onSuccess,
       />
 
       {/* Action Buttons */}
+      {saveError && (
+        <p className="text-sm [color:var(--gs-danger)]" role="alert">{saveError}</p>
+      )}
       <FormActions
         onSave={handleSave}
         onCancel={handleCancel}
         onReset={handleReset}
+        isSaving={isSaving}
         isValid={valid}
       />
     </div>

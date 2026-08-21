@@ -3772,21 +3772,59 @@ var ProductRepository = class extends base_repository_default {
     super("product");
   }
   async findById(id) {
-    return await this.model.findFirst({ where: { id, deletedAt: null } }) ?? null;
+    return await this.model.findFirst({
+      where: { id, deletedAt: null },
+      include: { images: { orderBy: { sortOrder: "asc" } } }
+    }) ?? null;
   }
   async findBySlug(slug, excludeId) {
     const where = excludeId ? { slug, id: { not: excludeId }, deletedAt: null } : { slug, deletedAt: null };
     return await this.model.findFirst({ where }) ?? null;
   }
   async create(data) {
-    return this.model.create({ data });
+    const { imageUrl, imageAltText, ...productData } = data;
+    const created2 = await this.model.create({
+      data: productData,
+      include: { images: { orderBy: { sortOrder: "asc" } } }
+    });
+    if (typeof imageUrl === "string" && imageUrl.trim()) {
+      await this.client.productImage.create({
+        data: {
+          productId: created2.id,
+          url: imageUrl.trim(),
+          altText: typeof imageAltText === "string" && imageAltText.trim() ? imageAltText.trim() : `${created2.name} - \u0642\u0637\u0648\u0641 \u0627\u0644\u0637\u0628\u064A\u0639\u0629`,
+          sortOrder: 0
+        }
+      });
+    }
+    return this.findById(created2.id);
   }
   async update(id, data) {
-    return this.model.update({ where: { id }, data });
+    const hasImageUpdate = Object.prototype.hasOwnProperty.call(data, "imageUrl");
+    const { imageUrl, imageAltText, ...productData } = data;
+    const updated = await this.model.update({
+      where: { id },
+      data: productData
+    });
+    if (hasImageUpdate) {
+      await this.client.productImage.deleteMany({ where: { productId: id } });
+      if (typeof imageUrl === "string" && imageUrl.trim()) {
+        await this.client.productImage.create({
+          data: {
+            productId: id,
+            url: imageUrl.trim(),
+            altText: typeof imageAltText === "string" && imageAltText.trim() ? imageAltText.trim() : `${updated.name} - \u0642\u0637\u0648\u0641 \u0627\u0644\u0637\u0628\u064A\u0639\u0629`,
+            sortOrder: 0
+          }
+        });
+      }
+    }
+    return this.findById(id);
   }
   async findMany(filter) {
     return this.model.findMany({
-      where: { AND: [{ deletedAt: null }, filter ?? {}] }
+      where: { AND: [{ deletedAt: null }, filter ?? {}] },
+      include: { images: { orderBy: { sortOrder: "asc" } } }
     });
   }
   async delete(id) {
@@ -5406,7 +5444,7 @@ var ProductService = class extends base_service_default {
     if (!await this.productRepo.findById(id)) throw new NotFoundException("product_not_found");
   }
   validateOptionalFields(payload, update = false) {
-    const stringFields = ["sku", "name", "slug", "description", "brandId", "unitId", "categoryId", "subcategoryId"];
+    const stringFields = ["sku", "name", "slug", "description", "brandId", "unitId", "categoryId", "subcategoryId", "produceKey", "familyId", "imageUrl", "imageAltText"];
     const maxLengths = {
       sku: 100,
       name: 255,
@@ -5415,7 +5453,11 @@ var ProductService = class extends base_service_default {
       brandId: 36,
       unitId: 36,
       categoryId: 36,
-      subcategoryId: 36
+      subcategoryId: 36,
+      produceKey: 120,
+      familyId: 36,
+      imageUrl: 45e4,
+      imageAltText: 255
     };
     for (const field of stringFields) {
       if (payload[field] !== void 0 && payload[field] !== null && typeof payload[field] !== "string") {
@@ -5437,12 +5479,18 @@ var ProductService = class extends base_service_default {
     if (payload.isPublished !== void 0 && typeof payload.isPublished !== "boolean") {
       throw new ValidationException("isPublished_invalid");
     }
+    if (typeof payload.imageUrl === "string" && payload.imageUrl.trim()) {
+      const imageUrl = payload.imageUrl.trim();
+      const isAllowedImage = /^(https?:\/\/|data:image\/(?:jpeg|jpg|png|webp);base64,)/i.test(imageUrl);
+      if (!isAllowedImage) throw new ValidationException("imageUrl_invalid");
+      if (imageUrl.length > maxLengths.imageUrl) throw new ValidationException("imageUrl_too_large");
+    }
     if (update && !stringFields.some((field) => payload[field] !== void 0) && payload.isPublished === void 0) {
       throw new ValidationException("data_required");
     }
   }
   toPersistencePayload(payload, update = false) {
-    const fields = ["sku", "name", "slug", "description", "brandId", "unitId", "categoryId", "subcategoryId", "isPublished"];
+    const fields = ["sku", "produceKey", "familyId", "name", "slug", "description", "brandId", "unitId", "categoryId", "subcategoryId", "imageUrl", "imageAltText", "isPublished"];
     const result = {};
     for (const field of fields) {
       if (payload[field] !== void 0) {
@@ -7000,9 +7048,13 @@ var ProductsController = class {
     };
   }
   mapToDto(entity) {
+    const enriched = entity;
+    const images = Array.isArray(enriched.images) ? enriched.images.map((image) => ({ id: image.id, url: image.url, altText: image.altText ?? null, sortOrder: image.sortOrder })) : [];
     return {
       id: entity.id,
       sku: entity.sku ?? null,
+      produceKey: enriched.produceKey ?? null,
+      familyId: enriched.familyId ?? null,
       name: entity.name,
       slug: entity.slug,
       description: entity.description ?? null,
@@ -7010,6 +7062,9 @@ var ProductsController = class {
       unitId: entity.unitId ?? null,
       categoryId: entity.categoryId ?? null,
       subcategoryId: entity.subcategoryId ?? null,
+      imageUrl: images[0]?.url ?? null,
+      imageAltText: images[0]?.altText ?? null,
+      images,
       isPublished: Boolean(entity.isPublished),
       createdAt: new Date(entity.createdAt).toISOString(),
       updatedAt: new Date(entity.updatedAt).toISOString(),

@@ -36,6 +36,8 @@ export interface ProductSummary {
   barcode: string;
   /** Stock Keeping Unit */
   sku: string;
+  /** Canonical produce identity used to link image and education content */
+  produceKey?: string;
   /** Product display name */
   name: string;
   /** Optional Arabic name */

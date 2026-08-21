@@ -225,6 +225,13 @@ export const navConfig: NavGroup[] = [
         requiredRoles: ['SUPER_ADMIN', 'ADMIN', 'MANAGER', 'EMPLOYEE'],
       },
       {
+        id: 'admin-catalog',
+        label: 'كتالوج المنتجات والمخزون',
+        path: '/admin/catalog',
+        icon: Package,
+        requiredPermission: 'products:read',
+      },
+      {
         id: 'admin-orders',
         label: 'إدارة الطلبات',
         path: '/admin/orders',

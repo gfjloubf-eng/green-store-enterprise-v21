@@ -28,6 +28,9 @@ export function PricingSection({ data, errors, onChange }: PricingSectionProps) 
         <DollarSign className="h-5 w-5 [color:var(--gs-primary)]" aria-hidden="true" />
         {t('form.pricing')}
       </legend>
+      <p className="mb-4 rounded-xl border border-amber-500/20 bg-amber-500/10 px-3 py-2 text-xs leading-5 text-amber-800 [color:var(--gs-foreground)]">
+        {t('form.pricingManagedSeparately')}
+      </p>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* Purchase Price */}

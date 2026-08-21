@@ -1,59 +1,56 @@
-/* ============================================================
-   Product Images Registry
-   Exports all static product image assets for Green Store
-   ============================================================ */
+/*
+ * Product Images Registry
+ *
+ * Only verified local image assets belong here. The key name is the canonical
+ * produce key used by the product catalog and education layer.
+ */
 
-import bellPeppersImg from './Bell_Peppers__All_About_Them.jpg';
-import productPhoto1 from './pinterest_1761835345414.jpg';
-import productPhoto2 from './pinterest_1761835345414(1).jpg';
-import productPhoto3 from './pinterest_1761835353985.jpg';
-import bananasImg from './organic-bananas.jpg';
+import bellPeppersReal from './bell-peppers-real.jpg';
+import carrotsReal from './carrots-real.jpg';
+import mintReal from './mint-real.jpg';
+import strawberryReal from './strawberry-real.jpg';
+import bananasReal from './organic-bananas.jpg';
 import placeholderImg from './placeholder.svg';
 
-/* ── Named exports (per product) ──────────────────────────── */
+/** Verified local images, keyed by canonical produce identity. */
+export const verifiedProductImages = {
+  'bell-peppers': bellPeppersReal,
+  carrot: carrotsReal,
+  mint: mintReal,
+  strawberry: strawberryReal,
+  banana: bananasReal,
+} as const;
 
-/** Organic Bell Peppers */
-export const bellPeppers = bellPeppersImg;
-/** Fresh Strawberries */
-export const strawberry = productPhoto1;
-/** Fresh Mint Leaves */
-export const mint = productPhoto2;
-/** Organic Carrots */
-export const carrots = productPhoto3;
+/** Named exports retained for compatibility with existing screens. */
+export const bellPeppers = verifiedProductImages['bell-peppers'];
+export const carrots = verifiedProductImages.carrot;
+export const mint = verifiedProductImages.mint;
+export const strawberry = verifiedProductImages.strawberry;
+export const bananas = verifiedProductImages.banana;
 
-/* ── Products without a dedicated photo use the placeholder ─ */
-
-/** Organic Whole Milk */
+/** Non-produce legacy products remain explicitly unillustrated. */
 export const wholeMilk = placeholderImg;
-/** Green Tea Premium */
 export const greenTea = placeholderImg;
-/** Organic Apple Juice */
 export const appleJuice = placeholderImg;
-/** Fresh Basil */
 export const freshBasil = placeholderImg;
-/** Greek Yogurt */
 export const greekYogurt = placeholderImg;
-/** Organic Bananas */
-export const bananas = bananasImg;
-
-/** Generic placeholder fallback */
 export const placeholderImage = placeholderImg;
 
-/* ── Registry map ─────────────────────────────────────────── */
+/** Resolve only by canonical key; unknown keys never borrow another product's image. */
+export function getVerifiedProductImage(produceKey?: string | null): string {
+  if (!produceKey) return placeholderImage;
+  return verifiedProductImages[produceKey as keyof typeof verifiedProductImages] || placeholderImage;
+}
 
 export const productImages = {
-  bellPeppers: bellPeppersImg,
-  strawberry: productPhoto1,
-  mint: productPhoto2,
-  carrots: productPhoto3,
-  wholeMilk: placeholderImg,
-  greenTea: placeholderImg,
-  appleJuice: placeholderImg,
-  freshBasil: placeholderImg,
-  greekYogurt: placeholderImg,
-  bananas: bananasImg,
-  placeholder: placeholderImg,
+  ...verifiedProductImages,
+  wholeMilk,
+  greenTea,
+  appleJuice,
+  freshBasil,
+  greekYogurt,
+  bananas,
+  placeholder: placeholderImage,
 } as const;
 
 export default productImages;
-

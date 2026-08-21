@@ -10,6 +10,7 @@ import {
   Loader2,
   RefreshCw,
   Search,
+  Package,
   ShieldCheck,
   ShoppingBag,
   Truck,
@@ -247,6 +248,7 @@ export default function AdminControlCenterPage() {
         <QuickAction icon={Search} title="البحث عن عميل" description="افتح ملفات العملاء وسجل الطلبات" onClick={() => navigate('/admin/customers')} />
         <QuickAction icon={Truck} title="متابعة التوصيل" description="راجع الطلبات التي مع الموصل" onClick={() => navigate('/admin/drivers')} />
         <QuickAction icon={Boxes} title="الموردون والمخزون" description="تابع التوريد والكميات" onClick={() => navigate('/admin/suppliers')} />
+        <QuickAction icon={Package} title="كتالوج المنتجات" description="ارفع منتجاً حقيقياً وراجع مخزونه" onClick={() => navigate('/admin/catalog')} />
         <QuickAction icon={UserRoundCheck} title="فريق العمل" description="إدارة المستخدمين والأدوار" onClick={() => navigate('/admin/users')} />
       </section>
 

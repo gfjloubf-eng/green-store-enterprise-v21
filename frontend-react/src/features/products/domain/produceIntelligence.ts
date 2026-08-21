@@ -581,18 +581,22 @@ export const PRODUCE_INTELLIGENCE_MAP: Record<string, ProduceIntelligence> = {
  * Returns default fallback intelligence if no specific item is matched.
  */
 export function getProduceIntelligence(
-  productOrId: { id?: string; name?: string; category?: { name: string } } | string,
+  productOrId: { id?: string; produceKey?: string; name?: string; category?: { name: string } } | string,
 ): ProduceIntelligence {
   const query = typeof productOrId === 'string' ? productOrId.toLowerCase() : '';
+  const produceKey = typeof productOrId === 'object' ? (productOrId.produceKey || '').toLowerCase() : '';
   const name = typeof productOrId === 'object' ? (productOrId.name || '').toLowerCase() : '';
   const categoryName = typeof productOrId === 'object' ? productOrId.category?.name || 'Vegetables' : 'Vegetables';
 
-  // Check direct matches
+  // Canonical identity always wins over display-name heuristics.
+  if (produceKey && PRODUCE_INTELLIGENCE_MAP[produceKey]) {
+    return PRODUCE_INTELLIGENCE_MAP[produceKey];
+  }
   if (query && PRODUCE_INTELLIGENCE_MAP[query]) {
     return PRODUCE_INTELLIGENCE_MAP[query];
   }
 
-  // Check keyword matches in product name
+  // Legacy keyword matches are retained only for records without a canonical key.
   if (name.includes('تفاح') || name.includes('apple')) return PRODUCE_INTELLIGENCE_MAP['apple'];
   if (name.includes('موز') || name.includes('banana')) return PRODUCE_INTELLIGENCE_MAP['banana'];
   if (name.includes('برتقال') || name.includes('orange')) return PRODUCE_INTELLIGENCE_MAP['orange'];
