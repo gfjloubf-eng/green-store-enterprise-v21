@@ -128,7 +128,7 @@ export default function App() {
             <Route path="admin/suppliers" element={<AdminSuppliersPage />} />
             <Route path="admin/reports" element={<ReportsDashboardPage />} />
           </Route>
-          <Route element={<ProtectedRoute requiredPermission="products:read" />}>
+          <Route element={<ProtectedRoute requiredPermissions={["products:read", "inventory:read"]} />}>
             <Route path="admin/catalog" element={<AdminCatalogPage />} />
           </Route>
           <Route element={<ProtectedRoute requiredPermission="users:read" />}>
@@ -159,11 +159,13 @@ export default function App() {
             <Route path="inventory" element={<InventoryDashboard />} />
             <Route path="inventory/overview" element={<StockOverview />} />
             <Route path="inventory/movements" element={<StockMovements />} />
-            <Route path="inventory/adjustment" element={<StockAdjustment />} />
             <Route path="inventory/transfer" element={<StockTransfer />} />
             <Route path="inventory/low-stock" element={<LowStock />} />
             <Route path="inventory/out-of-stock" element={<OutOfStock />} />
             <Route path="inventory/reports" element={<InventoryReports />} />
+          </Route>
+          <Route element={<ProtectedRoute requiredPermission="inventory:update" />}>
+            <Route path="inventory/adjustment" element={<StockAdjustment />} />
           </Route>
 
           {/* Supplier Management Routes */}

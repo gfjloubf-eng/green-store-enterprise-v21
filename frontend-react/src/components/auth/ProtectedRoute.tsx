@@ -5,12 +5,13 @@ import { Forbidden403Page } from './Forbidden403Page';
 
 interface ProtectedRouteProps {
   requiredPermission?: string;
+  requiredPermissions?: string[];
   requiredRole?: string;
   requiredRoles?: string[];
   children?: React.ReactNode;
 }
 
-export function ProtectedRoute({ requiredPermission, requiredRole, requiredRoles, children }: ProtectedRouteProps) {
+export function ProtectedRoute({ requiredPermission, requiredPermissions, requiredRole, requiredRoles, children }: ProtectedRouteProps) {
   const { isAuthenticated, isLoading, hasPermission, hasRole } = useAuth();
   const { t } = useI18n();
 
@@ -29,7 +30,12 @@ export function ProtectedRoute({ requiredPermission, requiredRole, requiredRoles
     return <Navigate to="/login" replace />;
   }
 
-  if (requiredPermission && !hasPermission(requiredPermission)) {
+  const permissionsToCheck = [
+    ...(requiredPermission ? [requiredPermission] : []),
+    ...(requiredPermissions ?? []),
+  ];
+
+  if (permissionsToCheck.some((permission) => !hasPermission(permission))) {
     return <Forbidden403Page />;
   }
 

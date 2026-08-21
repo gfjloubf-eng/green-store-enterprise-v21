@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '@/hooks/useAuth';
 import {
   AlertTriangle,
   ArrowLeft,
@@ -29,6 +30,10 @@ function stockLabel(item: InventoryItem): string {
 
 export default function AdminCatalogPage() {
   const navigate = useNavigate();
+  const { hasPermission } = useAuth();
+  const canCreateProducts = hasPermission('products:create');
+  const canUpdateInventory = hasPermission('inventory:update');
+  const canReadEducationAdmin = hasPermission('products:update');
   const [items, setItems] = useState<InventoryItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -111,7 +116,7 @@ export default function AdminCatalogPage() {
             <div className="overflow-x-auto">
               <table className="w-full min-w-[620px] text-right text-sm">
                 <thead className="border-b border-slate-900/10 text-xs text-slate-500 dark:border-white/10"><tr><th className="px-3 py-3 font-bold">المنتج</th><th className="px-3 py-3 font-bold">المستودع</th><th className="px-3 py-3 font-bold">المتاح</th><th className="px-3 py-3 font-bold">الحالة</th><th className="px-3 py-3" /></tr></thead>
-                <tbody>{items.map((item) => <tr key={item.id} className="border-b border-slate-900/5 last:border-0 dark:border-white/5"><td className="px-3 py-3 font-bold text-slate-800 dark:text-white">{item.product?.name || 'منتج غير مسمى'}<span className="mt-1 block text-xs font-normal text-slate-500">{item.product?.sku || 'بدون SKU'}</span></td><td className="px-3 py-3 text-slate-600 dark:text-slate-300">{item.warehouse?.name || 'المستودع الرئيسي'}</td><td className="px-3 py-3 font-black text-slate-800 dark:text-white">{item.availableQuantity}</td><td className="px-3 py-3"><span className={`inline-flex rounded-full px-2 py-1 text-xs font-bold ${stockTone(item)}`}>{stockLabel(item)}</span></td><td className="px-3 py-3 text-left"><button type="button" onClick={() => navigate(`/inventory/adjustment?productId=${encodeURIComponent(item.productId)}`)} className="inline-flex items-center gap-1 rounded-xl px-3 py-2 text-xs font-bold text-emerald-700 hover:bg-emerald-500/10">تعديل <ArrowLeft className="h-3 w-3" /></button></td></tr>)}</tbody>
+                <tbody>{items.map((item) => <tr key={item.id} className="border-b border-slate-900/5 last:border-0 dark:border-white/5"><td className="px-3 py-3 font-bold text-slate-800 dark:text-white">{item.product?.name || 'منتج غير مسمى'}<span className="mt-1 block text-xs font-normal text-slate-500">{item.product?.sku || 'بدون SKU'}</span></td><td className="px-3 py-3 text-slate-600 dark:text-slate-300">{item.warehouse?.name || 'المستودع الرئيسي'}</td><td className="px-3 py-3 font-black text-slate-800 dark:text-white">{item.availableQuantity}</td><td className="px-3 py-3"><span className={`inline-flex rounded-full px-2 py-1 text-xs font-bold ${stockTone(item)}`}>{stockLabel(item)}</span></td><td className="px-3 py-3 text-left">{canUpdateInventory ? <button type="button" onClick={() => navigate(`/inventory/adjustment?productId=${encodeURIComponent(item.productId)}`)} className="inline-flex items-center gap-1 rounded-xl px-3 py-2 text-xs font-bold text-emerald-700 hover:bg-emerald-500/10">تعديل <ArrowLeft className="h-3 w-3" /></button> : <span className="text-xs text-slate-400">قراءة فقط</span>}</td></tr>)}</tbody>
               </table>
             </div>
           )}
@@ -121,11 +126,11 @@ export default function AdminCatalogPage() {
           <div className="rounded-3xl bg-emerald-950 p-5 text-white">
             <div className="mb-3 flex items-center gap-2"><Upload className="h-5 w-5 text-emerald-300" /><h2 className="font-black">إضافة منتج حقيقي</h2></div>
             <p className="mb-5 text-sm leading-6 text-emerald-100">أدخل الاسم العربي الصحيح، المفتاح الثابت، السعر، الوحدة، والصورة الخاصة بالصنف. الصورة تضغط داخل المتصفح قبل الإرسال.</p>
-            <button type="button" onClick={() => navigate('/products/create')} className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-2xl bg-white px-4 py-2 text-sm font-black text-emerald-950 hover:bg-emerald-50"><ImagePlus className="h-4 w-4" /> رفع منتج وصورته</button>
+            {canCreateProducts ? <button type="button" onClick={() => navigate('/products/create')} className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-2xl bg-white px-4 py-2 text-sm font-black text-emerald-950 hover:bg-emerald-50"><ImagePlus className="h-4 w-4" /> رفع منتج وصورته</button> : <p className="rounded-2xl bg-white/10 px-3 py-3 text-xs font-bold text-emerald-100">تحتاج صلاحية إنشاء المنتجات لرفع صنف جديد.</p>}
           </div>
           <div className="rounded-3xl border border-slate-900/10 bg-white p-5 dark:border-white/10 dark:bg-slate-900">
             <h2 className="mb-3 flex items-center gap-2 font-black text-slate-900 dark:text-white"><SlidersHorizontal className="h-5 w-5 text-emerald-700" /> مسارات الإدارة</h2>
-            <div className="space-y-2"><button type="button" onClick={() => navigate('/inventory')} className="flex min-h-11 w-full items-center justify-between rounded-xl bg-slate-50 px-3 text-sm font-bold text-slate-700 hover:bg-emerald-500/10 dark:bg-slate-800 dark:text-slate-200">لوحة المخزون <ArrowLeft className="h-4 w-4" /></button><button type="button" onClick={() => navigate('/admin/education/articles')} className="flex min-h-11 w-full items-center justify-between rounded-xl bg-slate-50 px-3 text-sm font-bold text-slate-700 hover:bg-emerald-500/10 dark:bg-slate-800 dark:text-slate-200">مقالات الإرشادات <BookOpenCheck className="h-4 w-4" /></button></div>
+            <div className="space-y-2"><button type="button" onClick={() => navigate('/inventory')} className="flex min-h-11 w-full items-center justify-between rounded-xl bg-slate-50 px-3 text-sm font-bold text-slate-700 hover:bg-emerald-500/10 dark:bg-slate-800 dark:text-slate-200">لوحة المخزون <ArrowLeft className="h-4 w-4" /></button>{canReadEducationAdmin && <button type="button" onClick={() => navigate('/admin/education/articles')} className="flex min-h-11 w-full items-center justify-between rounded-xl bg-slate-50 px-3 text-sm font-bold text-slate-700 hover:bg-emerald-500/10 dark:bg-slate-800 dark:text-slate-200">مقالات الإرشادات <BookOpenCheck className="h-4 w-4" /></button>}</div>
           </div>
         </aside>
       </section>
