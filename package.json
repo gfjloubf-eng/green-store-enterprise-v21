@@ -1,7 +1,7 @@
 {
   "type": "module",
   "scripts": {
-    "build": "cd frontend-react && npm run build && cd .. && npx prisma generate --schema backend/prisma/schema.prisma",
+    "build": "cd frontend-react && npm run build && cd .. && npx prisma generate --schema backend/prisma/schema.prisma && npx prisma migrate deploy --schema backend/prisma/schema.prisma",
     "prisma:validate": "npx prisma validate --schema backend/prisma/schema.prisma --config backend/prisma/prisma.config.ts",
     "prisma:migrate:status": "npx prisma migrate status --schema backend/prisma/schema.prisma --config backend/prisma/prisma.config.ts"
   },
