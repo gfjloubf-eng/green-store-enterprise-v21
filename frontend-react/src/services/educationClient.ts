@@ -90,6 +90,16 @@ export async function updateAdminEducationArticle(id: string, input: AdminEducat
   return parseAdminResponse(response);
 }
 
+export async function reviewAdminEducationWithAI(input: AdminEducationArticleInput): Promise<Record<string, unknown>> {
+  const response = await fetchWithAuth('/admin/education/review', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(input),
+  });
+  const data = await parseAdminResponse(response);
+  return data && typeof data === 'object' ? data as Record<string, unknown> : {};
+}
+
 export async function deleteAdminEducationArticle(id: string): Promise<void> {
   const response = await fetchWithAuth(`/admin/education/articles/${encodeURIComponent(id)}`, {
     method: 'DELETE',

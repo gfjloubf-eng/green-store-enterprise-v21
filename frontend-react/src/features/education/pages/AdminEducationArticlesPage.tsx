@@ -1,10 +1,12 @@
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react';
-import { BookOpen, Edit3, Plus, Save, Trash2, X } from 'lucide-react';
+import { BookOpen, CheckCircle2, Edit3, Plus, Save, ShieldCheck, Trash2, X } from 'lucide-react';
 import { BreadcrumbEngine } from '@/components/layout/BreadcrumbEngine';
+import { reviewGuidance, type GuidanceReviewResult } from '../domain/medicalGuidanceReviewAgent';
 import {
   createAdminEducationArticle,
   deleteAdminEducationArticle,
   listAdminEducationArticles,
+  reviewAdminEducationWithAI,
   updateAdminEducationArticle,
   type AdminEducationArticleInput,
   type EducationArticle,
@@ -85,6 +87,9 @@ export default function AdminEducationArticlesPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [reviewResult, setReviewResult] = useState<GuidanceReviewResult | null>(null);
+  const [aiReviewResult, setAiReviewResult] = useState<Record<string, unknown> | null>(null);
+  const [aiReviewing, setAiReviewing] = useState(false);
 
   const loadArticles = useCallback(async () => {
     setLoading(true);
@@ -119,12 +124,16 @@ export default function AdminEducationArticlesPage() {
     setEditingId(null);
     setForm(emptyForm);
     setError(null);
+    setReviewResult(null);
+    setAiReviewResult(null);
   };
 
   const startEdit = (article: EducationArticle) => {
     setEditingId(article.id);
     setForm(toForm(article));
     setError(null);
+    setReviewResult(null);
+    setAiReviewResult(null);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
@@ -132,6 +141,30 @@ export default function AdminEducationArticlesPage() {
     setEditingId(null);
     setForm(emptyForm);
     setError(null);
+    setReviewResult(null);
+    setAiReviewResult(null);
+  };
+
+  const handleReview = () => {
+    setReviewResult(reviewGuidance({
+      title: form.title,
+      body: form.body,
+      sourceUrls: form.sourceUrlsText.split(/\r?\n/).map((value) => value.trim()).filter(Boolean),
+      produceKey: form.productIdsText.trim() || null,
+      familyName: form.familyId.trim() || null,
+    }));
+  };
+
+  const handleSmartReview = async () => {
+    setAiReviewing(true);
+    setError(null);
+    try {
+      setAiReviewResult(await reviewAdminEducationWithAI(toInput(form)));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'تعذر تشغيل المراجعة الذكية');
+    } finally {
+      setAiReviewing(false);
+    }
   };
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
@@ -211,10 +244,35 @@ export default function AdminEducationArticlesPage() {
           <label className="text-sm font-medium md:col-span-2">مصادر المقال (رابط في كل سطر)<textarea value={form.sourceUrlsText} onChange={(e) => updateField('sourceUrlsText', e.target.value)} className="gsd-input mt-1 min-h-24 w-full" dir="ltr" /></label>
           <label className="text-sm font-medium md:col-span-2">معرّفات المنتجات المرتبطة (معرّف في كل سطر)<textarea value={form.productIdsText} onChange={(e) => updateField('productIdsText', e.target.value)} className="gsd-input mt-1 min-h-20 w-full" dir="ltr" /></label>
         </div>
-        <button type="submit" disabled={saving} className="gsd-button-primary mt-5 inline-flex items-center gap-2 disabled:opacity-60">
-          {editingId ? <Save className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
-          {saving ? 'جارٍ الحفظ...' : editingId ? 'حفظ التعديلات' : 'إضافة المقال'}
-        </button>
+        <div className="mt-5 flex flex-wrap items-center gap-3">
+          <button type="submit" disabled={saving} className="gsd-button-primary inline-flex items-center gap-2 disabled:opacity-60">
+            {editingId ? <Save className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
+            {saving ? 'جارٍ الحفظ...' : editingId ? 'حفظ التعديلات' : 'إضافة المقال'}
+          </button>
+          <button type="button" onClick={handleReview} className="gsd-button-secondary inline-flex items-center gap-2">
+            <ShieldCheck className="h-4 w-4" /> فحص قراءة فقط
+          </button>
+          <button type="button" onClick={() => void handleSmartReview()} disabled={aiReviewing} className="gsd-button-secondary inline-flex items-center gap-2 disabled:opacity-60">
+            <ShieldCheck className="h-4 w-4" /> {aiReviewing ? 'جاري الفحص الذكي...' : 'مراجعة ذكية اختيارية'}
+          </button>
+        </div>
+        {aiReviewResult && (
+          <section className="mt-5 rounded-xl border border-sky-200 bg-sky-50 p-4 text-sm" role="status" aria-live="polite">
+            <p className="font-bold text-sky-900">نتيجة المراجعة الذكية — اقتراحات فقط</p>
+            <p className="mt-1 text-sky-800">المزود: {String(aiReviewResult.provider ?? 'غير محدد')} · لا يوجد حفظ أو نشر تلقائي.</p>
+            {typeof aiReviewResult.summary === 'string' && <p className="mt-2 text-sky-950">{aiReviewResult.summary}</p>}
+            {Array.isArray(aiReviewResult.findings) && aiReviewResult.findings.length > 0 && <ul className="mt-3 space-y-2 text-sky-950">{aiReviewResult.findings.map((item, index) => { const finding = item as Record<string, unknown>; return <li key={index}><strong>{String(finding.severity ?? 'ملاحظة')}:</strong> {String(finding.message ?? '')} {finding.suggestedAction ? `— ${String(finding.suggestedAction)}` : ''}</li>; })}</ul>}
+          </section>
+        )}
+        {reviewResult && (
+          <section className="mt-5 rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-sm" role="status" aria-live="polite">
+            <div className="flex items-center gap-2 font-bold text-emerald-900">
+              <CheckCircle2 className="h-4 w-4" /> نتيجة الفحص: {reviewResult.status === 'pass' ? 'يحتاج تحققاً نهائياً' : reviewResult.status === 'blocked' ? 'موقوف للمراجعة' : 'يحتاج مراجعة'}
+            </div>
+            <p className="mt-1 text-emerald-800">هذا الفحص لم يحفظ ولم يغيّر ولم ينشر أي شيء. عدد الملاحظات: {reviewResult.findings.length}.</p>
+            {reviewResult.findings.length > 0 && <ul className="mt-3 space-y-2 text-emerald-950">{reviewResult.findings.map((finding, index) => <li key={`${finding.type}-${index}`}><strong>{finding.severity}:</strong> {finding.message} {finding.evidence ? `(${finding.evidence})` : ''}</li>)}</ul>}
+          </section>
+        )}
       </form>
 
       <section className="rounded-2xl border border-[color:var(--gs-border)] bg-[color:var(--gs-surface)] p-4 shadow-sm sm:p-6">

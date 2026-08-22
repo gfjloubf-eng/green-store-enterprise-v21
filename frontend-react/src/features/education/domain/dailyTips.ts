@@ -49,14 +49,14 @@ const DAILY_TIPS: DailyTip[] = [
   {
     id: 'apple-variety',
     title: 'هل تعلم؟ أنواع التفاح تختلف في السكر والألياف',
-    body: 'التفاح الأخضر غالباً ما يكون أقل حلاوة وأكثر حموضة مقارنة بالأحمر، لكن كلاهما مصدر رائع للألياف التي تساعد على الشعور بالشبع.',
-    sourceLabel: 'Healthline Nutrition',
-    sourceUrl: 'https://www.healthline.com/nutrition/10-health-benefits-of-apples',
+    body: 'قد يختلف طعم التفاح ودرجة حلاوته باختلاف الصنف ودرجة النضج، وتوفر الثمرة الكاملة أليافاً غذائية ضمن نظام متوازن.',
+    sourceLabel: 'USDA FoodData Central — بيانات الأغذية',
+    sourceUrl: 'https://fdc.nal.usda.gov/',
   },
   {
     id: 'hydration-fruits',
     title: 'هل تعلم؟ الفواكه وسيلة لذيذة للترطيب',
-    body: 'البطيخ والشمام يتكونان من أكثر من 90% ماء، مما يجعلهما خياراً ممتازاً لترطيب الجسم في الأجواء الحارة بجانب شرب الماء الكافي.',
+    body: 'يحتوي البطيخ والشمام على نسبة مرتفعة من الماء، وقد يساعد تناولهما ضمن الغذاء المتوازن على زيادة السوائل، لكنهما لا يغنيان عن شرب الماء.',
     sourceLabel: 'Mayo Clinic Health System',
     sourceUrl: 'https://www.mayoclinichealthsystem.org/',
   },

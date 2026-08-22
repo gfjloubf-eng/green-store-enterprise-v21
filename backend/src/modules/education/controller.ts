@@ -3,6 +3,7 @@ import { created, internalError, notFound, paginated, success, validationError }
 import type { ApiResponse } from '../../api';
 import { PrismaService } from '../../repositories/prisma-service';
 import { randomUUID } from 'node:crypto';
+import { reviewMedicalGuidanceWithAI } from './medical-guidance-ai-service';
 
 export class EducationController {
   private readonly prisma = PrismaService.getClient();
@@ -50,6 +51,10 @@ export class EducationController {
     } catch {
       return internalError('education_article_unavailable', ctx);
     }
+  }
+
+  async reviewMedicalGuidance(request: ControllerRequest): Promise<ApiResponse<unknown>> {
+    return reviewMedicalGuidanceWithAI(request);
   }
 
   async listAdminFamilies(request: ControllerRequest): Promise<ApiResponse<unknown>> {

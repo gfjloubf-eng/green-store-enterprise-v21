@@ -17,6 +17,7 @@ export function createEducationRoutes(controller: EducationController = new Educ
   register({ name: 'education-articles-list', method: 'GET', path: '/education/articles', handler: (ctx) => controller.listArticles(toControllerRequest(ctx)), options: publicOptions() });
   register({ name: 'education-article-get', method: 'GET', path: '/education/articles/:slug', handler: (ctx) => controller.getArticle(toControllerRequest(ctx)), options: publicOptions() });
   register({ name: 'education-consultation-create', method: 'POST', path: '/education/consultations', handler: (ctx) => controller.createConsultation(toControllerRequest(ctx)), options: publicOptions() });
+  register({ name: 'education-ai-review', method: 'POST', path: '/admin/education/review', handler: (ctx) => controller.reviewMedicalGuidance(toControllerRequest(ctx)), options: privateOptions('products:read') });
   register({ name: 'education-families-list', method: 'GET', path: '/admin/education/families', handler: (ctx) => controller.listAdminFamilies(toControllerRequest(ctx)), options: privateOptions('products:read') });
   register({ name: 'education-family-create', method: 'POST', path: '/admin/education/families', handler: (ctx) => controller.createAdminFamily(toControllerRequest(ctx)), options: privateOptions('products:update') });
   register({ name: 'education-family-update', method: 'PUT', path: '/admin/education/families/:id', handler: (ctx) => controller.updateAdminFamily(toControllerRequest(ctx)), options: privateOptions('products:update') });
