@@ -3,21 +3,25 @@ import { Link } from 'react-router-dom';
 import { BookOpen, Lightbulb, MessageCircle, RefreshCw, Search, Sparkles } from 'lucide-react';
 import { listEducationArticles, type EducationArticle } from '@/services/educationClient';
 import { getDailyTip } from '../domain/dailyTips';
+import { LOCAL_GUIDANCE_ARTICLES } from '../domain/localGuidance';
 
 export default function EducationHubPage() {
   const [articles, setArticles] = useState<EducationArticle[]>([]);
   const [query, setQuery] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [usingLocalGuidance, setUsingLocalGuidance] = useState(false);
 
   const loadArticles = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
       setArticles(await listEducationArticles());
+      setUsingLocalGuidance(false);
     } catch (cause) {
-      setArticles([]);
-      setError(cause instanceof Error ? cause.message : 'تعذر تحميل مركز المعرفة حاليًا');
+      setArticles(LOCAL_GUIDANCE_ARTICLES);
+      setUsingLocalGuidance(true);
+      setError(null);
     } finally {
       setLoading(false);
     }
@@ -62,6 +66,7 @@ export default function EducationHubPage() {
           </div>
         </section>
 
+        {usingLocalGuidance && !loading && <div className="mt-6 rounded-3xl border border-amber-200 bg-amber-50 p-4 text-center text-sm text-amber-900" role="status">يتم عرض إرشادات عربية محلية مؤقتة؛ سنعيد تحميل المقالات عند توفر الخدمة.</div>}
         {loading && <div className="mt-6 rounded-3xl bg-white/90 p-8 text-center text-slate-600" role="status">جارٍ تحميل الإرشادات الغذائية...</div>}
 
         {!loading && error && (

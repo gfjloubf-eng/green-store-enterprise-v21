@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { ArrowRight, BookOpen, ExternalLink, RefreshCw } from 'lucide-react';
 import { getEducationArticle, type EducationArticle } from '@/services/educationClient';
+import { getLocalGuidanceArticle } from '../domain/localGuidance';
 
 export default function EducationArticlePage() {
   const { slug = '' } = useParams();
@@ -20,11 +21,12 @@ export default function EducationArticlePage() {
     setError(null);
     try {
       const result = await getEducationArticle(slug);
-      if (!result) {
+      const localResult = getLocalGuidanceArticle(slug);
+      if (!result && !localResult) {
         setArticle(null);
         setError('المقالة غير موجودة أو لم تعد منشورة.');
       } else {
-        setArticle(result);
+        setArticle(result ?? localResult);
       }
     } catch {
       setArticle(null);
