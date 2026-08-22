@@ -1,5 +1,5 @@
 /* ============================================================
-   GSDS v1.3 — WhatsApp Dual Order Action Component
+   GSDS v1.3.1 — WhatsApp Dual Order Action Component
    Green Store Enterprise v2 — Real Produce Intelligence Phase
    ============================================================
    Renders clear, intuitive choices for WhatsApp ordering:
@@ -8,7 +8,7 @@
    ============================================================ */
 
 import { useState } from 'react';
-import { MessageCircle, User, Store, ChevronDown, X, Phone } from 'lucide-react';
+import { MessageCircle, User, Store, X, Phone } from 'lucide-react';
 import {
   WHATSAPP_CONTACTS,
   buildWhatsAppTargetUrl,
@@ -29,7 +29,7 @@ export function WhatsAppOrderAction({
   variant = 'buttons',
   buttonText = 'طلب عبر واتساب',
 }: WhatsAppOrderActionProps) {
-  const [openDropdown, setOpenDropdown] = useState(false);
+  const [isOpen, setIsOpen] = useState(false);
 
   const handleOrder = (target: WhatsAppTarget) => {
     const details = getMessage(target).trim();
@@ -47,10 +47,10 @@ export function WhatsAppOrderAction({
     } catch {
       window.location.href = url;
     }
-    setOpenDropdown(false);
+    setIsOpen(false);
   };
 
-  const ContactCard = ({ target, isPrimary = false }: { target: WhatsAppTarget; isPrimary?: boolean }) => {
+  const ContactCard = ({ target }: { target: WhatsAppTarget }) => {
     const contact = WHATSAPP_CONTACTS[target];
     const bgColor = target === 'store' ? 'bg-emerald-500' : 'bg-teal-500';
     const borderColor = target === 'store' ? 'border-emerald-500/25' : 'border-teal-500/25';
@@ -88,23 +88,25 @@ export function WhatsAppOrderAction({
     );
   };
 
-  if (variant === 'modal' || openDropdown) {
-    return (
-      <div className={`relative inline-block w-full ${className}`} dir="rtl">
-        <button
-          type="button"
-          onClick={() => setOpenDropdown(true)}
-          className="w-full inline-flex items-center justify-center gap-2 rounded-2xl border border-emerald-400/40 bg-emerald-500 px-5 py-3 text-sm font-bold text-white shadow-lg transition hover:bg-emerald-600 active:scale-[0.98] touch-manipulation min-h-[44px]"
-        >
-          <MessageCircle className="h-5 w-5" />
-          <span>{buttonText}</span>
-        </button>
+  return (
+    <div className={`relative inline-block ${className}`} dir="rtl">
+      {/* Trigger Button */}
+      <button
+        type="button"
+        onClick={() => setIsOpen(true)}
+        className="w-full inline-flex items-center justify-center gap-2 rounded-2xl border border-emerald-400/40 bg-emerald-500 px-5 py-3 text-sm font-bold text-white shadow-lg transition hover:bg-emerald-600 active:scale-[0.98] touch-manipulation min-h-[44px]"
+      >
+        <MessageCircle className="h-5 w-5" />
+        <span>{buttonText}</span>
+      </button>
 
+      {/* Modal Overlay */}
+      {isOpen && (
         <div
           className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/60 p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] backdrop-blur-sm animate-in fade-in duration-200"
           role="presentation"
           onMouseDown={(event) => {
-            if (event.target === event.currentTarget) setOpenDropdown(false);
+            if (event.target === event.currentTarget) setIsOpen(false);
           }}
         >
           <div
@@ -123,7 +125,7 @@ export function WhatsAppOrderAction({
               </div>
               <button
                 type="button"
-                onClick={() => setOpenDropdown(false)}
+                onClick={() => setIsOpen(false)}
                 className="rounded-full p-2 bg-[var(--gs-surface-muted)] text-[var(--gs-foreground-muted)] transition hover:text-[var(--gs-foreground)]"
               >
                 <X className="h-4 w-4" />
@@ -131,7 +133,7 @@ export function WhatsAppOrderAction({
             </div>
 
             <div className="grid gap-3">
-              <ContactCard target="store" isPrimary />
+              <ContactCard target="store" />
               <ContactCard target="saqr" />
             </div>
 
@@ -142,18 +144,7 @@ export function WhatsAppOrderAction({
             </div>
           </div>
         </div>
-      </div>
-    );
-  }
-
-  return (
-    <button
-      type="button"
-      onClick={() => setOpenDropdown(true)}
-      className={`w-full inline-flex items-center justify-center gap-2 rounded-2xl border border-emerald-400/40 bg-emerald-500 px-5 py-3 text-sm font-bold text-white shadow-lg transition hover:bg-emerald-600 active:scale-[0.98] touch-manipulation min-h-[44px] ${className}`}
-    >
-      <MessageCircle className="h-5 w-5" />
-      <span>{buttonText}</span>
-    </button>
+      )}
+    </div>
   );
 }
