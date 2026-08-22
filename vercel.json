@@ -4,12 +4,7 @@
   "outputDirectory": "frontend-react/dist",
   "functions": {
     "api/index.js": {
-      "includeFiles": [
-        "frontend-react/node_modules/argon2/lib/binding/**/*.node",
-        "frontend-react/node_modules/.pnpm/argon2@*/node_modules/argon2/lib/binding/**/*.node",
-        "node_modules/argon2/lib/binding/**/*.node",
-        "node_modules/.pnpm/argon2@*/node_modules/argon2/lib/binding/**/*.node"
-      ]
+      "includeFiles": "node_modules/argon2/lib/binding/**/*.node"
     }
   },
   "headers": [
