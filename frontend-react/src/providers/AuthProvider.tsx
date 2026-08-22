@@ -56,6 +56,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUser(normalizeUser(current));
         setStatus('authenticated');
       } else {
+        // Try refresh token if access token is invalid but refresh token exists
+        if (refresh) {
+          try {
+            const { refresh: refreshTokens } = await import('@/services/authClient');
+            const result = await refreshTokens(refresh);
+            // Check if it was a persistent session
+            const isPersistent = typeof window !== 'undefined' && !!window.localStorage.getItem('gs_refresh_token');
+            setStoredTokens(result, isPersistent);
+            const userAfterRefresh = await getCurrentUser();
+            setUser(normalizeUser(userAfterRefresh));
+            setStatus('authenticated');
+            return;
+          } catch {
+            // Refresh failed
+          }
+        }
         clearStoredTokens();
         setUser(null);
         setStatus('unauthenticated');
@@ -72,9 +88,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       if (!isNetworkError) {
         clearStoredTokens();
+        setUser(null);
+        setStatus('unauthenticated');
+      } else {
+        // On network error, don't clear tokens, just set status to unauthenticated for now
+        // so the user can try again later without being forced to login
+        setUser(null);
+        setStatus('unauthenticated');
       }
-      setUser(null);
-      setStatus('unauthenticated');
     }
   }, [normalizeUser]);
 
@@ -218,4 +239,3 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
-
