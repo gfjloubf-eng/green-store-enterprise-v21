@@ -10431,6 +10431,24 @@ async function callModel(message, history, products) {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 8e3);
   try {
+    if (apiKey.startsWith("AQ.")) {
+      const nativeBase = (process.env.GEMINI_NATIVE_API_BASE || "https://generativelanguage.googleapis.com").replace(/\/$/, "");
+      const nativeMessages = [...safeHistory, { role: "user", content: message }];
+      const response2 = await fetch(`${nativeBase}/v1beta/models/${encodeURIComponent(model)}:generateContent`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "x-goog-api-key": apiKey },
+        body: JSON.stringify({
+          systemInstruction: { parts: [{ text: system }] },
+          contents: nativeMessages.map((item) => ({ role: item.role === "assistant" ? "model" : "user", parts: [{ text: item.content }] })),
+          generationConfig: { temperature: 0.2, maxOutputTokens: 350 }
+        }),
+        signal: controller.signal
+      });
+      if (!response2.ok) return null;
+      const payload2 = await response2.json();
+      const content2 = payload2?.candidates?.[0]?.content?.parts?.map((part) => part?.text).filter(Boolean).join(" ");
+      return typeof content2 === "string" && content2.trim() ? { content: cleanText(content2, 1600), model, provider: "google_gemini" } : null;
+    }
     const response = await fetch(`${baseUrl}/chat/completions`, {
       method: "POST",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` },
