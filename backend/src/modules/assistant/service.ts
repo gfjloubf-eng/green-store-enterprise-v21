@@ -17,6 +17,17 @@ type ChatInput = {
 const MAX_MESSAGE_LENGTH = 1200;
 const MAX_HISTORY_ITEMS = 8;
 const MAX_CONTEXT_PRODUCTS = 80;
+const STATIC_FALLBACK_PRODUCTS: ProductContext[] = [
+  { name: 'تفاح أحمر طازج' }, { name: 'برتقال أبو صرة' }, { name: 'ليمون بلدي طازج' },
+  { name: 'يوسفي بلدي' }, { name: 'مانجو يمني سوداني' }, { name: 'رمان صعدي فاخر' },
+  { name: 'عنب روضي يمني' }, { name: 'بطيخ أحمر بلدي' }, { name: 'شمام يمني حلو' },
+  { name: 'خوخ بلدي طازج' }, { name: 'موز عضوي طازج' }, { name: 'فراولة طازجة' },
+  { name: 'فلفل رومي ملون' }, { name: 'جزر عضوي طازج' }, { name: 'طماطم بلدي طازجة' },
+  { name: 'بطاطس يمني مأربي' }, { name: 'بصل أحمر بلدي' }, { name: 'خيار بلدي طازج' },
+  { name: 'باذنجان أسود بلدي' }, { name: 'كوسا خضراء طازجة' }, { name: 'خس بلدي طازج' },
+  { name: 'ملفوف أخضر طازج' }, { name: 'قرنبيط / زهرة بلدي' }, { name: 'بروكلي أخضر طازج' },
+  { name: 'نعناع بلدي طازج' }, { name: 'حبق / ريحان طازج' }, { name: 'حليب طازج' },
+];
 
 function cleanText(value: unknown, max = 500): string {
   return String(value ?? '').replace(/[<>]/g, '').replace(/\s+/g, ' ').trim().slice(0, max);
@@ -26,24 +37,54 @@ function isSensitiveMedicalQuestion(message: string): boolean {
   return /(تشخيص|مرض|دواء|جرع|علاج|حامل|حمل|سكري|ضغط|حساسي|سرطان|نزيف|ألم شديد|طبيب|medical|diagnos|medication)/i.test(message);
 }
 
+function normalizeSearch(value: string): string {
+  return value.toLowerCase().replace(/[إأآ]/g, 'ا').replace(/ة/g, 'ه').replace(/ى/g, 'ي').replace(/[ًٌٍَُِّْـ]/g, '').trim();
+}
+
+function formatProduct(product: ProductContext): string {
+  const price = product.price != null ? ` — ${product.price} ر.ي` : ' — السعر غير مسجل حالياً';
+  const unit = product.unit ? ` / ${product.unit}` : '';
+  const availability = product.available === false ? ' — غير متوفر حالياً' : ' — متوفر';
+  return `${product.name}${unit}${price}${availability}`;
+}
+
 function fallbackReply(message: string, products: ProductContext[]): string {
   if (isSensitiveMedicalQuestion(message)) {
     return 'أستطيع تقديم معلومات عامة عن المنتجات فقط، ولا أستطيع تشخيص الحالات أو اقتراح علاج أو جرعات. يرجى استشارة طبيب أو أخصائي تغذية مرخّص، واطلب المساعدة العاجلة عند وجود أعراض شديدة.';
   }
 
-  const normalized = message.toLowerCase();
-  const matches = products.filter((product) => `${product.name} ${product.slug ?? ''} ${product.description ?? ''}`.toLowerCase().includes(normalized)).slice(0, 3);
-  if (matches.length > 0) {
-    return `وجدت لك في قطوف: ${matches.map((product) => `${product.name}${product.price != null ? ` بسعر ${product.price}` : ''}${product.unit ? ` / ${product.unit}` : ''}${product.available === false ? ' (غير متوفر حالياً)' : ''}`).join('، ')}. الأسعار والتوفر المعروضان مأخوذان من بيانات المتجر الحالية.`;
+  const normalized = normalizeSearch(message);
+  const wantsProducts = /(المنتجات|الاصناف|قائمه|قائمة|الفواكه|الخضروات|الخضار|المتاح|ماذا يوجد|ايش عندكم|ما لديكم)/i.test(normalized);
+  const wantsOrder = /(اطلب|طلب|شراء|اشتر|كيف.*طلب|واتساب|السله|السلة|التوصيل|التسليم)/i.test(normalized);
+  const wantsPrice = /(سعر|كم|بكم|ريال|price)/i.test(normalized);
+  const wantsAvailability = /(متوفر|توفر|مخزون|availability|stock)/i.test(normalized);
+
+  if (wantsOrder) {
+    return 'لطلب منتجات قطوف: 1) اختر المنتج واضغط «أضف» لإضافته إلى السلة. 2) افتح السلة وراجع الكمية والسعر. 3) انتقل لإتمام الطلب وأدخل بيانات التوصيل. ويمكنك استخدام «طلب سريع عبر واتساب» واختيار الرقم المناسب: 712275038 أو 777803161. لا ترسل كلمات المرور أو بيانات البطاقة داخل المحادثة.';
   }
 
-  if (/(سعر|كم|بكم|price)/i.test(message)) {
-    return 'يمكنني البحث عن السعر إذا كتبت اسم المنتج كما يظهر في المتجر. لا أقدّم سعراً غير موجود في بيانات قطوف.';
+  if (wantsProducts) {
+    const listSource = products.length > 0 ? products : STATIC_FALLBACK_PRODUCTS;
+    const list = listSource.slice(0, 30).map((product, index) => `${index + 1}. ${formatProduct(product)}`).join('؛ ');
+    const sourceNote = products.length > 0 ? 'الأسعار والتوفر مأخوذان من بيانات المتجر الحالية.' : 'هذه أسماء إرشادية احتياطية؛ تحقق من السعر والتوفر داخل المتجر قبل الطلب.';
+    return `هذه المنتجات الموجودة في قطوف: ${list}. ${sourceNote}`.slice(0, 1700);
   }
-  if (/(متوفر|توفر|مخزون|availability|stock)/i.test(message)) {
-    return 'اكتب اسم المنتج، وسأحاول إخبارك بحالة توفره الحالية من بيانات المتجر.';
+
+  const tokens = normalized.split(/[^a-z0-9ء-ي]+/i).filter((token) => token.length >= 2 && !/(ما|من|في|عن|هل|هذا|هذه|اريد|أريد|لو|لي|عندي|عندكم|قطوف)/i.test(token));
+  const matches = products.map((product) => {
+    const haystack = normalizeSearch(`${product.name} ${product.slug ?? ''} ${product.description ?? ''}`);
+    const score = tokens.reduce((total, token) => total + (haystack.includes(token) ? 1 : 0), 0);
+    return { product, score };
+  }).filter((item) => item.score > 0).sort((a, b) => b.score - a.score).slice(0, 3).map((item) => item.product);
+
+  if (matches.length > 0) {
+    const prefix = wantsPrice ? 'السعر الحالي في قطوف:' : wantsAvailability ? 'حالة التوفر الحالية في قطوف:' : 'وجدت لك في قطوف:';
+    return `${prefix} ${matches.map(formatProduct).join('؛ ')}. البيانات مأخوذة من كتالوج المتجر الحالي.`;
   }
-  return 'مرحباً بك في قطوف الطبيعة. اسألني عن أسماء المنتجات أو الأسعار أو التوفر أو طريقة الوصول إلى الأقسام. لا أستطيع تنفيذ طلب أو تعديل المخزون من خلال المحادثة.';
+
+  if (wantsPrice) return 'اكتب اسم المنتج كما يظهر في المتجر، مثل «تفاح أحمر» أو «برتقال أبو صرة»، وسأعرض السعر المسجل فقط دون تخمين.';
+  if (wantsAvailability) return 'اكتب اسم المنتج، وسأعرض لك حالته المسجلة في الكتالوج الحالي.';
+  return 'مرحباً بك في قطوف الطبيعة. أستطيع عرض جميع المنتجات، والبحث عن السعر والتوفر، وشرح طريقة الطلب من السلة أو عبر واتساب. جرّب: «اعرض المنتجات» أو «كم سعر التفاح الأحمر؟».';
 }
 
 async function loadProducts(): Promise<ProductContext[]> {
@@ -137,9 +178,11 @@ export async function chat(input: ChatInput) {
   const message = cleanText(input.message, MAX_MESSAGE_LENGTH);
   if (!message) throw new Error('assistant_message_required');
   const products = await loadProducts();
-  const modelReply = await callModel(message, input.history, products);
+  const assistantMode = String(process.env.ASSISTANT_MODE || 'offline').toLowerCase();
+  const modelReply = assistantMode === 'offline' ? null : await callModel(message, input.history, products);
+  const fallbackProducts = products.length > 0 ? products : STATIC_FALLBACK_PRODUCTS;
   return {
-    reply: modelReply?.content ?? fallbackReply(message, products),
+    reply: modelReply?.content ?? fallbackReply(message, fallbackProducts),
     source: modelReply ? 'ai_with_live_catalog' : 'safe_fallback',
     provider: modelReply?.provider ?? 'safe_fallback',
     model: modelReply?.model ?? null,
