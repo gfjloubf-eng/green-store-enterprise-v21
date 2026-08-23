@@ -64,8 +64,8 @@ async function loadProducts(): Promise<ProductContext[]> {
 }
 
 async function callModel(message: string, history: ChatInput['history'], products: ProductContext[]): Promise<string | null> {
-  const apiKey = process.env.BUILT_IN_FORGE_API_KEY || process.env.OPENAI_API_KEY;
-  const baseUrl = (process.env.BUILT_IN_FORGE_API_URL || process.env.OPENAI_API_BASE || '').replace(/\/$/, '');
+  const apiKey = process.env.GEMINI_API_KEY || process.env.BUILT_IN_FORGE_API_KEY || process.env.OPENAI_API_KEY;
+  const baseUrl = (process.env.GEMINI_API_BASE || process.env.BUILT_IN_FORGE_API_URL || process.env.OPENAI_API_BASE || '').replace(/\/$/, '');
   if (!apiKey || !baseUrl) return null;
 
   const productContext = products.map((product) => ({
@@ -85,7 +85,7 @@ async function callModel(message: string, history: ChatInput['history'], product
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
       body: JSON.stringify({
-        model: process.env.ASSISTANT_MODEL || 'gpt-4o-mini',
+        model: process.env.ASSISTANT_MODEL || process.env.GEMINI_MODEL || 'gemini-2.5-flash',
         temperature: 0.2,
         max_tokens: 350,
         messages: [{ role: 'system', content: system }, ...safeHistory, { role: 'user', content: message }],
