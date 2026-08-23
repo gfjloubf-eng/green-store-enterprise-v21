@@ -10417,6 +10417,8 @@ async function callModel(message, history, products) {
   const apiKey = process.env.GEMINI_API_KEY || process.env.BUILT_IN_FORGE_API_KEY || process.env.OPENAI_API_KEY;
   const baseUrl = (process.env.GEMINI_API_BASE || process.env.BUILT_IN_FORGE_API_URL || process.env.OPENAI_API_BASE || "").replace(/\/$/, "");
   if (!apiKey || !baseUrl) return null;
+  const model = process.env.ASSISTANT_MODEL || process.env.GEMINI_MODEL || "gemini-2.5-flash";
+  const provider = baseUrl.includes("generativelanguage.googleapis.com") || Boolean(process.env.GEMINI_API_KEY || process.env.GEMINI_API_BASE) ? "google_gemini" : "configured_ai";
   const productContext = products.map((product) => ({
     name: product.name,
     price: product.price,
@@ -10433,7 +10435,7 @@ async function callModel(message, history, products) {
       method: "POST",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` },
       body: JSON.stringify({
-        model: process.env.ASSISTANT_MODEL || process.env.GEMINI_MODEL || "gemini-2.5-flash",
+        model,
         temperature: 0.2,
         max_tokens: 350,
         messages: [{ role: "system", content: system }, ...safeHistory, { role: "user", content: message }]
@@ -10443,7 +10445,7 @@ async function callModel(message, history, products) {
     if (!response.ok) return null;
     const payload = await response.json();
     const content = payload?.choices?.[0]?.message?.content;
-    return typeof content === "string" && content.trim() ? cleanText(content, 1600) : null;
+    return typeof content === "string" && content.trim() ? { content: cleanText(content, 1600), model, provider } : null;
   } catch {
     return null;
   } finally {
@@ -10456,8 +10458,11 @@ async function chat(input) {
   const products = await loadProducts();
   const modelReply = await callModel(message, input.history, products);
   return {
-    reply: modelReply ?? fallbackReply(message, products),
+    reply: modelReply?.content ?? fallbackReply(message, products),
     source: modelReply ? "ai_with_live_catalog" : "safe_fallback",
+    provider: modelReply?.provider ?? "safe_fallback",
+    model: modelReply?.model ?? null,
+    verification: modelReply ? "live_model_response" : "deterministic_fallback",
     catalogCount: products.length,
     disclaimer: "\u0627\u0644\u0645\u0633\u0627\u0639\u062F \u064A\u0642\u062F\u0645 \u0645\u0639\u0644\u0648\u0645\u0627\u062A \u0639\u0627\u0645\u0629 \u0639\u0646 \u0627\u0644\u0645\u062A\u062C\u0631 \u0648\u0627\u0644\u0645\u0646\u062A\u062C\u0627\u062A\u060C \u0648\u0644\u0627 \u064A\u0642\u062F\u0645 \u062A\u0634\u062E\u064A\u0635\u0627\u064B \u0623\u0648 \u0639\u0644\u0627\u062C\u0627\u064B \u0637\u0628\u064A\u0627\u064B."
   };

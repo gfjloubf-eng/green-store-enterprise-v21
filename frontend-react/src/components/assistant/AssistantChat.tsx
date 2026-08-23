@@ -1,14 +1,15 @@
 import { FormEvent, useEffect, useRef, useState } from 'react';
 import { Bot, Loader2, MessageCircle, Send, ShieldCheck, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { sendAssistantMessage, type AssistantMessage } from '@/services/assistantClient';
+import { sendAssistantMessage, type AssistantMessage, type AssistantResponse } from '@/services/assistantClient';
 
 type Props = { open: boolean; onClose: () => void };
+type DisplayMessage = AssistantMessage & { verification?: AssistantResponse['verification']; provider?: AssistantResponse['provider']; model?: string | null };
 
 const quickPrompts = ['ما المنتجات المتوفرة؟', 'كيف أعرف سعر الفاكهة؟', 'أين أجد الإرشادات؟'];
 
 export function AssistantChat({ open, onClose }: Props) {
-  const [messages, setMessages] = useState<AssistantMessage[]>([
+  const [messages, setMessages] = useState<DisplayMessage[]>([
     { role: 'assistant', content: 'مرحباً بك في قطوف الطبيعة. اسألني عن المنتجات أو الأسعار أو التوفر أو أقسام الموقع.' },
   ]);
   const [draft, setDraft] = useState('');
@@ -35,7 +36,7 @@ export function AssistantChat({ open, onClose }: Props) {
     setLoading(true);
     try {
       const result = await sendAssistantMessage(text, next);
-      setMessages((current) => [...current, { role: 'assistant', content: result.reply }]);
+      setMessages((current) => [...current, { role: 'assistant', content: result.reply, verification: result.verification, provider: result.provider, model: result.model }]);
     } catch {
       setMessages((current) => [...current, { role: 'assistant', content: 'تعذر الاتصال بالمساعد الآن. يمكنك متابعة التسوق أو التواصل مع خدمة العملاء.' }]);
     } finally { setLoading(false); }
@@ -54,7 +55,7 @@ export function AssistantChat({ open, onClose }: Props) {
         <div className="flex-1 space-y-3 overflow-y-auto px-3 py-4">
           <div className="flex items-start gap-2 text-[11px] leading-5 [color:var(--gs-foreground-secondary)]"><ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" /><span>لا ينفذ المساعد عمليات شراء أو تغييرات في المخزون، ولا يقدم تشخيصاً أو علاجاً طبياً.</span></div>
           <div className="flex flex-wrap gap-2">{quickPrompts.map((prompt) => <button key={prompt} type="button" onClick={() => void submit(undefined, prompt)} className="rounded-full border px-3 py-1.5 text-[11px] [border-color:var(--gs-border)] [color:var(--gs-foreground-secondary)] hover:[background:var(--gs-muted)]">{prompt}</button>)}</div>
-          {messages.map((message, index) => <div key={`${message.role}-${index}`} className={cn('flex', message.role === 'user' ? 'justify-start' : 'justify-end')}><div className={cn('max-w-[88%] whitespace-pre-wrap rounded-2xl px-3 py-2.5 text-sm leading-6', message.role === 'user' ? 'bg-emerald-600 text-white' : '[background:var(--gs-muted)] [color:var(--gs-foreground)]')}>{message.content}</div></div>)}
+          {messages.map((message, index) => <div key={`${message.role}-${index}`} className={cn('flex', message.role === 'user' ? 'justify-start' : 'justify-end')}><div className={cn('max-w-[88%] whitespace-pre-wrap rounded-2xl px-3 py-2.5 text-sm leading-6', message.role === 'user' ? 'bg-emerald-600 text-white' : '[background:var(--gs-muted)] [color:var(--gs-foreground)]')}>{message.content}{message.role === 'assistant' && message.verification && <span className="mt-1 block text-[10px] opacity-70">{message.verification === 'live_model_response' ? `${message.provider === 'google_gemini' ? 'رد مباشر من Gemini' : 'رد مباشر من مزود الذكاء الاصطناعي'}${message.model ? ` · ${message.model}` : ''}` : 'رد احتياطي آمن — لم يصل إلى النموذج'}</span>}</div></div>)}
           {loading && <div className="flex justify-end"><div className="rounded-2xl px-3 py-2 [background:var(--gs-muted)]"><Loader2 className="h-4 w-4 animate-spin text-emerald-600" /></div></div>}
           <div ref={endRef} />
         </div>
