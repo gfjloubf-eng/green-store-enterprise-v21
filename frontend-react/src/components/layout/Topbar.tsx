@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Bell, Menu, X, LogOut, ShoppingCart, LogIn, Settings, Sun, Moon } from 'lucide-react';
+import { Bell, Menu, X, LogOut, ShoppingCart, LogIn, Settings, Sun, Moon, Sparkles } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useI18n } from '@/i18n/useI18n';
 import { useAuth } from '@/hooks/useAuth';
@@ -15,6 +15,7 @@ import {
   type NotificationItem,
 } from '@/services/notificationClient';
 import { isManagementRole } from '@/utils/authRoles';
+import AssistantChat from '@/components/assistant/AssistantChat';
 
 /* ─── Props ────────────────────────────────────────────────── */
 
@@ -41,6 +42,7 @@ export function Topbar({ onMenuClick, mobileOpen = false, storefront = false, cl
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const [assistantOpen, setAssistantOpen] = useState(false);
   const notificationsRef = useRef<HTMLDivElement>(null);
   const managementUser = Boolean(
     user &&
@@ -186,6 +188,18 @@ export function Topbar({ onMenuClick, mobileOpen = false, storefront = false, cl
 
       {/* Header Actions (Desktop & Mobile) */}
       <div className="gsd-topbar__actions flex shrink-0 items-center gap-0.5 sm:gap-2">
+        {/* Customer AI assistant (Desktop & Mobile) */}
+        <button
+          type="button"
+          onClick={() => setAssistantOpen(true)}
+          className="flex min-h-[44px] min-w-[44px] items-center justify-center gap-1.5 rounded-xl px-2.5 text-emerald-700 hover:[background:var(--gs-primary-soft)] [color:var(--gs-primary)]"
+          aria-label="فتح مساعد قطوف الذكي"
+          title="اسأل قطوف الذكي"
+        >
+          <Sparkles className="h-5 w-5" />
+          <span className="hidden xl:inline text-[11px] font-bold">اسأل قطوف</span>
+        </button>
+
         {/* Theme toggle (Desktop & Mobile) */}
         <button
           type="button"
@@ -361,6 +375,7 @@ export function Topbar({ onMenuClick, mobileOpen = false, storefront = false, cl
           )}
         </div>
       </div>
+      <AssistantChat open={assistantOpen} onClose={() => setAssistantOpen(false)} />
     </header>
   );
 }

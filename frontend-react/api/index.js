@@ -95,9 +95,16 @@ var init_prisma_service = __esm({
           if (!process.env.NODE_TLS_REJECT_UNAUTHORIZED && process.env.DATABASE_URL?.includes("sslmode=require")) {
             process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
           }
-          const connectionString = process.env.DATABASE_URL || "postgresql://postgres:postgres@localhost:5432/postgres";
+          let connectionString = process.env.DATABASE_URL || "postgresql://postgres:postgres@localhost:5432/postgres";
+          if (process.env.NODE_ENV === "production" && !connectionString.includes("pgbouncer=")) {
+            const separator = connectionString.includes("?") ? "&" : "?";
+            connectionString = `${connectionString}${separator}pgbouncer=true&connection_limit=1`;
+          }
           const adapter = new PrismaPg({ connectionString });
-          const createClient = () => new PrismaClient({ log: ["error"], adapter });
+          const createClient = () => new PrismaClient({
+            log: process.env.NODE_ENV === "production" ? ["error"] : ["query", "error", "warn"],
+            adapter
+          });
           if (process.env.NODE_ENV !== "production") {
             if (!global.__prismaClient) {
               global.__prismaClient = createClient();
@@ -7181,8 +7188,8 @@ var ProductsController = class {
       body: { success: false, error: { code: "internal_error", message: err instanceof Error ? err.message : "internal_error" }, meta: ctx }
     };
   }
-  parsePositiveInteger(value, fallback, maximum = Number.MAX_SAFE_INTEGER) {
-    if (value === void 0) return fallback;
+  parsePositiveInteger(value, fallback2, maximum = Number.MAX_SAFE_INTEGER) {
+    if (value === void 0) return fallback2;
     const parsed = Number(value);
     if (!Number.isInteger(parsed) || parsed < 1 || parsed > maximum) throw new ValidationException("pagination_invalid");
     return parsed;
@@ -7421,8 +7428,8 @@ var CustomersController = class {
     }
     return parsed;
   }
-  integer(value, fallback, max) {
-    if (value === void 0) return fallback;
+  integer(value, fallback2, max) {
+    if (value === void 0) return fallback2;
     const parsed = Number(value);
     if (!Number.isInteger(parsed) || parsed < 1 || parsed > max) throw new ValidationException("pagination_invalid");
     return parsed;
@@ -8242,8 +8249,8 @@ var DeliveryController = class {
     if (typeof value !== "string" || value.trim().length > maxLength) throw new ValidationException("driver_field_invalid");
     return value.trim();
   }
-  integer(value, fallback, max) {
-    if (value === void 0) return fallback;
+  integer(value, fallback2, max) {
+    if (value === void 0) return fallback2;
     const parsed = Number(value);
     if (!Number.isInteger(parsed) || parsed < 1 || parsed > max) throw new ValidationException("pagination_invalid");
     return parsed;
@@ -8432,8 +8439,8 @@ var SupplierAdminController = class {
     if (typeof value !== "string" || value.trim().length > max) throw new ValidationException("supplier_field_invalid");
     return value.trim();
   }
-  integer(value, fallback, max) {
-    if (value === void 0) return fallback;
+  integer(value, fallback2, max) {
+    if (value === void 0) return fallback2;
     const parsed = Number(value);
     if (!Number.isInteger(parsed) || parsed < 1 || parsed > max) throw new ValidationException("pagination_invalid");
     return parsed;
@@ -8686,11 +8693,11 @@ var SettingsRepository = class extends base_repository_default {
   constructor() {
     super("systemSetting");
   }
-  async getSetting(key, fallback) {
+  async getSetting(key, fallback2) {
     const record = await this.client.systemSetting.findUnique({
       where: { key }
     });
-    return record?.value ?? fallback ?? DEFAULT_SETTINGS[key] ?? "";
+    return record?.value ?? fallback2 ?? DEFAULT_SETTINGS[key] ?? "";
   }
   async getPublicSettings() {
     const all = await this.getAllSettings();
@@ -10006,6 +10013,79 @@ function createAuditRoutes(controller = new AuditController()) {
 // ../backend/src/modules/education/controller.ts
 init_prisma_service();
 import { randomUUID } from "node:crypto";
+
+// ../backend/src/modules/education/medical-guidance-ai-service.ts
+var MAX_INPUT_LENGTH = 2e4;
+function text(value, max) {
+  return typeof value === "string" ? value.trim().slice(0, max) : "";
+}
+function urls(value) {
+  return Array.isArray(value) ? value.filter((item) => typeof item === "string" && /^https?:\/\//i.test(item.trim())).map((item) => item.trim()).slice(0, 10) : [];
+}
+function fallback(body) {
+  const findings = [];
+  if (!body) findings.push({ severity: "critical", message: "\u0646\u0635 \u0627\u0644\u0625\u0631\u0634\u0627\u062F \u0645\u0641\u0642\u0648\u062F.", suggestedAction: "\u0623\u0643\u0645\u0644 \u0627\u0644\u0646\u0635 \u0642\u0628\u0644 \u0627\u0644\u0645\u0631\u0627\u062C\u0639\u0629." });
+  if (!/https?:\/\//i.test(body)) findings.push({ severity: "high", message: "\u0644\u0627 \u064A\u0638\u0647\u0631 \u0645\u0635\u062F\u0631 \u062F\u0627\u062E\u0644 \u0646\u0635 \u0627\u0644\u0637\u0644\u0628.", suggestedAction: "\u0623\u0636\u0641 \u0645\u0635\u062F\u0631\u0627\u064B \u0645\u0648\u062B\u0648\u0642\u0627\u064B \u0645\u0646 \u062D\u0642\u0644 \u0627\u0644\u0645\u0635\u0627\u062F\u0631." });
+  if (/يعالج|يشفي|جرعة|أوقف الدواء|تشخيص/iu.test(body)) findings.push({ severity: "critical", message: "\u062A\u0648\u062C\u062F \u0635\u064A\u0627\u063A\u0629 \u0635\u062D\u064A\u0629 \u062D\u0633\u0627\u0633\u0629 \u062A\u062D\u062A\u0627\u062C \u0645\u0631\u0627\u062C\u0639\u0629 \u0645\u062E\u062A\u0635.", suggestedAction: "\u0623\u0639\u062F \u0627\u0644\u0635\u064A\u0627\u063A\u0629 \u0643\u0645\u0639\u0644\u0648\u0645\u0629 \u063A\u0630\u0627\u0626\u064A\u0629 \u0639\u0627\u0645\u0629." });
+  return { provider: "deterministic-fallback", status: findings.length ? "needs_review" : "pass", readOnly: true, mustNotPublish: true, findings };
+}
+async function reviewMedicalGuidanceWithAI(request4) {
+  const input = request4.body && typeof request4.body === "object" ? request4.body : {};
+  const title = text(input.title, 180);
+  const body = text(input.body, MAX_INPUT_LENGTH);
+  const sourceUrls = urls(input.sourceUrls);
+  if (!title || !body) return validationError("education_ai_review_fields_required", { timestamp: (/* @__PURE__ */ new Date()).toISOString(), version: "v1" });
+  const apiKey = process.env.BUILT_IN_FORGE_API_KEY || process.env.OPENAI_API_KEY;
+  const apiBase = (process.env.BUILT_IN_FORGE_API_URL || process.env.OPENAI_API_BASE || "").replace(/\/$/, "");
+  const model = process.env.EDUCATION_REVIEW_MODEL || "gpt-5-mini";
+  if (!apiKey || !apiBase) return success({ ...fallback(body), provider: "deterministic-fallback", reason: "AI provider is not configured" }, { timestamp: (/* @__PURE__ */ new Date()).toISOString(), version: "v1" });
+  const systemPrompt = "\u0623\u0646\u062A \u0645\u0631\u0627\u062C\u0639 \u0645\u062D\u062A\u0648\u0649 \u063A\u0630\u0627\u0626\u064A \u0645\u0633\u0624\u0648\u0644. \u0644\u0627 \u062A\u0634\u062E\u0635 \u0648\u0644\u0627 \u062A\u0639\u0627\u0644\u062C \u0648\u0644\u0627 \u062A\u0642\u062A\u0631\u062D \u062C\u0631\u0639\u0627\u062A. \u062D\u0644\u0644 \u0627\u0644\u0646\u0635 \u0641\u0642\u0637\u060C \u0623\u062E\u0631\u062C JSON \u0645\u0637\u0627\u0628\u0642\u0627\u064B \u0644\u0644\u0645\u062E\u0637\u0637\u060C \u0648\u0627\u0639\u062A\u0628\u0631 \u0643\u0644 \u0646\u062A\u064A\u062C\u0629 \u0627\u0642\u062A\u0631\u0627\u062D\u0627\u064B \u064A\u062D\u062A\u0627\u062C \u0645\u0631\u0627\u062C\u0639\u0629 \u0628\u0634\u0631\u064A\u0629. \u0644\u0627 \u062A\u062E\u062A\u0631\u0639 \u0645\u0635\u062F\u0631\u0627\u064B.";
+  const userPayload = JSON.stringify({ title, body, sourceUrls, productName: text(input.productName, 160), produceKey: text(input.produceKey, 120), familyName: text(input.familyName, 120) });
+  try {
+    const response = await fetch(`${apiBase}/chat/completions`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model,
+        temperature: 0,
+        max_completion_tokens: 1200,
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: `\u0631\u0627\u062C\u0639 \u0647\u0630\u0627 \u0627\u0644\u0625\u062F\u062E\u0627\u0644 \u0648\u0623\u0639\u062F JSON \u0641\u0642\u0637:
+${userPayload}` }
+        ],
+        response_format: {
+          type: "json_schema",
+          json_schema: {
+            name: "medical_guidance_review",
+            strict: true,
+            schema: {
+              type: "object",
+              additionalProperties: false,
+              properties: {
+                status: { type: "string", enum: ["pass", "needs_review", "blocked"] },
+                summary: { type: "string" },
+                findings: { type: "array", items: { type: "object", additionalProperties: false, properties: { severity: { type: "string" }, message: { type: "string" }, suggestedAction: { type: "string" } }, required: ["severity", "message", "suggestedAction"] } }
+              },
+              required: ["status", "summary", "findings"]
+            }
+          }
+        }
+      }),
+      signal: AbortSignal.timeout(12e3)
+    });
+    if (!response.ok) throw new Error(`AI review failed with status ${response.status}`);
+    const payload = await response.json();
+    const content = payload.choices?.[0]?.message?.content;
+    if (!content) throw new Error("AI review returned empty content");
+    const result = JSON.parse(content);
+    return success({ ...result, provider: model, readOnly: true, mustNotPublish: true }, { timestamp: (/* @__PURE__ */ new Date()).toISOString(), version: "v1" });
+  } catch {
+    return success({ ...fallback(body), provider: "deterministic-fallback", reason: "AI review unavailable; no content was changed" }, { timestamp: (/* @__PURE__ */ new Date()).toISOString(), version: "v1" });
+  }
+}
+
+// ../backend/src/modules/education/controller.ts
 var EducationController = class {
   prisma = PrismaService.getClient();
   context(request4) {
@@ -10049,6 +10129,9 @@ var EducationController = class {
     } catch {
       return internalError("education_article_unavailable", ctx);
     }
+  }
+  async reviewMedicalGuidance(request4) {
+    return reviewMedicalGuidanceWithAI(request4);
   }
   async listAdminFamilies(request4) {
     const ctx = this.context(request4);
@@ -10242,12 +10325,12 @@ var EducationController = class {
     return typeof value === "string" ? value.trim().slice(0, max) : "";
   }
   optionalText(value, max) {
-    const text = this.text(value, max);
-    return text || void 0;
+    const text2 = this.text(value, max);
+    return text2 || void 0;
   }
   optionalUrl(value) {
-    const text = this.optionalText(value, 1e3);
-    return text && /^https?:\/\//i.test(text) ? text : void 0;
+    const text2 = this.optionalText(value, 1e3);
+    return text2 && /^https?:\/\//i.test(text2) ? text2 : void 0;
   }
   value(value) {
     return Array.isArray(value) ? value[0] : value;
@@ -10274,6 +10357,7 @@ function createEducationRoutes(controller = new controller_default9()) {
   register({ name: "education-articles-list", method: "GET", path: "/education/articles", handler: (ctx) => controller.listArticles(toControllerRequest15(ctx)), options: publicOptions() });
   register({ name: "education-article-get", method: "GET", path: "/education/articles/:slug", handler: (ctx) => controller.getArticle(toControllerRequest15(ctx)), options: publicOptions() });
   register({ name: "education-consultation-create", method: "POST", path: "/education/consultations", handler: (ctx) => controller.createConsultation(toControllerRequest15(ctx)), options: publicOptions() });
+  register({ name: "education-ai-review", method: "POST", path: "/admin/education/review", handler: (ctx) => controller.reviewMedicalGuidance(toControllerRequest15(ctx)), options: privateOptions("products:read") });
   register({ name: "education-families-list", method: "GET", path: "/admin/education/families", handler: (ctx) => controller.listAdminFamilies(toControllerRequest15(ctx)), options: privateOptions("products:read") });
   register({ name: "education-family-create", method: "POST", path: "/admin/education/families", handler: (ctx) => controller.createAdminFamily(toControllerRequest15(ctx)), options: privateOptions("products:update") });
   register({ name: "education-family-update", method: "PUT", path: "/admin/education/families/:id", handler: (ctx) => controller.updateAdminFamily(toControllerRequest15(ctx)), options: privateOptions("products:update") });
@@ -10283,6 +10367,155 @@ function createEducationRoutes(controller = new controller_default9()) {
   register({ name: "education-article-update", method: "PUT", path: "/admin/education/articles/:id", handler: (ctx) => controller.updateAdminArticle(toControllerRequest15(ctx)), options: privateOptions("products:update") });
   register({ name: "education-article-delete", method: "DELETE", path: "/admin/education/articles/:id", handler: (ctx) => controller.deleteAdminArticle(toControllerRequest15(ctx)), options: privateOptions("products:update") });
   register({ name: "education-consultations-list", method: "GET", path: "/admin/education/consultations", handler: (ctx) => controller.listConsultations(toControllerRequest15(ctx)), options: privateOptions("customers:read") });
+  return builder.build();
+}
+
+// ../backend/src/modules/assistant/service.ts
+var MAX_MESSAGE_LENGTH = 1200;
+var MAX_HISTORY_ITEMS = 8;
+var MAX_CONTEXT_PRODUCTS = 80;
+function cleanText(value, max = 500) {
+  return String(value ?? "").replace(/[<>]/g, "").replace(/\s+/g, " ").trim().slice(0, max);
+}
+function isSensitiveMedicalQuestion(message) {
+  return /(تشخيص|مرض|دواء|جرع|علاج|حامل|حمل|سكري|ضغط|حساسي|سرطان|نزيف|ألم شديد|طبيب|medical|diagnos|medication)/i.test(message);
+}
+function fallbackReply(message, products) {
+  if (isSensitiveMedicalQuestion(message)) {
+    return "\u0623\u0633\u062A\u0637\u064A\u0639 \u062A\u0642\u062F\u064A\u0645 \u0645\u0639\u0644\u0648\u0645\u0627\u062A \u0639\u0627\u0645\u0629 \u0639\u0646 \u0627\u0644\u0645\u0646\u062A\u062C\u0627\u062A \u0641\u0642\u0637\u060C \u0648\u0644\u0627 \u0623\u0633\u062A\u0637\u064A\u0639 \u062A\u0634\u062E\u064A\u0635 \u0627\u0644\u062D\u0627\u0644\u0627\u062A \u0623\u0648 \u0627\u0642\u062A\u0631\u0627\u062D \u0639\u0644\u0627\u062C \u0623\u0648 \u062C\u0631\u0639\u0627\u062A. \u064A\u0631\u062C\u0649 \u0627\u0633\u062A\u0634\u0627\u0631\u0629 \u0637\u0628\u064A\u0628 \u0623\u0648 \u0623\u062E\u0635\u0627\u0626\u064A \u062A\u063A\u0630\u064A\u0629 \u0645\u0631\u062E\u0651\u0635\u060C \u0648\u0627\u0637\u0644\u0628 \u0627\u0644\u0645\u0633\u0627\u0639\u062F\u0629 \u0627\u0644\u0639\u0627\u062C\u0644\u0629 \u0639\u0646\u062F \u0648\u062C\u0648\u062F \u0623\u0639\u0631\u0627\u0636 \u0634\u062F\u064A\u062F\u0629.";
+  }
+  const normalized = message.toLowerCase();
+  const matches = products.filter((product) => `${product.name} ${product.slug ?? ""} ${product.description ?? ""}`.toLowerCase().includes(normalized)).slice(0, 3);
+  if (matches.length > 0) {
+    return `\u0648\u062C\u062F\u062A \u0644\u0643 \u0641\u064A \u0642\u0637\u0648\u0641: ${matches.map((product) => `${product.name}${product.price != null ? ` \u0628\u0633\u0639\u0631 ${product.price}` : ""}${product.unit ? ` / ${product.unit}` : ""}${product.available === false ? " (\u063A\u064A\u0631 \u0645\u062A\u0648\u0641\u0631 \u062D\u0627\u0644\u064A\u0627\u064B)" : ""}`).join("\u060C ")}. \u0627\u0644\u0623\u0633\u0639\u0627\u0631 \u0648\u0627\u0644\u062A\u0648\u0641\u0631 \u0627\u0644\u0645\u0639\u0631\u0648\u0636\u0627\u0646 \u0645\u0623\u062E\u0648\u0630\u0627\u0646 \u0645\u0646 \u0628\u064A\u0627\u0646\u0627\u062A \u0627\u0644\u0645\u062A\u062C\u0631 \u0627\u0644\u062D\u0627\u0644\u064A\u0629.`;
+  }
+  if (/(سعر|كم|بكم|price)/i.test(message)) {
+    return "\u064A\u0645\u0643\u0646\u0646\u064A \u0627\u0644\u0628\u062D\u062B \u0639\u0646 \u0627\u0644\u0633\u0639\u0631 \u0625\u0630\u0627 \u0643\u062A\u0628\u062A \u0627\u0633\u0645 \u0627\u0644\u0645\u0646\u062A\u062C \u0643\u0645\u0627 \u064A\u0638\u0647\u0631 \u0641\u064A \u0627\u0644\u0645\u062A\u062C\u0631. \u0644\u0627 \u0623\u0642\u062F\u0651\u0645 \u0633\u0639\u0631\u0627\u064B \u063A\u064A\u0631 \u0645\u0648\u062C\u0648\u062F \u0641\u064A \u0628\u064A\u0627\u0646\u0627\u062A \u0642\u0637\u0648\u0641.";
+  }
+  if (/(متوفر|توفر|مخزون|availability|stock)/i.test(message)) {
+    return "\u0627\u0643\u062A\u0628 \u0627\u0633\u0645 \u0627\u0644\u0645\u0646\u062A\u062C\u060C \u0648\u0633\u0623\u062D\u0627\u0648\u0644 \u0625\u062E\u0628\u0627\u0631\u0643 \u0628\u062D\u0627\u0644\u0629 \u062A\u0648\u0641\u0631\u0647 \u0627\u0644\u062D\u0627\u0644\u064A\u0629 \u0645\u0646 \u0628\u064A\u0627\u0646\u0627\u062A \u0627\u0644\u0645\u062A\u062C\u0631.";
+  }
+  return "\u0645\u0631\u062D\u0628\u0627\u064B \u0628\u0643 \u0641\u064A \u0642\u0637\u0648\u0641 \u0627\u0644\u0637\u0628\u064A\u0639\u0629. \u0627\u0633\u0623\u0644\u0646\u064A \u0639\u0646 \u0623\u0633\u0645\u0627\u0621 \u0627\u0644\u0645\u0646\u062A\u062C\u0627\u062A \u0623\u0648 \u0627\u0644\u0623\u0633\u0639\u0627\u0631 \u0623\u0648 \u0627\u0644\u062A\u0648\u0641\u0631 \u0623\u0648 \u0637\u0631\u064A\u0642\u0629 \u0627\u0644\u0648\u0635\u0648\u0644 \u0625\u0644\u0649 \u0627\u0644\u0623\u0642\u0633\u0627\u0645. \u0644\u0627 \u0623\u0633\u062A\u0637\u064A\u0639 \u062A\u0646\u0641\u064A\u0630 \u0637\u0644\u0628 \u0623\u0648 \u062A\u0639\u062F\u064A\u0644 \u0627\u0644\u0645\u062E\u0632\u0648\u0646 \u0645\u0646 \u062E\u0644\u0627\u0644 \u0627\u0644\u0645\u062D\u0627\u062F\u062B\u0629.";
+}
+async function loadProducts() {
+  try {
+    const productService = ServiceFactory.createProductService();
+    const result = await productService.paginate({ page: 1, limit: MAX_CONTEXT_PRODUCTS, filters: { isPublished: true } });
+    return (result.data ?? []).map((item) => ({
+      name: cleanText(item.name, 120),
+      slug: cleanText(item.slug, 120),
+      description: cleanText(item.description, 300),
+      price: Number.isFinite(Number(item.sellingPrice ?? item.price)) ? Number(item.sellingPrice ?? item.price) : null,
+      available: item.stock == null ? true : Number(item.stock) > 0,
+      unit: cleanText(item.unit?.name ?? item.unit?.symbol ?? "", 40) || null
+    })).filter((item) => item.name);
+  } catch {
+    return [];
+  }
+}
+async function callModel(message, history, products) {
+  const apiKey = process.env.BUILT_IN_FORGE_API_KEY || process.env.OPENAI_API_KEY;
+  const baseUrl = (process.env.BUILT_IN_FORGE_API_URL || process.env.OPENAI_API_BASE || "").replace(/\/$/, "");
+  if (!apiKey || !baseUrl) return null;
+  const productContext = products.map((product) => ({
+    name: product.name,
+    price: product.price,
+    available: product.available,
+    unit: product.unit,
+    description: product.description
+  }));
+  const system = `\u0623\u0646\u062A \u0645\u0633\u0627\u0639\u062F \u0642\u0637\u0648\u0641 \u0627\u0644\u0637\u0628\u064A\u0639\u0629. \u0623\u062C\u0628 \u0628\u0627\u0644\u0639\u0631\u0628\u064A\u0629 \u0627\u0644\u0648\u0627\u0636\u062D\u0629 \u0648\u0628\u0627\u062E\u062A\u0635\u0627\u0631 \u0645\u0647\u0646\u064A. \u0627\u0633\u062A\u062E\u062F\u0645 \u0642\u0627\u0626\u0645\u0629 \u0627\u0644\u0645\u0646\u062A\u062C\u0627\u062A \u0627\u0644\u0645\u0631\u0641\u0642\u0629 \u0641\u0642\u0637 \u0639\u0646\u062F \u0627\u0644\u062D\u062F\u064A\u062B \u0639\u0646 \u0627\u0644\u0627\u0633\u0645 \u0623\u0648 \u0627\u0644\u0633\u0639\u0631 \u0623\u0648 \u0627\u0644\u062A\u0648\u0641\u0631\u060C \u0648\u0644\u0627 \u062A\u062E\u062A\u0631\u0639 \u0623\u064A \u0628\u064A\u0627\u0646\u0627\u062A \u062A\u062C\u0627\u0631\u064A\u0629. \u0644\u0627 \u062A\u0646\u0641\u0630 \u0637\u0644\u0628\u0627\u062A \u0634\u0631\u0627\u0621 \u0648\u0644\u0627 \u062A\u0639\u062F\u0651\u0644 \u0627\u0644\u0645\u062E\u0632\u0648\u0646 \u0648\u0644\u0627 \u062A\u0637\u0644\u0628 \u0643\u0644\u0645\u0627\u062A \u0645\u0631\u0648\u0631 \u0623\u0648 \u0628\u064A\u0627\u0646\u0627\u062A \u062F\u0641\u0639. \u0639\u0646\u062F \u0627\u0644\u0623\u0633\u0626\u0644\u0629 \u0627\u0644\u0637\u0628\u064A\u0629 \u0623\u0648 \u0627\u0644\u062A\u0634\u062E\u064A\u0635 \u0623\u0648 \u0627\u0644\u0639\u0644\u0627\u062C\u060C \u0642\u062F\u0651\u0645 \u062A\u0646\u0628\u064A\u0647\u0627\u064B \u0628\u0623\u0646\u0643 \u0644\u0627 \u062A\u0633\u062A\u0628\u062F\u0644 \u0627\u0644\u0637\u0628\u064A\u0628 \u0648\u0623\u062D\u0650\u0644 \u0627\u0644\u0645\u0633\u062A\u062E\u062F\u0645 \u0625\u0644\u0649 \u0645\u062E\u062A\u0635\u060C \u0648\u064A\u0645\u0643\u0646\u0643 \u0630\u0643\u0631 \u0645\u0639\u0644\u0648\u0645\u0627\u062A \u0639\u0627\u0645\u0629 \u063A\u064A\u0631 \u0639\u0644\u0627\u062C\u064A\u0629 \u0641\u0642\u0637. \u0625\u0630\u0627 \u0644\u0645 \u062A\u062C\u062F \u0627\u0644\u0645\u0639\u0644\u0648\u0645\u0629 \u0641\u064A \u0627\u0644\u0633\u064A\u0627\u0642 \u0641\u0642\u0644 \u0630\u0644\u0643 \u0635\u0631\u0627\u062D\u0629. \u0628\u064A\u0627\u0646\u0627\u062A \u0627\u0644\u0645\u0646\u062A\u062C\u0627\u062A \u0627\u0644\u062D\u0627\u0644\u064A\u0629 \u0628\u0635\u064A\u063A\u0629 JSON: ${JSON.stringify(productContext)}`;
+  const safeHistory = (history ?? []).slice(-MAX_HISTORY_ITEMS).map((item) => ({ role: item.role, content: cleanText(item.content, 500) }));
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 8e3);
+  try {
+    const response = await fetch(`${baseUrl}/chat/completions`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` },
+      body: JSON.stringify({
+        model: process.env.ASSISTANT_MODEL || "gpt-4o-mini",
+        temperature: 0.2,
+        max_tokens: 350,
+        messages: [{ role: "system", content: system }, ...safeHistory, { role: "user", content: message }]
+      }),
+      signal: controller.signal
+    });
+    if (!response.ok) return null;
+    const payload = await response.json();
+    const content = payload?.choices?.[0]?.message?.content;
+    return typeof content === "string" && content.trim() ? cleanText(content, 1600) : null;
+  } catch {
+    return null;
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+async function chat(input) {
+  const message = cleanText(input.message, MAX_MESSAGE_LENGTH);
+  if (!message) throw new Error("assistant_message_required");
+  const products = await loadProducts();
+  const modelReply = await callModel(message, input.history, products);
+  return {
+    reply: modelReply ?? fallbackReply(message, products),
+    source: modelReply ? "ai_with_live_catalog" : "safe_fallback",
+    catalogCount: products.length,
+    disclaimer: "\u0627\u0644\u0645\u0633\u0627\u0639\u062F \u064A\u0642\u062F\u0645 \u0645\u0639\u0644\u0648\u0645\u0627\u062A \u0639\u0627\u0645\u0629 \u0639\u0646 \u0627\u0644\u0645\u062A\u062C\u0631 \u0648\u0627\u0644\u0645\u0646\u062A\u062C\u0627\u062A\u060C \u0648\u0644\u0627 \u064A\u0642\u062F\u0645 \u062A\u0634\u062E\u064A\u0635\u0627\u064B \u0623\u0648 \u0639\u0644\u0627\u062C\u0627\u064B \u0637\u0628\u064A\u0627\u064B."
+  };
+}
+
+// ../backend/src/modules/assistant/controller.ts
+var AssistantController = class {
+  async chat(request4) {
+    const ctx = {
+      timestamp: (/* @__PURE__ */ new Date()).toISOString(),
+      requestId: request4.context?.metadata?.requestId,
+      version: "v1",
+      locale: request4.context?.metadata?.locale ?? "ar-YE"
+    };
+    const body = request4.body ?? {};
+    const message = typeof body.message === "string" ? body.message.trim() : "";
+    if (!message || message.length > 1200) return validationError("assistant_message_invalid", ctx);
+    const history = Array.isArray(body.history) ? body.history.filter((item) => item && (item.role === "user" || item.role === "assistant") && typeof item.content === "string").slice(-8).map((item) => ({ role: item.role, content: item.content.slice(0, 500) })) : [];
+    try {
+      return success(await chat({ message, history }), ctx);
+    } catch (error) {
+      return validationError(error instanceof Error ? error.message : "assistant_request_failed", ctx);
+    }
+  }
+};
+
+// ../backend/src/modules/assistant/routes.ts
+function toControllerRequest16(ctx) {
+  return {
+    body: ctx.body ?? void 0,
+    headers: ctx.headers,
+    query: ctx.query,
+    params: ctx.params,
+    user: ctx.user,
+    context: { metadata: { timestamp: (/* @__PURE__ */ new Date()).toISOString(), version: "v1" } }
+  };
+}
+function adapt16(handler2) {
+  return (context) => handler2(context);
+}
+function createAssistantRoutes(controller = new AssistantController()) {
+  const builder = new RouterBuilder();
+  builder.register({
+    name: "assistant-chat",
+    method: "POST",
+    path: "/assistant/chat",
+    version: "v1",
+    handler: adapt16((ctx) => controller.chat(toControllerRequest16(ctx))),
+    options: {
+      mode: "public",
+      publicRoute: true,
+      privateRoute: false,
+      authenticationRequired: false,
+      authorizationRequired: false,
+      tags: ["assistant"],
+      middleware: []
+    }
+  });
   return builder.build();
 }
 
@@ -10325,7 +10558,7 @@ function createSystemRequestHandler() {
   const resolver = new RouteResolver();
   const protection = new RouteProtectionFactory();
   const authService = AuthController.createAuthService();
-  const routes = [...createSystemRoutes(), ...createAuthRoutes(), ...createUserRoutes(), ...createRoleRoutes(), ...createPermissionRoutes(), ...createProductRoutes(), ...createCustomerRoutes(), ...createCartRoutes(), ...createOrderRoutes(), ...createInventoryRoutes(), ...createDeliveryRoutes(), ...createSupplierAdminRoutes(), ...createPaymentRoutes(), ...createSettingsRoutes(), ...createNotificationRoutes(), ...createSupportRoutes(), ...createReportsRoutes(), ...createAuditRoutes(), ...createEducationRoutes()];
+  const routes = [...createSystemRoutes(), ...createAuthRoutes(), ...createUserRoutes(), ...createRoleRoutes(), ...createPermissionRoutes(), ...createProductRoutes(), ...createCustomerRoutes(), ...createCartRoutes(), ...createOrderRoutes(), ...createInventoryRoutes(), ...createDeliveryRoutes(), ...createSupplierAdminRoutes(), ...createPaymentRoutes(), ...createSettingsRoutes(), ...createNotificationRoutes(), ...createSupportRoutes(), ...createReportsRoutes(), ...createAuditRoutes(), ...createEducationRoutes(), ...createAssistantRoutes()];
   for (const route of routes) {
     registry.register(route);
   }
