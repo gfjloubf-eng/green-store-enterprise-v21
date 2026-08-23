@@ -84,8 +84,8 @@ async function callModel(message: string, history: ChatInput['history'], product
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 8000);
   try {
-    // New Google AI Studio authorization keys (AQ.*) are most reliable on the native Gemini REST API.
-    if (normalizedApiKey.startsWith('AQ.')) {
+    // An explicit GEMINI_API_KEY always uses Google's native REST API, regardless of key format.
+    if (process.env.GEMINI_API_KEY) {
       const nativeBase = (process.env.GEMINI_NATIVE_API_BASE || 'https://generativelanguage.googleapis.com').replace(/\/$/, '');
       const nativeMessages = [...safeHistory, { role: 'user' as const, content: message }];
       const response = await fetch(`${nativeBase}/v1beta/models/${encodeURIComponent(model)}:generateContent`, {

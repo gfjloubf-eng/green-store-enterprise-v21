@@ -10432,7 +10432,7 @@ async function callModel(message, history, products) {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 8e3);
   try {
-    if (normalizedApiKey.startsWith("AQ.")) {
+    if (process.env.GEMINI_API_KEY) {
       const nativeBase = (process.env.GEMINI_NATIVE_API_BASE || "https://generativelanguage.googleapis.com").replace(/\/$/, "");
       const nativeMessages = [...safeHistory, { role: "user", content: message }];
       const response2 = await fetch(`${nativeBase}/v1beta/models/${encodeURIComponent(model)}:generateContent`, {
