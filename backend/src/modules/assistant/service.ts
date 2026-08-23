@@ -65,8 +65,9 @@ async function loadProducts(): Promise<ProductContext[]> {
 
 async function callModel(message: string, history: ChatInput['history'], products: ProductContext[]): Promise<{ content: string; model: string; provider: 'google_gemini' | 'configured_ai' } | null> {
   const apiKey = process.env.GEMINI_API_KEY || process.env.BUILT_IN_FORGE_API_KEY || process.env.OPENAI_API_KEY;
+  const normalizedApiKey = apiKey?.trim();
   const baseUrl = (process.env.GEMINI_API_BASE || process.env.BUILT_IN_FORGE_API_URL || process.env.OPENAI_API_BASE || '').replace(/\/$/, '');
-  if (!apiKey || !baseUrl) return null;
+  if (!normalizedApiKey || !baseUrl) return null;
   const model = process.env.ASSISTANT_MODEL || process.env.GEMINI_MODEL || 'gemini-2.5-flash';
   const provider = baseUrl.includes('generativelanguage.googleapis.com') || Boolean(process.env.GEMINI_API_KEY || process.env.GEMINI_API_BASE) ? 'google_gemini' : 'configured_ai';
 
@@ -84,12 +85,12 @@ async function callModel(message: string, history: ChatInput['history'], product
   const timeout = setTimeout(() => controller.abort(), 8000);
   try {
     // New Google AI Studio authorization keys (AQ.*) are most reliable on the native Gemini REST API.
-    if (apiKey.startsWith('AQ.')) {
+    if (normalizedApiKey.startsWith('AQ.')) {
       const nativeBase = (process.env.GEMINI_NATIVE_API_BASE || 'https://generativelanguage.googleapis.com').replace(/\/$/, '');
       const nativeMessages = [...safeHistory, { role: 'user' as const, content: message }];
       const response = await fetch(`${nativeBase}/v1beta/models/${encodeURIComponent(model)}:generateContent`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'x-goog-api-key': apiKey },
+        headers: { 'Content-Type': 'application/json', 'x-goog-api-key': normalizedApiKey },
         body: JSON.stringify({
           systemInstruction: { parts: [{ text: system }] },
           contents: nativeMessages.map((item) => ({ role: item.role === 'assistant' ? 'model' : 'user', parts: [{ text: item.content }] })),
@@ -97,7 +98,10 @@ async function callModel(message: string, history: ChatInput['history'], product
         }),
         signal: controller.signal,
       });
-      if (!response.ok) return null;
+      if (!response.ok) {
+        console.error('[assistant] Gemini request failed', { status: response.status, model });
+        return null;
+      }
       const payload = await response.json() as any;
       const content = payload?.candidates?.[0]?.content?.parts?.map((part: any) => part?.text).filter(Boolean).join(' ');
       return typeof content === 'string' && content.trim() ? { content: cleanText(content, 1600), model, provider: 'google_gemini' } : null;
@@ -105,7 +109,7 @@ async function callModel(message: string, history: ChatInput['history'], product
 
     const response = await fetch(`${baseUrl}/chat/completions`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${normalizedApiKey}` },
       body: JSON.stringify({
         model,
         temperature: 0.2,
@@ -114,11 +118,15 @@ async function callModel(message: string, history: ChatInput['history'], product
       }),
       signal: controller.signal,
     });
-    if (!response.ok) return null;
+    if (!response.ok) {
+      console.error('[assistant] model request failed', { status: response.status, provider, model });
+      return null;
+    }
     const payload = await response.json() as any;
     const content = payload?.choices?.[0]?.message?.content;
     return typeof content === 'string' && content.trim() ? { content: cleanText(content, 1600), model, provider } : null;
-  } catch {
+  } catch (error: any) {
+    console.error('[assistant] model request exception', { name: error?.name || 'unknown', provider, model });
     return null;
   } finally {
     clearTimeout(timeout);

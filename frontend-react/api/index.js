@@ -10415,8 +10415,9 @@ async function loadProducts() {
 }
 async function callModel(message, history, products) {
   const apiKey = process.env.GEMINI_API_KEY || process.env.BUILT_IN_FORGE_API_KEY || process.env.OPENAI_API_KEY;
+  const normalizedApiKey = apiKey?.trim();
   const baseUrl = (process.env.GEMINI_API_BASE || process.env.BUILT_IN_FORGE_API_URL || process.env.OPENAI_API_BASE || "").replace(/\/$/, "");
-  if (!apiKey || !baseUrl) return null;
+  if (!normalizedApiKey || !baseUrl) return null;
   const model = process.env.ASSISTANT_MODEL || process.env.GEMINI_MODEL || "gemini-2.5-flash";
   const provider = baseUrl.includes("generativelanguage.googleapis.com") || Boolean(process.env.GEMINI_API_KEY || process.env.GEMINI_API_BASE) ? "google_gemini" : "configured_ai";
   const productContext = products.map((product) => ({
@@ -10431,12 +10432,12 @@ async function callModel(message, history, products) {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 8e3);
   try {
-    if (apiKey.startsWith("AQ.")) {
+    if (normalizedApiKey.startsWith("AQ.")) {
       const nativeBase = (process.env.GEMINI_NATIVE_API_BASE || "https://generativelanguage.googleapis.com").replace(/\/$/, "");
       const nativeMessages = [...safeHistory, { role: "user", content: message }];
       const response2 = await fetch(`${nativeBase}/v1beta/models/${encodeURIComponent(model)}:generateContent`, {
         method: "POST",
-        headers: { "Content-Type": "application/json", "x-goog-api-key": apiKey },
+        headers: { "Content-Type": "application/json", "x-goog-api-key": normalizedApiKey },
         body: JSON.stringify({
           systemInstruction: { parts: [{ text: system }] },
           contents: nativeMessages.map((item) => ({ role: item.role === "assistant" ? "model" : "user", parts: [{ text: item.content }] })),
@@ -10444,14 +10445,17 @@ async function callModel(message, history, products) {
         }),
         signal: controller.signal
       });
-      if (!response2.ok) return null;
+      if (!response2.ok) {
+        console.error("[assistant] Gemini request failed", { status: response2.status, model });
+        return null;
+      }
       const payload2 = await response2.json();
       const content2 = payload2?.candidates?.[0]?.content?.parts?.map((part) => part?.text).filter(Boolean).join(" ");
       return typeof content2 === "string" && content2.trim() ? { content: cleanText(content2, 1600), model, provider: "google_gemini" } : null;
     }
     const response = await fetch(`${baseUrl}/chat/completions`, {
       method: "POST",
-      headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` },
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${normalizedApiKey}` },
       body: JSON.stringify({
         model,
         temperature: 0.2,
@@ -10460,11 +10464,15 @@ async function callModel(message, history, products) {
       }),
       signal: controller.signal
     });
-    if (!response.ok) return null;
+    if (!response.ok) {
+      console.error("[assistant] model request failed", { status: response.status, provider, model });
+      return null;
+    }
     const payload = await response.json();
     const content = payload?.choices?.[0]?.message?.content;
     return typeof content === "string" && content.trim() ? { content: cleanText(content, 1600), model, provider } : null;
-  } catch {
+  } catch (error) {
+    console.error("[assistant] model request exception", { name: error?.name || "unknown", provider, model });
     return null;
   } finally {
     clearTimeout(timeout);
