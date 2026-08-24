@@ -7,6 +7,22 @@ import type { ProductFormData } from '../../types/productForm';
 import { compressProductImage, formatImageSize } from '../../utils/compressProductImage';
 import { ProductService } from '../../services/productService';
 
+function imageUploadErrorMessage(error: unknown): string {
+  const code = error instanceof Error ? error.message : String(error || 'image_processing_failed');
+  const messages: Record<string, string> = {
+    image_type_invalid: 'صيغة الصورة غير مدعومة. استخدم JPG أو PNG أو WebP.',
+    image_too_large: 'الصورة الأصلية أكبر من 8MB. اختر صورة أصغر.',
+    image_decode_failed: 'تعذر قراءة الصورة في المتصفح. جرّب صورة أخرى أو افتح الصفحة مجدداً.',
+    image_canvas_unavailable: 'المتصفح لا يستطيع تجهيز الصورة حالياً.',
+    storage_not_configured: 'إعدادات التخزين غير مفعلة في الخادم.',
+    authentication_required: 'انتهت جلسة الأدمن. سجّل الدخول ثم أعد المحاولة.',
+    authorization_denied: 'الحساب لا يملك صلاحية رفع صور المنتجات.',
+    storage_upload_invalid_response: 'الخادم لم يُرجع رابط الصورة الدائم.',
+  };
+  const matched = Object.keys(messages).find((key) => code.includes(key));
+  return matched ? messages[matched] : `تعذر رفع الصورة: ${code}`;
+}
+
 interface MediaSectionProps {
   data: ProductFormData;
   onChange: (field: 'imageUrl' | 'imageAltText', value: string) => void;
@@ -40,7 +56,7 @@ export function MediaSection({ data, onChange }: MediaSectionProps) {
       onChange('imageUrl', uploaded.url);
       if (!data.imageAltText.trim()) onChange('imageAltText', data.productName.trim());
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'image_processing_failed');
+      setError(imageUploadErrorMessage(err));
     } finally {
       setBusy(false);
     }
@@ -100,7 +116,7 @@ export function MediaSection({ data, onChange }: MediaSectionProps) {
             النص البديل للصورة
             <input value={data.imageAltText} onChange={(e) => onChange('imageAltText', e.target.value)} className="gsd-input" placeholder="مثال: جزر طازج" maxLength={255} />
           </label>
-          {error && <p className="text-xs [color:var(--gs-danger)]" role="alert">تعذر تجهيز الصورة: {error}</p>}
+          {error && <p className="text-xs [color:var(--gs-danger)]" role="alert">{error}</p>}
         </div>
       </div>
     </fieldset>
