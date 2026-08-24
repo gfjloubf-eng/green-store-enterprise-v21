@@ -82,9 +82,10 @@ export class ProductService extends BaseService implements ProductServiceContrac
   }
 
   private validateOptionalFields(payload: Record<string, unknown>, update = false): void {
-    const stringFields = ['sku', 'name', 'slug', 'description', 'brandId', 'unitId', 'categoryId', 'subcategoryId', 'produceKey', 'familyId', 'imageUrl', 'imageAltText'];
+    const stringFields = ['sku', 'barcode', 'name', 'slug', 'description', 'brandId', 'unitId', 'categoryId', 'subcategoryId', 'produceKey', 'familyId', 'imageUrl', 'imageAltText'];
     const maxLengths: Record<string, number> = {
       sku: 100,
+      barcode: 32,
       name: 255,
       slug: 255,
       description: 5000,
@@ -129,7 +130,7 @@ export class ProductService extends BaseService implements ProductServiceContrac
   }
 
   private toPersistencePayload(payload: Record<string, unknown>, update = false): Record<string, unknown> {
-    const fields = ['sku', 'produceKey', 'familyId', 'name', 'slug', 'description', 'brandId', 'unitId', 'categoryId', 'subcategoryId', 'imageUrl', 'imageAltText', 'isPublished'];
+    const fields = ['sku', 'barcode', 'produceKey', 'familyId', 'name', 'slug', 'description', 'brandId', 'unitId', 'categoryId', 'subcategoryId', 'imageUrl', 'imageAltText', 'isPublished'];
     const result: Record<string, unknown> = {};
     for (const field of fields) {
       if (payload[field] !== undefined) {

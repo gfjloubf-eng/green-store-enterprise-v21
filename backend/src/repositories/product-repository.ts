@@ -23,8 +23,8 @@ export class ProductRepository extends BaseRepository implements ProductReposito
     return ((await this.model.findFirst({ where })) as Product | null) ?? null;
   }
 
-  async create(data: Partial<Product>): Promise<Product> {
-    const { imageUrl, imageAltText, ...productData } = data as Partial<Product> & Record<string, unknown>;
+  async create(data: Partial<Product> & { barcode?: string }): Promise<Product> {
+    const { imageUrl, imageAltText, barcode, ...productData } = data as Partial<Product> & Record<string, unknown>;
     const created = await this.model.create({
       data: productData,
       include: { images: { orderBy: { sortOrder: 'asc' } } },
@@ -39,16 +39,36 @@ export class ProductRepository extends BaseRepository implements ProductReposito
         },
       });
     }
+    if (typeof barcode === 'string' && barcode.trim()) {
+      await this.client.productVariant.create({
+        data: {
+          productId: created.id,
+          sku: typeof productData.sku === 'string' ? `${productData.sku.trim()}-DEFAULT` : undefined,
+          barcode: barcode.trim(),
+          name: created.name,
+          price: 0,
+        },
+      });
+    }
     return this.findById(created.id) as Promise<Product>;
   }
 
-  async update(id: string, data: Partial<Product>): Promise<Product> {
+  async update(id: string, data: Partial<Product> & { barcode?: string }): Promise<Product> {
     const hasImageUpdate = Object.prototype.hasOwnProperty.call(data, 'imageUrl');
-    const { imageUrl, imageAltText, ...productData } = data as Partial<Product> & Record<string, unknown>;
+    const hasBarcodeUpdate = Object.prototype.hasOwnProperty.call(data, 'barcode');
+    const { imageUrl, imageAltText, barcode, ...productData } = data as Partial<Product> & Record<string, unknown>;
     const updated = await this.model.update({
       where: { id },
       data: productData,
     });
+    if (hasBarcodeUpdate) {
+      const existingVariant = await this.client.productVariant.findFirst({ where: { productId: id } });
+      if (existingVariant) {
+        await this.client.productVariant.update({ where: { id: existingVariant.id }, data: { barcode: typeof barcode === 'string' ? barcode.trim() : null } });
+      } else if (typeof barcode === 'string' && barcode.trim()) {
+        await this.client.productVariant.create({ data: { productId: id, barcode: barcode.trim(), name: updated.name, price: 0 } });
+      }
+    }
     if (hasImageUpdate) {
       await this.client.productImage.deleteMany({ where: { productId: id } });
       if (typeof imageUrl === 'string' && imageUrl.trim()) {

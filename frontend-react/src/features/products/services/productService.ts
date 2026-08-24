@@ -253,6 +253,7 @@ export const ProductService = {
         slug: data.produceKey.trim(),
         produceKey: data.produceKey.trim(),
         sku: data.sku.trim(),
+        barcode: data.barcode?.trim() || undefined,
         description: data.description?.trim() || undefined,
         imageUrl: data.imageUrl || undefined,
         imageAltText: data.imageAltText?.trim() || data.name.trim(),
@@ -288,6 +289,7 @@ export const ProductService = {
     name?: string;
     produceKey?: string;
     sku?: string;
+    barcode?: string;
     description?: string;
     imageUrl?: string;
     imageAltText?: string;
@@ -299,6 +301,7 @@ export const ProductService = {
     if (!isAuthorizedStaffOrAdmin()) throw new Error('غير مصرح: هذه العملية تتطلب صلاحيات إدارة المتجر');
     const { fetchWithAuth } = await import('@/services/authClient');
     const body: Record<string, unknown> = { ...data };
+    if (typeof body.barcode === 'string') body.barcode = body.barcode.trim();
     if (typeof body.produceKey === 'string') {
       body.slug = body.produceKey.trim();
       body.produceKey = body.produceKey.trim();

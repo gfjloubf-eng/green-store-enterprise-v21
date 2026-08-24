@@ -20,6 +20,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const permissionsList = Array.isArray(raw.permissions) ? raw.permissions : [];
 
     setStoredUserRole(primaryRole, true);
+    try {
+      window.localStorage.setItem('gs_user_cache', JSON.stringify(raw));
+    } catch {}
 
     return {
       id: String(raw.id ?? raw.sub ?? '0'),
@@ -91,8 +94,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUser(null);
         setStatus('unauthenticated');
       } else {
-        // On network error, don't clear tokens, just set status to unauthenticated for now
-        // so the user can try again later without being forced to login
+        // Preserve the authenticated UI during temporary network failures after refresh.
+        // The access/refresh tokens remain the source of truth for API authorization.
+        try {
+          const cached = window.localStorage.getItem('gs_user_cache');
+          if (cached && getStoredAccessToken()) {
+            setUser(normalizeUser(JSON.parse(cached)));
+            setStatus('authenticated');
+            return;
+          }
+        } catch {}
         setUser(null);
         setStatus('unauthenticated');
       }
@@ -131,8 +142,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           const current = await getCurrentUser();
           setUser(normalizeUser(current, identifier));
         } catch {
-          if ((result as any).user) {
-            setUser(normalizeUser((result as any).user, identifier));
+          if (result && result.user) {
+            setUser(normalizeUser(result.user, identifier));
           } else {
             setUser({ id: '0', email: identifier, name: identifier, role: 'USER', roles: ['USER'], permissions: [] });
           }
