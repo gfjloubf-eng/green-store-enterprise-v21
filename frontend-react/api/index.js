@@ -3789,7 +3789,7 @@ var ProductRepository = class extends base_repository_default {
     return await this.model.findFirst({ where }) ?? null;
   }
   async create(data) {
-    const { imageUrl, imageAltText, ...productData } = data;
+    const { imageUrl, imageAltText, barcode, ...productData } = data;
     const created2 = await this.model.create({
       data: productData,
       include: { images: { orderBy: { sortOrder: "asc" } } }
@@ -3804,15 +3804,35 @@ var ProductRepository = class extends base_repository_default {
         }
       });
     }
+    if (typeof barcode === "string" && barcode.trim()) {
+      await this.client.productVariant.create({
+        data: {
+          productId: created2.id,
+          sku: typeof productData.sku === "string" ? `${productData.sku.trim()}-DEFAULT` : void 0,
+          barcode: barcode.trim(),
+          name: created2.name,
+          price: 0
+        }
+      });
+    }
     return this.findById(created2.id);
   }
   async update(id, data) {
     const hasImageUpdate = Object.prototype.hasOwnProperty.call(data, "imageUrl");
-    const { imageUrl, imageAltText, ...productData } = data;
+    const hasBarcodeUpdate = Object.prototype.hasOwnProperty.call(data, "barcode");
+    const { imageUrl, imageAltText, barcode, ...productData } = data;
     const updated = await this.model.update({
       where: { id },
       data: productData
     });
+    if (hasBarcodeUpdate) {
+      const existingVariant = await this.client.productVariant.findFirst({ where: { productId: id } });
+      if (existingVariant) {
+        await this.client.productVariant.update({ where: { id: existingVariant.id }, data: { barcode: typeof barcode === "string" ? barcode.trim() : null } });
+      } else if (typeof barcode === "string" && barcode.trim()) {
+        await this.client.productVariant.create({ data: { productId: id, barcode: barcode.trim(), name: updated.name, price: 0 } });
+      }
+    }
     if (hasImageUpdate) {
       await this.client.productImage.deleteMany({ where: { productId: id } });
       if (typeof imageUrl === "string" && imageUrl.trim()) {
@@ -5463,9 +5483,10 @@ var ProductService = class extends base_service_default {
     if (!await this.productRepo.findById(id)) throw new NotFoundException("product_not_found");
   }
   validateOptionalFields(payload, update = false) {
-    const stringFields = ["sku", "name", "slug", "description", "brandId", "unitId", "categoryId", "subcategoryId", "produceKey", "familyId", "imageUrl", "imageAltText"];
+    const stringFields = ["sku", "barcode", "name", "slug", "description", "brandId", "unitId", "categoryId", "subcategoryId", "produceKey", "familyId", "imageUrl", "imageAltText"];
     const maxLengths = {
       sku: 100,
+      barcode: 32,
       name: 255,
       slug: 255,
       description: 5e3,
@@ -5509,7 +5530,7 @@ var ProductService = class extends base_service_default {
     }
   }
   toPersistencePayload(payload, update = false) {
-    const fields = ["sku", "produceKey", "familyId", "name", "slug", "description", "brandId", "unitId", "categoryId", "subcategoryId", "imageUrl", "imageAltText", "isPublished"];
+    const fields = ["sku", "barcode", "produceKey", "familyId", "name", "slug", "description", "brandId", "unitId", "categoryId", "subcategoryId", "imageUrl", "imageAltText", "isPublished"];
     const result = {};
     for (const field of fields) {
       if (payload[field] !== void 0) {
