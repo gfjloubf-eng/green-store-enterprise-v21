@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react';
-import { Settings as SettingsIcon, Store, PhoneCall, DollarSign, ShieldAlert, Globe, Save, CheckCircle2, AlertCircle, Check, Sun, Moon, Palette } from 'lucide-react';
+import { Settings as SettingsIcon, Store, PhoneCall, DollarSign, ShieldAlert, Globe, Save, CheckCircle2, AlertCircle, Check, Sun, Moon, Palette, Upload, LoaderCircle } from 'lucide-react';
 import { getAdminSettings, updateAdminSettings, getPublicSettings } from '@/services/settingsClient';
 import { useRTL } from '@/hooks/useRTL';
 import { useTheme } from '@/hooks/useTheme';
+import { compressProductImage } from '@/features/products/utils/compressProductImage';
+import { ProductService } from '@/features/products/services/productService';
 
 const DEFAULT_SETTINGS: Record<string, string> = {
   store_name: 'قطوف الطبيعة (Qutoof Nature)',
@@ -30,6 +32,7 @@ export function SettingsPage() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [logoUploading, setLogoUploading] = useState(false);
 
   const canEdit = true;
 
@@ -71,6 +74,22 @@ export function SettingsPage() {
 
   const handleChange = (key: string, value: string) => {
     setSettings((prev) => ({ ...prev, [key]: value }));
+  };
+
+  const handleLogoUpload = async (file: File | undefined) => {
+    if (!file) return;
+    setLogoUploading(true);
+    setError(null);
+    try {
+      const compressed = await compressProductImage(file);
+      const uploaded = await ProductService.uploadImage(compressed.dataUrl, 'business-logo');
+      handleChange('business_logo_url', uploaded.url);
+      setSuccess('تم رفع شعار الشركة بنجاح. اضغط حفظ الإعدادات لتثبيته.');
+    } catch (err: any) {
+      setError(err?.message || 'تعذر رفع شعار الشركة');
+    } finally {
+      setLogoUploading(false);
+    }
   };
 
   const handleSave = async (e: React.FormEvent) => {
@@ -252,8 +271,16 @@ export function SettingsPage() {
           <div className="grid gap-4 sm:grid-cols-3 max-w-2xl text-xs">
             <div className="space-y-1 sm:col-span-3">
               <label className="font-bold text-[var(--gs-foreground)] block">رابط صورة العمل أو الشعار (اختياري)</label>
-              <input type="url" disabled={!canEdit} value={settings.business_logo_url ?? ''} onChange={(e) => handleChange('business_logo_url', e.target.value)} className="gsd-input w-full p-3 rounded-2xl border border-[var(--gs-border)] bg-[var(--gs-background)]" placeholder="https://..." />
-              <p className="text-[10px] text-[var(--gs-foreground-muted)]">اتركه فارغاً إذا لم ترغب بإظهار الشعار. يمكن استخدام رابط صورة مرفوعة إلى التخزين الدائم.</p>
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+                <input type="url" disabled={!canEdit} value={settings.business_logo_url ?? ''} onChange={(e) => handleChange('business_logo_url', e.target.value)} className="gsd-input min-w-0 flex-1 p-3 rounded-2xl border border-[var(--gs-border)] bg-[var(--gs-background)]" placeholder="رابط اختياري" />
+                <label className={`gsd-btn gsd-btn--secondary inline-flex shrink-0 cursor-pointer items-center justify-center gap-2 rounded-2xl px-4 py-3 ${logoUploading ? 'pointer-events-none opacity-60' : ''}`}>
+                  {logoUploading ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
+                  {logoUploading ? 'جارٍ الرفع...' : 'رفع من الجهاز'}
+                  <input type="file" accept="image/jpeg,image/png,image/webp" disabled={!canEdit || logoUploading} className="sr-only" onChange={(e) => { void handleLogoUpload(e.target.files?.[0]); e.currentTarget.value = ''; }} />
+                </label>
+              </div>
+              {settings.business_logo_url && <img src={settings.business_logo_url} alt="شعار الشركة" className="h-20 w-20 rounded-2xl border border-[var(--gs-border)] object-contain p-2" />}
+              <p className="text-[10px] text-[var(--gs-foreground-muted)]">الصورة اختيارية. سيتم ضغطها قبل الرفع وحفظ الرابط الدائم فقط.</p>
             </div>
             <div className="space-y-1">
               <label className="font-bold text-[var(--gs-foreground)] block">العملة الرسمية للمتجر (Store Currency) *</label>

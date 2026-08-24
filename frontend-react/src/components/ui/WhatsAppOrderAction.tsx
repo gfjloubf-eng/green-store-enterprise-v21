@@ -44,7 +44,7 @@ export function WhatsAppOrderAction({
     }
     const details = getMessage(target).trim();
     const invoiceLine = reference?.orderCode
-      ? `\n\n🧾 رقم الطلب: ${reference.orderCode}${reference.invoiceNumber ? `\nرقم الفاتورة: ${reference.invoiceNumber}` : ''}\nالشركة: قطوف الطبيعة`
+      ? `\n\n🧾 رقم العملية/الطلب: ${reference.orderCode}${reference.invoiceNumber ? `\nرقم الفاتورة: ${reference.invoiceNumber}` : ''}\nالشركة: قطوف الطبيعة\nرقم الشركة: +${WHATSAPP_CONTACTS[target].fullNumber}`
       : '';
     const welcome = buildWhatsAppWelcomeMessage(target);
     
