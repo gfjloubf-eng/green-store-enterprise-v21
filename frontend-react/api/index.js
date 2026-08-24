@@ -7252,7 +7252,7 @@ function parseDataUrl(value) {
 async function uploadProductImage(request4) {
   const body = request4.body ?? {};
   const { contentType, bytes } = parseDataUrl(body.dataUrl);
-  const baseUrl = String(process.env.SUPABASE_URL ?? "").replace(/\/+$/, "");
+  const baseUrl = String(process.env.SUPABASE_URL ?? "").trim().replace(/\/+$/, "").replace(/\/rest\/v1$/i, "");
   const serviceRoleKey = String(process.env.SUPABASE_SERVICE_ROLE_KEY ?? "").trim();
   const bucket = cleanSegment(process.env.SUPABASE_STORAGE_BUCKET, "product-images");
   if (!baseUrl || !serviceRoleKey) throw new Error("storage_not_configured");
