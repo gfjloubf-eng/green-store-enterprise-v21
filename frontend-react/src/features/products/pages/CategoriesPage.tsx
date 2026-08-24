@@ -16,7 +16,13 @@ export function CategoriesPage() {
   const { t } = useI18n();
   const categories = useMemo<CategorySummary[]>(() => {
     const grouped = new Map<string, CategorySummary>();
-    for (const product of ProductService.getAll()) {
+    let products = [] as ReturnType<typeof ProductService.getAll>;
+    try {
+      products = ProductService.getAll();
+    } catch {
+      products = [];
+    }
+    for (const product of products) {
       const category = product.category;
       const id = String(category?.id || category?.slug || 'general');
       const name = String(category?.name || 'عام');
@@ -24,6 +30,14 @@ export function CategoriesPage() {
       const current = grouped.get(id);
       if (current) current.count += 1;
       else grouped.set(id, { id, name, slug, count: 1 });
+    }
+    if (grouped.size === 0) {
+      for (const fallback of [
+        { id: 'fruits', name: 'الفواكه', slug: 'fruits' },
+        { id: 'vegetables', name: 'الخضروات', slug: 'vegetables' },
+        { id: 'dates', name: 'التمور', slug: 'dates' },
+        { id: 'natural-products', name: 'المنتجات الطبيعية', slug: 'natural-products' },
+      ]) grouped.set(fallback.id, { ...fallback, count: 0 });
     }
     return Array.from(grouped.values()).sort((a, b) => b.count - a.count || a.name.localeCompare(b.name, 'ar'));
   }, []);
