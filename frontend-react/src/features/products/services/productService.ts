@@ -30,6 +30,7 @@ import { toTableModelList, type ProductTableModel } from '../domain/productTable
 import { MOCK_PRODUCTS } from '../mock/products';
 
 import { isAuthorizedStaffOrAdmin, getApiBase, parseJsonSafe } from '@/services/authClient';
+import { readPublicCatalogCache, writePublicCatalogCache } from '@/services/publicCatalogCache';
 
 /* ─── Backend DTO Mapper (Read-Only) ────────────────────────── */
 
@@ -178,14 +179,16 @@ export const ProductService = {
         if (list && list.length > 0) {
           for (const item of list) {
             const entity = mapBackendProductToEntity(item);
-            if (entity.id && entity.name) {
-              store.add(entity);
-            }
+            if (entity.id && entity.name) store.add(entity);
           }
+          writePublicCatalogCache(toDTOList(store.getAll()));
         }
       }
     } catch {
-      // Safe fallback: Local store remains active
+      const cached = readPublicCatalogCache();
+      if (cached && cached.length > 0) {
+        for (const item of cached) store.add(mapBackendProductToEntity(item));
+      }
     }
     return toDTOList(store.getAll());
   },
