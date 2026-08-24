@@ -41,6 +41,10 @@ function normalizeSearch(value: string): string {
   return value.toLowerCase().replace(/[إأآ]/g, 'ا').replace(/ة/g, 'ه').replace(/ى/g, 'ي').replace(/[ًٌٍَُِّْـ]/g, '').trim();
 }
 
+function isPlaceholderProduct(product: ProductContext): boolean {
+  return /\b(test|phase|concurrency|demo|sample)\b/i.test(`${product.name} ${product.slug ?? ''}`);
+}
+
 function formatProduct(product: ProductContext): string {
   const price = product.price != null ? ` — ${product.price} ر.ي` : ' — السعر غير مسجل حالياً';
   const unit = product.unit ? ` / ${product.unit}` : '';
@@ -64,9 +68,10 @@ function fallbackReply(message: string, products: ProductContext[]): string {
   }
 
   if (wantsProducts) {
-    const listSource = products.length > 0 ? products : STATIC_FALLBACK_PRODUCTS;
+    const realProducts = products.filter((product) => !isPlaceholderProduct(product));
+    const listSource = realProducts.length > 0 ? realProducts : STATIC_FALLBACK_PRODUCTS;
     const list = listSource.slice(0, 30).map((product, index) => `${index + 1}. ${formatProduct(product)}`).join('؛ ');
-    const sourceNote = products.length > 0 ? 'الأسعار والتوفر مأخوذان من بيانات المتجر الحالية.' : 'هذه أسماء إرشادية احتياطية؛ تحقق من السعر والتوفر داخل المتجر قبل الطلب.';
+    const sourceNote = realProducts.length > 0 ? 'الأسعار والتوفر مأخوذان من بيانات المتجر الحالية.' : 'هذه أسماء إرشادية احتياطية؛ بيانات الاختبار غير معروضة للمستخدم. تحقق من السعر والتوفر داخل المتجر قبل الطلب.';
     return `هذه المنتجات الموجودة في قطوف: ${list}. ${sourceNote}`.slice(0, 1700);
   }
 
