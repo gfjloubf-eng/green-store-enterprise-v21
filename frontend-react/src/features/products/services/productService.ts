@@ -145,6 +145,9 @@ class ProductStore {
 /* ─── Singleton Store Instance ─────────────────────────────── */
 
 const store = new ProductStore();
+let syncInFlight: Promise<ProductDTO[]> | null = null;
+let lastSyncAt = 0;
+const BACKEND_SYNC_TTL_MS = 60 * 1000;
 
 /* ─── ProductService ───────────────────────────────────────── */
 
@@ -171,26 +174,37 @@ export const ProductService = {
    * Async fetch all products from Backend API with local fallback.
    */
   async syncAllFromBackend(): Promise<ProductDTO[]> {
-    try {
-      const res = await fetch(`${getApiBase()}/products`);
-      if (res.ok) {
-        const payload = await parseJsonSafe(res);
-        const list = Array.isArray(payload) ? payload : (Array.isArray(payload?.data) ? payload.data : null);
-        if (list && list.length > 0) {
-          for (const item of list) {
-            const entity = mapBackendProductToEntity(item);
-            if (entity.id && entity.name) store.add(entity);
+    const now = Date.now();
+    if (syncInFlight) return syncInFlight;
+    if (now - lastSyncAt < BACKEND_SYNC_TTL_MS) return toDTOList(store.getAll());
+
+    syncInFlight = (async () => {
+      try {
+        const res = await fetch(`${getApiBase()}/products`);
+        if (res.ok) {
+          const payload = await parseJsonSafe(res);
+          const list = Array.isArray(payload) ? payload : (Array.isArray(payload?.data) ? payload.data : null);
+          if (list && list.length > 0) {
+            for (const item of list) {
+              const entity = mapBackendProductToEntity(item);
+              if (entity.id && entity.name) store.add(entity);
+            }
+            writePublicCatalogCache(toDTOList(store.getAll()));
           }
-          writePublicCatalogCache(toDTOList(store.getAll()));
         }
+      } catch {
+        const cached = readPublicCatalogCache();
+        if (cached && cached.length > 0) {
+          for (const item of cached) store.add(mapBackendProductToEntity(item));
+        }
+      } finally {
+        lastSyncAt = Date.now();
+        syncInFlight = null;
       }
-    } catch {
-      const cached = readPublicCatalogCache();
-      if (cached && cached.length > 0) {
-        for (const item of cached) store.add(mapBackendProductToEntity(item));
-      }
-    }
-    return toDTOList(store.getAll());
+      return toDTOList(store.getAll());
+    })();
+
+    return syncInFlight;
   },
 
   /**
