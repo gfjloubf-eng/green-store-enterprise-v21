@@ -38,7 +38,18 @@ export async function uploadProductImage(request: ControllerRequest): Promise<{ 
     },
     body: bytes as unknown as BodyInit,
   });
-  if (!response.ok) throw new Error(`storage_upload_failed_${response.status}`);
+  if (!response.ok) {
+    const rawDetails = await response.text().catch(() => '');
+    let detail = '';
+    try {
+      const parsed = JSON.parse(rawDetails) as { message?: string; error?: string; statusCode?: string };
+      detail = String(parsed.message || parsed.error || parsed.statusCode || '');
+    } catch {
+      detail = rawDetails;
+    }
+    const safeDetail = detail.replace(/[^a-zA-Z0-9_ .:-]/g, '').slice(0, 160);
+    throw new Error(`storage_upload_failed_${response.status}${safeDetail ? `:${safeDetail}` : ''}`);
+  }
   return {
     path,
     url: `${baseUrl}/storage/v1/object/public/${encodeURIComponent(bucket)}/${path}`,
