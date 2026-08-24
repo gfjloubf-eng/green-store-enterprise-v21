@@ -10,6 +10,9 @@ const DEFAULT_SETTINGS: Record<string, string> = {
   contact_email: 'ggjloubf@gmail.com',
   contact_phone: '+967 712 275 038',
   support_phone: '+967 777 803 161',
+  notification_phone: '+967 712 275 038',
+  discount_phone: '+967 777 803 161',
+  business_logo_url: '',
   address: 'اليمن، صنعاء، شارع هائل',
   currency: 'YER',
   tax_percentage: '15',
@@ -221,6 +224,17 @@ export function SettingsPage() {
               />
             </div>
 
+            <div className="space-y-1">
+              <label className="font-bold text-[var(--gs-foreground)] block">رقم إشعارات الطلبات</label>
+              <input type="text" disabled={!canEdit} value={settings.notification_phone ?? ''} onChange={(e) => handleChange('notification_phone', e.target.value)} className="gsd-input w-full p-3 rounded-2xl border border-[var(--gs-border)] bg-[var(--gs-background)] font-mono" placeholder="+967..." />
+              <p className="text-[10px] text-[var(--gs-foreground-muted)]">يُستخدم للتنبيهات والتواصل الإداري.</p>
+            </div>
+            <div className="space-y-1">
+              <label className="font-bold text-[var(--gs-foreground)] block">رقم الخصومات والعروض</label>
+              <input type="text" disabled={!canEdit} value={settings.discount_phone ?? ''} onChange={(e) => handleChange('discount_phone', e.target.value)} className="gsd-input w-full p-3 rounded-2xl border border-[var(--gs-border)] bg-[var(--gs-background)] font-mono" placeholder="+967..." />
+              <p className="text-[10px] text-[var(--gs-foreground-muted)]">رقم منفصل لاستقبال استفسارات الخصم والعروض.</p>
+            </div>
+
             <div className="space-y-1 sm:col-span-2">
               <label className="font-bold text-[var(--gs-foreground)] block">عنوان المركز الرئيسي (Address)</label>
               <input
@@ -236,6 +250,11 @@ export function SettingsPage() {
 
         {activeTab === 'BUSINESS' && (
           <div className="grid gap-4 sm:grid-cols-3 max-w-2xl text-xs">
+            <div className="space-y-1 sm:col-span-3">
+              <label className="font-bold text-[var(--gs-foreground)] block">رابط صورة العمل أو الشعار (اختياري)</label>
+              <input type="url" disabled={!canEdit} value={settings.business_logo_url ?? ''} onChange={(e) => handleChange('business_logo_url', e.target.value)} className="gsd-input w-full p-3 rounded-2xl border border-[var(--gs-border)] bg-[var(--gs-background)]" placeholder="https://..." />
+              <p className="text-[10px] text-[var(--gs-foreground-muted)]">اتركه فارغاً إذا لم ترغب بإظهار الشعار. يمكن استخدام رابط صورة مرفوعة إلى التخزين الدائم.</p>
+            </div>
             <div className="space-y-1">
               <label className="font-bold text-[var(--gs-foreground)] block">العملة الرسمية للمتجر (Store Currency) *</label>
               <input

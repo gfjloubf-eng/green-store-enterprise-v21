@@ -80,6 +80,15 @@ export function ProductForm({ initialData, productId, isEdit = false, onSuccess,
   const currentErrors = useMemo(() => validateForm(formData), [formData]);
 
   useEffect(() => {
+    if (isEdit || formData.barcode.trim() || !formData.sku.trim()) return;
+    const digits = formData.sku.replace(/\D/g, '');
+    const seed = (digits || String(Date.now()).slice(-9)).padStart(9, '0').slice(-9);
+    const body = `200${seed}`;
+    const checksum = body.split('').reduce((sum, digit, index) => sum + Number(digit) * (index % 2 === 0 ? 1 : 3), 0);
+    setFormData((prev) => ({ ...prev, barcode: `${body}${(10 - (checksum % 10)) % 10}` }));
+  }, [formData.sku, formData.barcode, isEdit]);
+
+  useEffect(() => {
     setErrors(currentErrors);
   }, [currentErrors]);
 

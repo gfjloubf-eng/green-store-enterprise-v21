@@ -6,6 +6,9 @@ export interface PublicSettings {
   contactEmail: string;
   contactPhone: string;
   supportPhone: string;
+  notificationPhone?: string;
+  discountPhone?: string;
+  businessLogoUrl?: string;
   address: string;
   currency: string;
   taxPercentage: number;
