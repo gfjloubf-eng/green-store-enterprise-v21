@@ -8,6 +8,7 @@ import NotificationRepository from './notification-repository';
 
 export type OrderWithRelations = Order & {
   items: (OrderItem & { product?: Product | null })[];
+  invoices?: { id: string; orderId: string; number: string; issuedAt: Date; dueAt?: Date | null; total: number }[];
   customer?: { id: string; fullName: string; email?: string | null; phone?: string | null } | null;
 };
 
@@ -166,6 +167,15 @@ export class OrderRepository extends BaseRepository implements OrderRepositoryCo
         await invRepo.reserveStockForOrder(tx, pItem.productId, pItem.quantity, order.id, pItem.variantId);
       }
 
+      await tx.invoice.create({
+        data: {
+          orderId: order.id,
+          number: `INV-${code}`,
+          issuedAt: new Date(),
+          total,
+        },
+      });
+
       // Finalize Cart (Clear all items from customer cart)
       await tx.cartItem.deleteMany({
         where: { cartId: cart.id },
@@ -180,6 +190,7 @@ export class OrderRepository extends BaseRepository implements OrderRepositoryCo
           customer: {
             select: { id: true, fullName: true, email: true, phone: true },
           },
+          invoices: true,
         },
       });
     });
@@ -261,6 +272,7 @@ export class OrderRepository extends BaseRepository implements OrderRepositoryCo
           customer: {
             select: { id: true, fullName: true, email: true, phone: true },
           },
+          invoices: true,
         },
       }),
       this.client.order.count({ where }),
@@ -287,6 +299,7 @@ export class OrderRepository extends BaseRepository implements OrderRepositoryCo
         customer: {
           select: { id: true, fullName: true, email: true, phone: true },
         },
+        invoices: true,
       },
     });
 
@@ -342,6 +355,7 @@ export class OrderRepository extends BaseRepository implements OrderRepositoryCo
         include: {
           items: { include: { product: true } },
           customer: { select: { id: true, fullName: true, email: true, phone: true } },
+          invoices: true,
         },
       }) as Promise<OrderWithRelations>;
     });

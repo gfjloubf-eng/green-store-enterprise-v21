@@ -36,6 +36,7 @@ export interface Order {
   createdAt: string;
   updatedAt: string;
   items: OrderItem[];
+  invoices?: Array<{ id: string; number: string; total: number; issuedAt?: string }>;
   isLocal?: boolean;
   customer?: {
     id: string;
@@ -73,7 +74,8 @@ function saveLocalOrders(orders: Order[]): void {
   }
 }
 
-export async function createOrder(data?: { shippingAddressId?: string; notes?: string; idempotencyKey?: string }): Promise<Order> {
+export async function createOrder(data?: { shippingAddressId?: string; notes?: string; idempotencyKey?: string; allowLocalFallback?: boolean }): Promise<Order> {
+  const allowLocalFallback = data?.allowLocalFallback ?? true;
   const key = data?.idempotencyKey || `idem-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
   try {
     const res = await fetchWithAuth('/orders', {
@@ -103,8 +105,10 @@ export async function createOrder(data?: { shippingAddressId?: string; notes?: s
       throw err;
     }
     // Fallback below for offline/local environment
+    if (!allowLocalFallback) throw new Error('order_server_unavailable');
   }
 
+  if (!allowLocalFallback) throw new Error('order_server_unavailable');
   // Fallback: create order locally from current cart
   const { getCart, clearCart } = await import('./cartClient');
   const cart = await getCart();
@@ -179,6 +183,12 @@ function mapBackendOrderToOrder(item: any): Order {
     createdAt: String(item.createdAt || new Date().toISOString()),
     updatedAt: String(item.updatedAt || new Date().toISOString()),
     isLocal: Boolean(item.isLocal),
+    invoices: Array.isArray(item.invoices) ? item.invoices.map((invoice: any) => ({
+      id: String(invoice.id || ''),
+      number: String(invoice.number || ''),
+      total: Number(invoice.total || 0),
+      issuedAt: invoice.issuedAt || undefined,
+    })) : [],
     items: Array.isArray(item.items) ? item.items.map((i: any) => ({
       id: String(i.id || Math.random()),
       orderId: String(i.orderId || item.id || ''),

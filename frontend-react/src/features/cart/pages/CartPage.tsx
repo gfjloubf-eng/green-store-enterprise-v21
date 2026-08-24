@@ -7,6 +7,8 @@ import { useI18n } from '@/i18n/useI18n';
 import { StoreService } from '@/features/marketplace/services/storeService';
 import { WhatsAppOrderAction } from '@/components/ui/WhatsAppOrderAction';
 import { buildCartWhatsAppMessage } from '@/config/whatsapp';
+import { createOrder } from '@/services/orderClient';
+import { getStoredAccessToken } from '@/services/authClient';
 
 export function CartPage() {
   const navigate = useNavigate();
@@ -290,6 +292,19 @@ export function CartPage() {
                     cart?.grandTotal || 0
                   )
                 }
+                beforeOpen={async () => {
+                  if (!getStoredAccessToken()) {
+                    throw new Error('يرجى تسجيل الدخول أولاً حتى يتم حفظ الطلب في إدارة الطلبات.');
+                  }
+                  const order = await createOrder({ notes: 'طلب سريع عبر واتساب', allowLocalFallback: false });
+                  if (order.isLocal) {
+                    throw new Error('تعذر حفظ الطلب في الخادم. لم يتم فتح واتساب حتى لا يضيع الطلب من إدارة الطلبات.');
+                  }
+                  return {
+                    orderCode: order.code,
+                    invoiceNumber: order.invoices?.[0]?.number,
+                  };
+                }}
                 variant="dropdown"
                 buttonText="طلب سريع عبر واتساب"
               />

@@ -21,6 +21,7 @@ interface WhatsAppOrderActionProps {
   className?: string;
   variant?: 'buttons' | 'dropdown' | 'modal';
   buttonText?: string;
+  beforeOpen?: (target: WhatsAppTarget) => Promise<{ orderCode?: string; invoiceNumber?: string } | void>;
 }
 
 export function WhatsAppOrderAction({
@@ -28,15 +29,27 @@ export function WhatsAppOrderAction({
   className = '',
   variant = 'buttons',
   buttonText = 'طلب عبر واتساب',
+  beforeOpen,
 }: WhatsAppOrderActionProps) {
   const [isOpen, setIsOpen] = useState(false);
 
-  const handleOrder = (target: WhatsAppTarget) => {
+  const handleOrder = async (target: WhatsAppTarget) => {
+    let reference: { orderCode?: string; invoiceNumber?: string } | void;
+    try {
+      reference = await beforeOpen?.(target);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'تعذر حفظ الطلب قبل فتح واتساب';
+      window.alert(message);
+      return;
+    }
     const details = getMessage(target).trim();
+    const invoiceLine = reference?.orderCode
+      ? `\n\n🧾 رقم الطلب: ${reference.orderCode}${reference.invoiceNumber ? `\nرقم الفاتورة: ${reference.invoiceNumber}` : ''}\nالشركة: قطوف الطبيعة`
+      : '';
     const welcome = buildWhatsAppWelcomeMessage(target);
     
     // Combine welcome message with order details
-    const finalMessage = `${welcome}\n\n${details}`;
+    const finalMessage = `${welcome}\n\n${details}${invoiceLine}`;
     const url = buildWhatsAppTargetUrl(target, finalMessage);
     
     try {

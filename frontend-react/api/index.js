@@ -4617,6 +4617,14 @@ var OrderRepository = class extends base_repository_default {
         const invRepo = new InventoryRepository();
         await invRepo.reserveStockForOrder(tx, pItem.productId, pItem.quantity, order.id, pItem.variantId);
       }
+      await tx.invoice.create({
+        data: {
+          orderId: order.id,
+          number: `INV-${code}`,
+          issuedAt: /* @__PURE__ */ new Date(),
+          total
+        }
+      });
       await tx.cartItem.deleteMany({
         where: { cartId: cart.id }
       });
@@ -4628,7 +4636,8 @@ var OrderRepository = class extends base_repository_default {
           },
           customer: {
             select: { id: true, fullName: true, email: true, phone: true }
-          }
+          },
+          invoices: true
         }
       });
     });
@@ -4688,7 +4697,8 @@ var OrderRepository = class extends base_repository_default {
           },
           customer: {
             select: { id: true, fullName: true, email: true, phone: true }
-          }
+          },
+          invoices: true
         }
       }),
       this.client.order.count({ where })
@@ -4711,7 +4721,8 @@ var OrderRepository = class extends base_repository_default {
         },
         customer: {
           select: { id: true, fullName: true, email: true, phone: true }
-        }
+        },
+        invoices: true
       }
     });
     if (!order || order.deletedAt !== null) return null;
@@ -4756,7 +4767,8 @@ var OrderRepository = class extends base_repository_default {
         data: { status: newStatus },
         include: {
           items: { include: { product: true } },
-          customer: { select: { id: true, fullName: true, email: true, phone: true } }
+          customer: { select: { id: true, fullName: true, email: true, phone: true } },
+          invoices: true
         }
       });
     });
