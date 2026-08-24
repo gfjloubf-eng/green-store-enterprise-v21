@@ -12,6 +12,7 @@ import { createUserRoutes } from '../modules/users/routes';
 import { createRoleRoutes } from '../modules/roles/routes';
 import { createPermissionRoutes } from '../modules/permissions/routes';
 import { createProductRoutes } from '../modules/products/routes';
+import { createProductMediaRoutes } from '../modules/products/media-routes';
 import { createCustomerRoutes } from '../modules/customers/routes';
 import { createCartRoutes } from '../modules/cart/routes';
 import { createOrderRoutes } from '../modules/orders/routes';
@@ -67,7 +68,7 @@ export function createSystemRequestHandler() {
   const resolver = new RouteResolver();
   const protection = new RouteProtectionFactory();
   const authService = AuthController.createAuthService();
-  const routes = [...createSystemRoutes(), ...createAuthRoutes(), ...createUserRoutes(), ...createRoleRoutes(), ...createPermissionRoutes(), ...createProductRoutes(), ...createCustomerRoutes(), ...createCartRoutes(), ...createOrderRoutes(), ...createInventoryRoutes(), ...createDeliveryRoutes(), ...createSupplierAdminRoutes(), ...createPaymentRoutes(), ...createSettingsRoutes(), ...createNotificationRoutes(), ...createSupportRoutes(), ...createReportsRoutes(), ...createAuditRoutes(), ...createEducationRoutes(), ...createAssistantRoutes()];
+  const routes = [...createSystemRoutes(), ...createAuthRoutes(), ...createUserRoutes(), ...createRoleRoutes(), ...createPermissionRoutes(), ...createProductRoutes(), ...createProductMediaRoutes(), ...createCustomerRoutes(), ...createCartRoutes(), ...createOrderRoutes(), ...createInventoryRoutes(), ...createDeliveryRoutes(), ...createSupplierAdminRoutes(), ...createPaymentRoutes(), ...createSettingsRoutes(), ...createNotificationRoutes(), ...createSupportRoutes(), ...createReportsRoutes(), ...createAuditRoutes(), ...createEducationRoutes(), ...createAssistantRoutes()];
 
   for (const route of routes) {
     registry.register(route);

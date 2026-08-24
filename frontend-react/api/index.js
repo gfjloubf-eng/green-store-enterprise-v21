@@ -7234,6 +7234,82 @@ function createProductRoutes(controller = new controller_default4()) {
   return builder.build();
 }
 
+// ../backend/src/modules/products/media-upload.ts
+var MAX_BYTES = 400 * 1024;
+var ALLOWED_TYPES = /* @__PURE__ */ new Set(["image/jpeg", "image/png", "image/webp"]);
+function cleanSegment(value, fallback2) {
+  const cleaned = String(value ?? "").trim().replace(/[^a-zA-Z0-9_-]/g, "-").replace(/-+/g, "-").replace(/^-|-$/g, "");
+  return cleaned.slice(0, 80) || fallback2;
+}
+function parseDataUrl(value) {
+  if (typeof value !== "string") throw new Error("image_data_required");
+  const match = value.match(/^data:(image\/(?:jpeg|png|webp));base64,([A-Za-z0-9+/=]+)$/);
+  if (!match || !ALLOWED_TYPES.has(match[1])) throw new Error("image_type_invalid");
+  const bytes = Buffer.from(match[2], "base64");
+  if (!bytes.length || bytes.length > MAX_BYTES) throw new Error("image_size_invalid");
+  return { contentType: match[1], bytes };
+}
+async function uploadProductImage(request4) {
+  const body = request4.body ?? {};
+  const { contentType, bytes } = parseDataUrl(body.dataUrl);
+  const baseUrl = String(process.env.SUPABASE_URL ?? "").replace(/\/+$/, "");
+  const serviceRoleKey = String(process.env.SUPABASE_SERVICE_ROLE_KEY ?? "").trim();
+  const bucket = cleanSegment(process.env.SUPABASE_STORAGE_BUCKET, "product-images");
+  if (!baseUrl || !serviceRoleKey) throw new Error("storage_not_configured");
+  const sku = cleanSegment(body.sku, "unassigned");
+  const extension = contentType === "image/png" ? "png" : contentType === "image/webp" ? "webp" : "jpg";
+  const path3 = `products/${sku}/main-${Date.now()}.${extension}`;
+  const response = await fetch(`${baseUrl}/storage/v1/object/${encodeURIComponent(bucket)}/${path3}`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${serviceRoleKey}`,
+      apikey: serviceRoleKey,
+      "Content-Type": contentType,
+      "Content-Length": String(bytes.byteLength),
+      "x-upsert": "false"
+    },
+    body: bytes
+  });
+  if (!response.ok) throw new Error(`storage_upload_failed_${response.status}`);
+  return {
+    path: path3,
+    url: `${baseUrl}/storage/v1/object/public/${encodeURIComponent(bucket)}/${path3}`
+  };
+}
+
+// ../backend/src/modules/products/media-routes.ts
+function toControllerRequest6(ctx) {
+  return {
+    body: ctx.body,
+    headers: ctx.headers,
+    query: ctx.query,
+    params: ctx.params,
+    context: { metadata: { timestamp: (/* @__PURE__ */ new Date()).toISOString(), version: "v1" } }
+  };
+}
+function createProductMediaRoutes() {
+  const builder = new RouterBuilder();
+  const options = {
+    mode: "private",
+    publicRoute: false,
+    privateRoute: true,
+    authenticationRequired: true,
+    authorizationRequired: true,
+    requiredPermissions: ["products:create"],
+    tags: ["products", "media"],
+    middleware: []
+  };
+  builder.register({
+    name: "products-media-upload",
+    method: "POST",
+    path: "/products/media/upload",
+    version: "v1",
+    handler: (ctx) => uploadProductImage(toControllerRequest6(ctx)),
+    options
+  });
+  return builder.build();
+}
+
 // ../backend/src/modules/customers/controller.ts
 var CustomersController = class {
   service = ServiceFactory.createCustomerService();
@@ -7558,7 +7634,7 @@ var CartController = class {
 var controller_default6 = CartController;
 
 // ../backend/src/modules/cart/routes.ts
-function toControllerRequest6(ctx) {
+function toControllerRequest7(ctx) {
   return {
     body: ctx.body,
     headers: ctx.headers,
@@ -7588,11 +7664,11 @@ function createCartRoutes(controller = new controller_default6()) {
     tags: ["carts"],
     middleware: []
   });
-  register({ name: "cart-get", method: "GET", path: "/cart", version: "v1", handler: (ctx) => controller.getCart(toControllerRequest6(ctx)), options: privateOptions2("carts:read") });
-  register({ name: "cart-items-add", method: "POST", path: "/cart/items", version: "v1", handler: (ctx) => controller.addItem(toControllerRequest6(ctx)), options: privateOptions2("carts:create") });
-  register({ name: "cart-items-update", method: "PUT", path: "/cart/items/:id", version: "v1", handler: (ctx) => controller.updateItem(toControllerRequest6(ctx)), options: privateOptions2("carts:update") });
-  register({ name: "cart-items-remove", method: "DELETE", path: "/cart/items/:id", version: "v1", handler: (ctx) => controller.removeItem(toControllerRequest6(ctx)), options: privateOptions2("carts:delete") });
-  register({ name: "cart-clear", method: "DELETE", path: "/cart", version: "v1", handler: (ctx) => controller.clearCart(toControllerRequest6(ctx)), options: privateOptions2("carts:delete") });
+  register({ name: "cart-get", method: "GET", path: "/cart", version: "v1", handler: (ctx) => controller.getCart(toControllerRequest7(ctx)), options: privateOptions2("carts:read") });
+  register({ name: "cart-items-add", method: "POST", path: "/cart/items", version: "v1", handler: (ctx) => controller.addItem(toControllerRequest7(ctx)), options: privateOptions2("carts:create") });
+  register({ name: "cart-items-update", method: "PUT", path: "/cart/items/:id", version: "v1", handler: (ctx) => controller.updateItem(toControllerRequest7(ctx)), options: privateOptions2("carts:update") });
+  register({ name: "cart-items-remove", method: "DELETE", path: "/cart/items/:id", version: "v1", handler: (ctx) => controller.removeItem(toControllerRequest7(ctx)), options: privateOptions2("carts:delete") });
+  register({ name: "cart-clear", method: "DELETE", path: "/cart", version: "v1", handler: (ctx) => controller.clearCart(toControllerRequest7(ctx)), options: privateOptions2("carts:delete") });
   return builder.build();
 }
 
@@ -7774,7 +7850,7 @@ var OrderController = class {
 };
 
 // ../backend/src/modules/orders/routes.ts
-function toControllerRequest7(ctx) {
+function toControllerRequest8(ctx) {
   return {
     body: ctx.body ?? void 0,
     headers: ctx.headers,
@@ -7799,7 +7875,7 @@ function createOrderRoutes(controller = new OrderController()) {
     method: "POST",
     path: "/orders",
     version: "v1",
-    handler: adapt7((ctx) => controller.createOrder(toControllerRequest7(ctx))),
+    handler: adapt7((ctx) => controller.createOrder(toControllerRequest8(ctx))),
     options: {
       mode: "private",
       publicRoute: false,
@@ -7815,7 +7891,7 @@ function createOrderRoutes(controller = new OrderController()) {
     method: "GET",
     path: "/orders",
     version: "v1",
-    handler: adapt7((ctx) => controller.listOrders(toControllerRequest7(ctx))),
+    handler: adapt7((ctx) => controller.listOrders(toControllerRequest8(ctx))),
     options: {
       mode: "private",
       publicRoute: false,
@@ -7831,7 +7907,7 @@ function createOrderRoutes(controller = new OrderController()) {
     method: "GET",
     path: "/orders/:id",
     version: "v1",
-    handler: adapt7((ctx) => controller.getOrderById(toControllerRequest7(ctx))),
+    handler: adapt7((ctx) => controller.getOrderById(toControllerRequest8(ctx))),
     options: {
       mode: "private",
       publicRoute: false,
@@ -7847,7 +7923,7 @@ function createOrderRoutes(controller = new OrderController()) {
     method: "PATCH",
     path: "/orders/:id/status",
     version: "v1",
-    handler: adapt7((ctx) => controller.updateStatus(toControllerRequest7(ctx))),
+    handler: adapt7((ctx) => controller.updateStatus(toControllerRequest8(ctx))),
     options: {
       mode: "private",
       publicRoute: false,
@@ -7863,7 +7939,7 @@ function createOrderRoutes(controller = new OrderController()) {
     method: "POST",
     path: "/orders/:id/cancel",
     version: "v1",
-    handler: adapt7((ctx) => controller.cancelOrder(toControllerRequest7(ctx))),
+    handler: adapt7((ctx) => controller.cancelOrder(toControllerRequest8(ctx))),
     options: {
       mode: "private",
       publicRoute: false,
@@ -7995,7 +8071,7 @@ var InventoryController = class {
 };
 
 // ../backend/src/modules/inventory/routes.ts
-function toControllerRequest8(ctx) {
+function toControllerRequest9(ctx) {
   return {
     body: ctx.body ?? void 0,
     headers: ctx.headers,
@@ -8030,7 +8106,7 @@ function createInventoryRoutes(controller = new InventoryController()) {
     method: "GET",
     path: "/inventory",
     version: "v1",
-    handler: adapt8((ctx) => controller.listInventory(toControllerRequest8(ctx))),
+    handler: adapt8((ctx) => controller.listInventory(toControllerRequest9(ctx))),
     options: {
       mode: "private",
       publicRoute: false,
@@ -8043,7 +8119,7 @@ function createInventoryRoutes(controller = new InventoryController()) {
     method: "POST",
     path: "/inventory/adjust",
     version: "v1",
-    handler: adapt8((ctx) => controller.adjustStock(toControllerRequest8(ctx))),
+    handler: adapt8((ctx) => controller.adjustStock(toControllerRequest9(ctx))),
     options: {
       mode: "private",
       publicRoute: false,
@@ -8056,7 +8132,7 @@ function createInventoryRoutes(controller = new InventoryController()) {
     method: "GET",
     path: "/inventory/movements",
     version: "v1",
-    handler: adapt8((ctx) => controller.listMovements(toControllerRequest8(ctx))),
+    handler: adapt8((ctx) => controller.listMovements(toControllerRequest9(ctx))),
     options: {
       mode: "private",
       publicRoute: false,
@@ -8600,7 +8676,7 @@ var PaymentController = class {
 };
 
 // ../backend/src/modules/payments/routes.ts
-function toControllerRequest9(ctx) {
+function toControllerRequest10(ctx) {
   return {
     body: ctx.body ?? void 0,
     headers: ctx.headers,
@@ -8625,7 +8701,7 @@ function createPaymentRoutes(controller = new PaymentController()) {
     method: "POST",
     path: "/payments/create",
     version: "v1",
-    handler: adapt9((ctx) => controller.createPayment(toControllerRequest9(ctx))),
+    handler: adapt9((ctx) => controller.createPayment(toControllerRequest10(ctx))),
     options: {
       mode: "private",
       publicRoute: false,
@@ -8641,7 +8717,7 @@ function createPaymentRoutes(controller = new PaymentController()) {
     method: "GET",
     path: "/payments/order/:orderId",
     version: "v1",
-    handler: adapt9((ctx) => controller.getPaymentForOrder(toControllerRequest9(ctx))),
+    handler: adapt9((ctx) => controller.getPaymentForOrder(toControllerRequest10(ctx))),
     options: {
       mode: "private",
       publicRoute: false,
@@ -8657,7 +8733,7 @@ function createPaymentRoutes(controller = new PaymentController()) {
     method: "POST",
     path: "/payments/verify",
     version: "v1",
-    handler: adapt9((ctx) => controller.verifyPayment(toControllerRequest9(ctx))),
+    handler: adapt9((ctx) => controller.verifyPayment(toControllerRequest10(ctx))),
     options: {
       mode: "private",
       publicRoute: false,
@@ -8835,7 +8911,7 @@ var SettingsController = class {
 };
 
 // ../backend/src/modules/settings/routes.ts
-function toControllerRequest10(ctx) {
+function toControllerRequest11(ctx) {
   return {
     body: ctx.body ?? void 0,
     headers: ctx.headers,
@@ -8860,7 +8936,7 @@ function createSettingsRoutes(controller = new SettingsController()) {
     method: "GET",
     path: "/settings/public",
     version: "v1",
-    handler: adapt10((ctx) => controller.getPublicSettings(toControllerRequest10(ctx))),
+    handler: adapt10((ctx) => controller.getPublicSettings(toControllerRequest11(ctx))),
     options: {
       mode: "public",
       publicRoute: true,
@@ -8876,7 +8952,7 @@ function createSettingsRoutes(controller = new SettingsController()) {
     method: "GET",
     path: "/admin/settings",
     version: "v1",
-    handler: adapt10((ctx) => controller.getAdminSettings(toControllerRequest10(ctx))),
+    handler: adapt10((ctx) => controller.getAdminSettings(toControllerRequest11(ctx))),
     options: {
       mode: "private",
       publicRoute: false,
@@ -8892,7 +8968,7 @@ function createSettingsRoutes(controller = new SettingsController()) {
     method: "PUT",
     path: "/admin/settings",
     version: "v1",
-    handler: adapt10((ctx) => controller.updateAdminSettings(toControllerRequest10(ctx))),
+    handler: adapt10((ctx) => controller.updateAdminSettings(toControllerRequest11(ctx))),
     options: {
       mode: "private",
       publicRoute: false,
@@ -8993,7 +9069,7 @@ var NotificationsController = class {
 };
 
 // ../backend/src/modules/notifications/routes.ts
-function toControllerRequest11(ctx) {
+function toControllerRequest12(ctx) {
   return {
     body: ctx.body ?? void 0,
     headers: ctx.headers,
@@ -9018,7 +9094,7 @@ function createNotificationRoutes(controller = new NotificationsController()) {
     method: "GET",
     path: "/notifications",
     version: "v1",
-    handler: adapt11((ctx) => controller.listUserNotifications(toControllerRequest11(ctx))),
+    handler: adapt11((ctx) => controller.listUserNotifications(toControllerRequest12(ctx))),
     options: {
       mode: "private",
       publicRoute: false,
@@ -9034,7 +9110,7 @@ function createNotificationRoutes(controller = new NotificationsController()) {
     method: "POST",
     path: "/notifications/:id/read",
     version: "v1",
-    handler: adapt11((ctx) => controller.markAsRead(toControllerRequest11(ctx))),
+    handler: adapt11((ctx) => controller.markAsRead(toControllerRequest12(ctx))),
     options: {
       mode: "private",
       publicRoute: false,
@@ -9050,7 +9126,7 @@ function createNotificationRoutes(controller = new NotificationsController()) {
     method: "POST",
     path: "/notifications/read-all",
     version: "v1",
-    handler: adapt11((ctx) => controller.markAllAsRead(toControllerRequest11(ctx))),
+    handler: adapt11((ctx) => controller.markAllAsRead(toControllerRequest12(ctx))),
     options: {
       mode: "private",
       publicRoute: false,
@@ -9354,7 +9430,7 @@ var SupportController = class {
 };
 
 // ../backend/src/modules/support/routes.ts
-function toControllerRequest12(ctx) {
+function toControllerRequest13(ctx) {
   return {
     body: ctx.body ?? void 0,
     headers: ctx.headers,
@@ -9379,7 +9455,7 @@ function createSupportRoutes(controller = new SupportController()) {
     method: "GET",
     path: "/support/contacts",
     version: "v1",
-    handler: adapt12((ctx) => controller.getSupportContacts(toControllerRequest12(ctx))),
+    handler: adapt12((ctx) => controller.getSupportContacts(toControllerRequest13(ctx))),
     options: {
       mode: "public",
       publicRoute: true,
@@ -9395,7 +9471,7 @@ function createSupportRoutes(controller = new SupportController()) {
     method: "POST",
     path: "/support/tickets",
     version: "v1",
-    handler: adapt12((ctx) => controller.createTicket(toControllerRequest12(ctx))),
+    handler: adapt12((ctx) => controller.createTicket(toControllerRequest13(ctx))),
     options: {
       mode: "private",
       publicRoute: false,
@@ -9411,7 +9487,7 @@ function createSupportRoutes(controller = new SupportController()) {
     method: "GET",
     path: "/support/tickets",
     version: "v1",
-    handler: adapt12((ctx) => controller.listTickets(toControllerRequest12(ctx))),
+    handler: adapt12((ctx) => controller.listTickets(toControllerRequest13(ctx))),
     options: {
       mode: "private",
       publicRoute: false,
@@ -9427,7 +9503,7 @@ function createSupportRoutes(controller = new SupportController()) {
     method: "GET",
     path: "/support/tickets/:id",
     version: "v1",
-    handler: adapt12((ctx) => controller.getTicketById(toControllerRequest12(ctx))),
+    handler: adapt12((ctx) => controller.getTicketById(toControllerRequest13(ctx))),
     options: {
       mode: "private",
       publicRoute: false,
@@ -9443,7 +9519,7 @@ function createSupportRoutes(controller = new SupportController()) {
     method: "POST",
     path: "/support/tickets/:id/reply",
     version: "v1",
-    handler: adapt12((ctx) => controller.replyTicket(toControllerRequest12(ctx))),
+    handler: adapt12((ctx) => controller.replyTicket(toControllerRequest13(ctx))),
     options: {
       mode: "private",
       publicRoute: false,
@@ -9459,7 +9535,7 @@ function createSupportRoutes(controller = new SupportController()) {
     method: "PATCH",
     path: "/support/tickets/:id/status",
     version: "v1",
-    handler: adapt12((ctx) => controller.updateTicketStatus(toControllerRequest12(ctx))),
+    handler: adapt12((ctx) => controller.updateTicketStatus(toControllerRequest13(ctx))),
     options: {
       mode: "private",
       publicRoute: false,
@@ -9788,7 +9864,7 @@ var ReportsController = class {
 };
 
 // ../backend/src/modules/reports/routes.ts
-function toControllerRequest13(ctx) {
+function toControllerRequest14(ctx) {
   return {
     body: ctx.body ?? void 0,
     headers: ctx.headers,
@@ -9813,7 +9889,7 @@ function createReportsRoutes(controller = new ReportsController()) {
     method: "GET",
     path: "/reports/dashboard",
     version: "v1",
-    handler: adapt13((ctx) => controller.getDashboardKpis(toControllerRequest13(ctx))),
+    handler: adapt13((ctx) => controller.getDashboardKpis(toControllerRequest14(ctx))),
     options: {
       mode: "private",
       publicRoute: false,
@@ -9829,7 +9905,7 @@ function createReportsRoutes(controller = new ReportsController()) {
     method: "GET",
     path: "/reports/sales",
     version: "v1",
-    handler: adapt13((ctx) => controller.getSalesReport(toControllerRequest13(ctx))),
+    handler: adapt13((ctx) => controller.getSalesReport(toControllerRequest14(ctx))),
     options: {
       mode: "private",
       publicRoute: false,
@@ -9845,7 +9921,7 @@ function createReportsRoutes(controller = new ReportsController()) {
     method: "GET",
     path: "/reports/products",
     version: "v1",
-    handler: adapt13((ctx) => controller.getProductAnalytics(toControllerRequest13(ctx))),
+    handler: adapt13((ctx) => controller.getProductAnalytics(toControllerRequest14(ctx))),
     options: {
       mode: "private",
       publicRoute: false,
@@ -9861,7 +9937,7 @@ function createReportsRoutes(controller = new ReportsController()) {
     method: "GET",
     path: "/reports/inventory",
     version: "v1",
-    handler: adapt13((ctx) => controller.getInventoryAnalytics(toControllerRequest13(ctx))),
+    handler: adapt13((ctx) => controller.getInventoryAnalytics(toControllerRequest14(ctx))),
     options: {
       mode: "private",
       publicRoute: false,
@@ -9877,7 +9953,7 @@ function createReportsRoutes(controller = new ReportsController()) {
     method: "GET",
     path: "/reports/customers",
     version: "v1",
-    handler: adapt13((ctx) => controller.getCustomerAnalytics(toControllerRequest13(ctx))),
+    handler: adapt13((ctx) => controller.getCustomerAnalytics(toControllerRequest14(ctx))),
     options: {
       mode: "private",
       publicRoute: false,
@@ -9893,7 +9969,7 @@ function createReportsRoutes(controller = new ReportsController()) {
     method: "GET",
     path: "/reports/payments",
     version: "v1",
-    handler: adapt13((ctx) => controller.getPaymentAnalytics(toControllerRequest13(ctx))),
+    handler: adapt13((ctx) => controller.getPaymentAnalytics(toControllerRequest14(ctx))),
     options: {
       mode: "private",
       publicRoute: false,
@@ -9971,7 +10047,7 @@ var AuditController = class {
 };
 
 // ../backend/src/modules/audit/routes.ts
-function toControllerRequest14(ctx) {
+function toControllerRequest15(ctx) {
   return {
     body: ctx.body ?? void 0,
     headers: ctx.headers,
@@ -9996,7 +10072,7 @@ function createAuditRoutes(controller = new AuditController()) {
     method: "GET",
     path: "/audit/logs",
     version: "v1",
-    handler: adapt14((ctx) => controller.listAuditLogs(toControllerRequest14(ctx))),
+    handler: adapt14((ctx) => controller.listAuditLogs(toControllerRequest15(ctx))),
     options: {
       mode: "private",
       publicRoute: false,
@@ -10339,7 +10415,7 @@ var EducationController = class {
 var controller_default9 = EducationController;
 
 // ../backend/src/modules/education/routes.ts
-function toControllerRequest15(ctx) {
+function toControllerRequest16(ctx) {
   return { body: ctx.body, headers: ctx.headers, query: ctx.query, params: ctx.params, context: { metadata: { timestamp: (/* @__PURE__ */ new Date()).toISOString(), version: "v1" } } };
 }
 function adapt15(handler2) {
@@ -10354,19 +10430,19 @@ function privateOptions(permission) {
 function createEducationRoutes(controller = new controller_default9()) {
   const builder = new RouterBuilder();
   const register = (definition) => builder.register({ ...definition, version: "v1", handler: adapt15(definition.handler) });
-  register({ name: "education-articles-list", method: "GET", path: "/education/articles", handler: (ctx) => controller.listArticles(toControllerRequest15(ctx)), options: publicOptions() });
-  register({ name: "education-article-get", method: "GET", path: "/education/articles/:slug", handler: (ctx) => controller.getArticle(toControllerRequest15(ctx)), options: publicOptions() });
-  register({ name: "education-consultation-create", method: "POST", path: "/education/consultations", handler: (ctx) => controller.createConsultation(toControllerRequest15(ctx)), options: publicOptions() });
-  register({ name: "education-ai-review", method: "POST", path: "/admin/education/review", handler: (ctx) => controller.reviewMedicalGuidance(toControllerRequest15(ctx)), options: privateOptions("products:read") });
-  register({ name: "education-families-list", method: "GET", path: "/admin/education/families", handler: (ctx) => controller.listAdminFamilies(toControllerRequest15(ctx)), options: privateOptions("products:read") });
-  register({ name: "education-family-create", method: "POST", path: "/admin/education/families", handler: (ctx) => controller.createAdminFamily(toControllerRequest15(ctx)), options: privateOptions("products:update") });
-  register({ name: "education-family-update", method: "PUT", path: "/admin/education/families/:id", handler: (ctx) => controller.updateAdminFamily(toControllerRequest15(ctx)), options: privateOptions("products:update") });
-  register({ name: "education-family-delete", method: "DELETE", path: "/admin/education/families/:id", handler: (ctx) => controller.deleteAdminFamily(toControllerRequest15(ctx)), options: privateOptions("products:update") });
-  register({ name: "education-articles-admin-list", method: "GET", path: "/admin/education/articles", handler: (ctx) => controller.listAdminArticles(toControllerRequest15(ctx)), options: privateOptions("products:read") });
-  register({ name: "education-article-create", method: "POST", path: "/admin/education/articles", handler: (ctx) => controller.createAdminArticle(toControllerRequest15(ctx)), options: privateOptions("products:update") });
-  register({ name: "education-article-update", method: "PUT", path: "/admin/education/articles/:id", handler: (ctx) => controller.updateAdminArticle(toControllerRequest15(ctx)), options: privateOptions("products:update") });
-  register({ name: "education-article-delete", method: "DELETE", path: "/admin/education/articles/:id", handler: (ctx) => controller.deleteAdminArticle(toControllerRequest15(ctx)), options: privateOptions("products:update") });
-  register({ name: "education-consultations-list", method: "GET", path: "/admin/education/consultations", handler: (ctx) => controller.listConsultations(toControllerRequest15(ctx)), options: privateOptions("customers:read") });
+  register({ name: "education-articles-list", method: "GET", path: "/education/articles", handler: (ctx) => controller.listArticles(toControllerRequest16(ctx)), options: publicOptions() });
+  register({ name: "education-article-get", method: "GET", path: "/education/articles/:slug", handler: (ctx) => controller.getArticle(toControllerRequest16(ctx)), options: publicOptions() });
+  register({ name: "education-consultation-create", method: "POST", path: "/education/consultations", handler: (ctx) => controller.createConsultation(toControllerRequest16(ctx)), options: publicOptions() });
+  register({ name: "education-ai-review", method: "POST", path: "/admin/education/review", handler: (ctx) => controller.reviewMedicalGuidance(toControllerRequest16(ctx)), options: privateOptions("products:read") });
+  register({ name: "education-families-list", method: "GET", path: "/admin/education/families", handler: (ctx) => controller.listAdminFamilies(toControllerRequest16(ctx)), options: privateOptions("products:read") });
+  register({ name: "education-family-create", method: "POST", path: "/admin/education/families", handler: (ctx) => controller.createAdminFamily(toControllerRequest16(ctx)), options: privateOptions("products:update") });
+  register({ name: "education-family-update", method: "PUT", path: "/admin/education/families/:id", handler: (ctx) => controller.updateAdminFamily(toControllerRequest16(ctx)), options: privateOptions("products:update") });
+  register({ name: "education-family-delete", method: "DELETE", path: "/admin/education/families/:id", handler: (ctx) => controller.deleteAdminFamily(toControllerRequest16(ctx)), options: privateOptions("products:update") });
+  register({ name: "education-articles-admin-list", method: "GET", path: "/admin/education/articles", handler: (ctx) => controller.listAdminArticles(toControllerRequest16(ctx)), options: privateOptions("products:read") });
+  register({ name: "education-article-create", method: "POST", path: "/admin/education/articles", handler: (ctx) => controller.createAdminArticle(toControllerRequest16(ctx)), options: privateOptions("products:update") });
+  register({ name: "education-article-update", method: "PUT", path: "/admin/education/articles/:id", handler: (ctx) => controller.updateAdminArticle(toControllerRequest16(ctx)), options: privateOptions("products:update") });
+  register({ name: "education-article-delete", method: "DELETE", path: "/admin/education/articles/:id", handler: (ctx) => controller.deleteAdminArticle(toControllerRequest16(ctx)), options: privateOptions("products:update") });
+  register({ name: "education-consultations-list", method: "GET", path: "/admin/education/consultations", handler: (ctx) => controller.listConsultations(toControllerRequest16(ctx)), options: privateOptions("customers:read") });
   return builder.build();
 }
 
@@ -10575,7 +10651,7 @@ var AssistantController = class {
 };
 
 // ../backend/src/modules/assistant/routes.ts
-function toControllerRequest16(ctx) {
+function toControllerRequest17(ctx) {
   return {
     body: ctx.body ?? void 0,
     headers: ctx.headers,
@@ -10595,7 +10671,7 @@ function createAssistantRoutes(controller = new AssistantController()) {
     method: "POST",
     path: "/assistant/chat",
     version: "v1",
-    handler: adapt16((ctx) => controller.chat(toControllerRequest16(ctx))),
+    handler: adapt16((ctx) => controller.chat(toControllerRequest17(ctx))),
     options: {
       mode: "public",
       publicRoute: true,
@@ -10648,7 +10724,7 @@ function createSystemRequestHandler() {
   const resolver = new RouteResolver();
   const protection = new RouteProtectionFactory();
   const authService = AuthController.createAuthService();
-  const routes = [...createSystemRoutes(), ...createAuthRoutes(), ...createUserRoutes(), ...createRoleRoutes(), ...createPermissionRoutes(), ...createProductRoutes(), ...createCustomerRoutes(), ...createCartRoutes(), ...createOrderRoutes(), ...createInventoryRoutes(), ...createDeliveryRoutes(), ...createSupplierAdminRoutes(), ...createPaymentRoutes(), ...createSettingsRoutes(), ...createNotificationRoutes(), ...createSupportRoutes(), ...createReportsRoutes(), ...createAuditRoutes(), ...createEducationRoutes(), ...createAssistantRoutes()];
+  const routes = [...createSystemRoutes(), ...createAuthRoutes(), ...createUserRoutes(), ...createRoleRoutes(), ...createPermissionRoutes(), ...createProductRoutes(), ...createProductMediaRoutes(), ...createCustomerRoutes(), ...createCartRoutes(), ...createOrderRoutes(), ...createInventoryRoutes(), ...createDeliveryRoutes(), ...createSupplierAdminRoutes(), ...createPaymentRoutes(), ...createSettingsRoutes(), ...createNotificationRoutes(), ...createSupportRoutes(), ...createReportsRoutes(), ...createAuditRoutes(), ...createEducationRoutes(), ...createAssistantRoutes()];
   for (const route of routes) {
     registry.register(route);
   }

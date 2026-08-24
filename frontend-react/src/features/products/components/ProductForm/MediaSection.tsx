@@ -5,6 +5,7 @@ import { useI18n } from '@/i18n/useI18n';
 import { placeholderImage } from '@/assets/images/products/productImages';
 import type { ProductFormData } from '../../types/productForm';
 import { compressProductImage, formatImageSize } from '../../utils/compressProductImage';
+import { ProductService } from '../../services/productService';
 
 interface MediaSectionProps {
   data: ProductFormData;
@@ -34,7 +35,9 @@ export function MediaSection({ data, onChange }: MediaSectionProps) {
       setPreview(compressed.dataUrl);
       setCompressedSize(compressed.bytes);
       setDimensions({ width: compressed.width, height: compressed.height });
-      onChange('imageUrl', compressed.dataUrl);
+      const uploaded = await ProductService.uploadImage(compressed.dataUrl, data.sku);
+      setPreview(uploaded.url);
+      onChange('imageUrl', uploaded.url);
       if (!data.imageAltText.trim()) onChange('imageAltText', data.productName.trim());
     } catch (err) {
       setError(err instanceof Error ? err.message : 'image_processing_failed');
@@ -87,7 +90,7 @@ export function MediaSection({ data, onChange }: MediaSectionProps) {
           )}>
             {busy ? <Loader2 className="h-7 w-7 animate-spin [color:var(--gs-primary)]" aria-hidden="true" /> : <Upload className="h-7 w-7 [color:var(--gs-foreground-muted)]" aria-hidden="true" />}
             <span className="mt-2 text-xs font-medium [color:var(--gs-foreground-secondary)]">
-              {busy ? 'جارٍ ضغط الصورة…' : t('form.imageUpload')}
+              {busy ? 'جارٍ ضغط ورفع الصورة…' : t('form.imageUpload')}
             </span>
             <input type="file" accept="image/jpeg,image/png,image/webp" onChange={handleFileChange} disabled={busy} className="hidden" aria-label={t('form.imageUpload')} />
           </label>
