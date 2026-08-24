@@ -37,7 +37,7 @@ export async function compressProductImage(file: File): Promise<CompressedImage>
   if (!dataUrl.startsWith('data:image/webp')) {
     dataUrl = canvas.toDataURL('image/jpeg', quality);
   }
-  while (dataUrlBytes(dataUrl) > 300 * 1024 && quality > 0.62) {
+  while (dataUrlBytes(dataUrl) > 250 * 1024 && quality > 0.58) {
     quality -= 0.04;
     dataUrl = canvas.toDataURL(dataUrl.startsWith('data:image/webp') ? 'image/webp' : 'image/jpeg', quality);
   }

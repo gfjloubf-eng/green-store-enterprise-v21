@@ -1,6 +1,6 @@
 import type { ControllerRequest } from '../../controllers';
 
-const MAX_BYTES = 400 * 1024;
+const MAX_BYTES = 300 * 1024;
 const ALLOWED_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp']);
 
 function cleanSegment(value: unknown, fallback: string): string {

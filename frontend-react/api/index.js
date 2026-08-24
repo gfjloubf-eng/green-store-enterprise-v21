@@ -7235,7 +7235,7 @@ function createProductRoutes(controller = new controller_default4()) {
 }
 
 // ../backend/src/modules/products/media-upload.ts
-var MAX_BYTES = 400 * 1024;
+var MAX_BYTES = 300 * 1024;
 var ALLOWED_TYPES = /* @__PURE__ */ new Set(["image/jpeg", "image/png", "image/webp"]);
 function cleanSegment(value, fallback2) {
   const cleaned = String(value ?? "").trim().replace(/[^a-zA-Z0-9_-]/g, "-").replace(/-+/g, "-").replace(/^-|-$/g, "");
