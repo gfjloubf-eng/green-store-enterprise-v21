@@ -12,6 +12,13 @@ function parseDataUrl(value: unknown): { contentType: string; bytes: Buffer } {
   return { contentType: match[1], bytes };
 }
 
+function storageHeaders(apiKey: string, extra: Record<string, string> = {}): Record<string, string> {
+  const headers: Record<string, string> = { apikey: apiKey, ...extra };
+  // sb_secret keys are not JWTs; only legacy service_role JWTs belong in Authorization.
+  if (apiKey.split('.').length === 3) headers.Authorization = `Bearer ${apiKey}`;
+  return headers;
+}
+
 export async function uploadAvatarImage(request: ControllerRequest, userId: string): Promise<{ url: string; path: string }> {
   const body = (request.body ?? {}) as Record<string, unknown>;
   const { contentType, bytes } = parseDataUrl(body.dataUrl);
@@ -24,13 +31,11 @@ export async function uploadAvatarImage(request: ControllerRequest, userId: stri
   const path = `users/${safeUserId}/avatar-${Date.now()}.${extension}`;
   const response = await fetch(`${baseUrl}/storage/v1/object/${bucket}/${path}`, {
     method: 'POST',
-    headers: {
-      Authorization: `Bearer ${serviceRoleKey}`,
-      apikey: serviceRoleKey,
+    headers: storageHeaders(serviceRoleKey, {
       'Content-Type': contentType,
       'Content-Length': String(bytes.byteLength),
       'x-upsert': 'false',
-    },
+    }),
     body: bytes as unknown as BodyInit,
   });
   if (!response.ok) {

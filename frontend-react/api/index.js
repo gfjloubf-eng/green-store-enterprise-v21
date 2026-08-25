@@ -243,7 +243,7 @@ var init_auth_token_service = __esm({
   }
 });
 
-// node_modules/.pnpm/hash-wasm@4.12.0/node_modules/hash-wasm/dist/index.esm.js
+// node_modules/hash-wasm/dist/index.esm.js
 function __awaiter(thisArg, _arguments, P, generator) {
   function adopt(value) {
     return value instanceof P ? value : new P(function(resolve) {
@@ -734,7 +734,7 @@ function argon2Verify(options) {
 }
 var Mutex, _a, globalObject, nodeBuffer, textEncoder, alpha, digit, getUInt8Buffer, base64Chars, base64Lookup, MAX_HEAP, WASM_FUNC_HASH_LENGTH, wasmMutex, wasmModuleCache, mutex$l, name$k, data$k, hash$k, wasmJson$k, name$j, data$j, hash$j, wasmJson$j, mutex$k, uint32View, validateOptions$3, getHashParameters, validateVerifyOptions$1, mutex$j, mutex$i, mutex$h, mutex$g, polyBuffer, mutex$f, mutex$e, mutex$d, mutex$c, mutex$b, mutex$a, mutex$9, mutex$8, mutex$7, mutex$6, mutex$5, seedBuffer$2, mutex$4, seedBuffer$1, mutex$3, seedBuffer, mutex$2, mutex$1, mutex;
 var init_index_esm = __esm({
-  "node_modules/.pnpm/hash-wasm@4.12.0/node_modules/hash-wasm/dist/index.esm.js"() {
+  "node_modules/hash-wasm/dist/index.esm.js"() {
     Mutex = class {
       constructor() {
         this.mutex = Promise.resolve();
@@ -2619,6 +2619,11 @@ function parseDataUrl(value) {
   if (!bytes.length || bytes.length > MAX_BYTES) throw new Error("image_size_invalid");
   return { contentType: match[1], bytes };
 }
+function storageHeaders(apiKey, extra = {}) {
+  const headers = { apikey: apiKey, ...extra };
+  if (apiKey.split(".").length === 3) headers.Authorization = `Bearer ${apiKey}`;
+  return headers;
+}
 async function uploadAvatarImage(request4, userId) {
   const body = request4.body ?? {};
   const { contentType, bytes } = parseDataUrl(body.dataUrl);
@@ -2631,13 +2636,11 @@ async function uploadAvatarImage(request4, userId) {
   const path3 = `users/${safeUserId}/avatar-${Date.now()}.${extension}`;
   const response = await fetch(`${baseUrl}/storage/v1/object/${bucket}/${path3}`, {
     method: "POST",
-    headers: {
-      Authorization: `Bearer ${serviceRoleKey}`,
-      apikey: serviceRoleKey,
+    headers: storageHeaders(serviceRoleKey, {
       "Content-Type": contentType,
       "Content-Length": String(bytes.byteLength),
       "x-upsert": "false"
-    },
+    }),
     body: bytes
   });
   if (!response.ok) {
@@ -5627,7 +5630,7 @@ var ProductService = class extends base_service_default {
     if (!await this.productRepo.findById(id)) throw new NotFoundException("product_not_found");
   }
   validateOptionalFields(payload, update = false) {
-    const stringFields = ["sku", "barcode", "name", "slug", "description", "brandId", "unitId", "categoryId", "subcategoryId", "produceKey", "familyId", "imageUrl", "imageAltText"];
+    const stringFields = ["sku", "barcode", "name", "slug", "description", "originCountry", "storageInstructions", "qualityGrade", "weightUnit", "shippingClass", "brandId", "unitId", "categoryId", "subcategoryId", "produceKey", "familyId", "imageUrl", "imageAltText"];
     const maxLengths = {
       sku: 100,
       barcode: 32,
@@ -5641,7 +5644,12 @@ var ProductService = class extends base_service_default {
       produceKey: 120,
       familyId: 36,
       imageUrl: 45e4,
-      imageAltText: 255
+      imageAltText: 255,
+      originCountry: 100,
+      storageInstructions: 1e3,
+      qualityGrade: 40,
+      weightUnit: 20,
+      shippingClass: 40
     };
     for (const field of stringFields) {
       if (payload[field] !== void 0 && payload[field] !== null && typeof payload[field] !== "string") {
@@ -5652,6 +5660,12 @@ var ProductService = class extends base_service_default {
         if (payload[field].trim().length > maxLengths[field]) throw new ValidationException(`${field}_too_long`);
       }
     }
+    for (const field of ["weightValue", "packageLength", "packageWidth", "packageHeight", "shippingWeight"]) {
+      if (payload[field] !== void 0 && payload[field] !== null) {
+        const value = Number(payload[field]);
+        if (!Number.isFinite(value) || value < 0 || value > 1e6) throw new ValidationException(`${field}_invalid`);
+      }
+    }
     if (typeof payload.slug === "string" && !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(payload.slug.trim())) {
       throw new ValidationException("slug_invalid");
     }
@@ -5659,6 +5673,16 @@ var ProductService = class extends base_service_default {
       if (typeof payload[field] === "string" && !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(payload[field].trim())) {
         throw new ValidationException(`${field}_invalid`);
       }
+    }
+    for (const field of ["harvestDate", "expiryDate"]) {
+      if (payload[field] !== void 0 && payload[field] !== null) {
+        if (typeof payload[field] !== "string" && !(payload[field] instanceof Date)) throw new ValidationException(`${field}_invalid`);
+        const date = new Date(payload[field]);
+        if (Number.isNaN(date.getTime())) throw new ValidationException(`${field}_invalid`);
+      }
+    }
+    if (payload.harvestDate && payload.expiryDate && new Date(payload.expiryDate) < new Date(payload.harvestDate)) {
+      throw new ValidationException("expiry_before_harvest");
     }
     if (payload.isPublished !== void 0 && typeof payload.isPublished !== "boolean") {
       throw new ValidationException("isPublished_invalid");
@@ -5674,12 +5698,18 @@ var ProductService = class extends base_service_default {
     }
   }
   toPersistencePayload(payload, update = false) {
-    const fields = ["sku", "barcode", "produceKey", "familyId", "name", "slug", "description", "brandId", "unitId", "categoryId", "subcategoryId", "imageUrl", "imageAltText", "isPublished"];
+    const fields = ["sku", "barcode", "produceKey", "familyId", "name", "slug", "description", "originCountry", "storageInstructions", "qualityGrade", "weightUnit", "shippingClass", "brandId", "unitId", "categoryId", "subcategoryId", "imageUrl", "imageAltText", "isPublished"];
     const result = {};
     for (const field of fields) {
       if (payload[field] !== void 0) {
         result[field] = typeof payload[field] === "string" ? payload[field].trim() : payload[field];
       }
+    }
+    for (const field of ["weightValue", "packageLength", "packageWidth", "packageHeight", "shippingWeight"]) {
+      if (payload[field] !== void 0) result[field] = payload[field] === null ? null : Number(payload[field]);
+    }
+    for (const field of ["harvestDate", "expiryDate"]) {
+      if (payload[field] !== void 0) result[field] = payload[field] === null ? null : new Date(payload[field]);
     }
     if (!update && result.isPublished === void 0) result.isPublished = false;
     return result;
@@ -7242,6 +7272,18 @@ var ProductsController = class {
       name: entity.name,
       slug: entity.slug,
       description: entity.description ?? null,
+      originCountry: entity.originCountry ?? null,
+      harvestDate: entity.harvestDate ? new Date(entity.harvestDate).toISOString() : null,
+      expiryDate: entity.expiryDate ? new Date(entity.expiryDate).toISOString() : null,
+      storageInstructions: entity.storageInstructions ?? null,
+      qualityGrade: entity.qualityGrade ?? null,
+      weightValue: entity.weightValue ?? null,
+      weightUnit: entity.weightUnit ?? null,
+      packageLength: entity.packageLength ?? null,
+      packageWidth: entity.packageWidth ?? null,
+      packageHeight: entity.packageHeight ?? null,
+      shippingWeight: entity.shippingWeight ?? null,
+      shippingClass: entity.shippingClass ?? null,
       brandId: entity.brandId ?? null,
       unitId: entity.unitId ?? null,
       categoryId: entity.categoryId ?? null,
@@ -7426,10 +7468,15 @@ function parseDataUrl2(value) {
   if (!bytes.length || bytes.length > MAX_BYTES2) throw new Error("image_size_invalid");
   return { contentType: match[1], bytes };
 }
+function storageHeaders2(apiKey, extra = {}) {
+  const headers = { apikey: apiKey, ...extra };
+  if (apiKey.split(".").length === 3) headers.Authorization = `Bearer ${apiKey}`;
+  return headers;
+}
 async function ensurePublicBucket(baseUrl, bucket, serviceRoleKey) {
   const response = await fetch(`${baseUrl}/storage/v1/bucket`, {
     method: "POST",
-    headers: { Authorization: `Bearer ${serviceRoleKey}`, apikey: serviceRoleKey, "Content-Type": "application/json" },
+    headers: storageHeaders2(serviceRoleKey, { "Content-Type": "application/json" }),
     body: JSON.stringify({ id: bucket, name: bucket, public: true })
   });
   if (!response.ok && response.status !== 409) {
@@ -7450,13 +7497,11 @@ async function uploadProductImage(request4) {
   const path3 = `products/${sku}/main-${Date.now()}.${extension}`;
   const response = await fetch(`${baseUrl}/storage/v1/object/${encodeURIComponent(bucket)}/${path3}`, {
     method: "POST",
-    headers: {
-      Authorization: `Bearer ${serviceRoleKey}`,
-      apikey: serviceRoleKey,
+    headers: storageHeaders2(serviceRoleKey, {
       "Content-Type": contentType,
       "Content-Length": String(bytes.byteLength),
       "x-upsert": "false"
-    },
+    }),
     body: bytes
   });
   if (!response.ok) {
