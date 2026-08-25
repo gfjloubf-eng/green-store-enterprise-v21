@@ -28,7 +28,7 @@ interface FormFieldProps {
   /** Input type (text, number, textarea, select) */
   type?: 'text' | 'number' | 'textarea' | 'select' | 'file';
   /** Select options (for type="select") */
-  options?: { value: string; labelKey: TranslationKey }[];
+  options?: { value: string; labelKey?: TranslationKey; label?: string }[];
   /** Optional icon to show before the label */
   icon?: ReactNode;
   /** Optional className override */
@@ -109,7 +109,7 @@ export function FormField({
           </option>
           {options.map((opt) => (
             <option key={opt.value} value={opt.value}>
-              {t(opt.labelKey)}
+              {opt.label ?? (opt.labelKey ? t(opt.labelKey) : opt.value)}
             </option>
           ))}
         </select>

@@ -1,41 +1,21 @@
-/* ============================================================
-   GSDS v1.1 — UnitsPage
-   Green Store Design System — Enterprise UI Foundation
-   Milestone 4.1 — Placeholder page
-   ============================================================ */
-
-import { Scale } from 'lucide-react';
-import { useI18n } from '@/i18n/useI18n';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { Edit3, Plus, RefreshCw, Scale, Search, Trash2, X } from 'lucide-react';
 import { BreadcrumbEngine } from '@/components/layout/BreadcrumbEngine';
+import { fetchWithAuth } from '@/services/authClient';
+
+type UnitType = 'PIECE' | 'WEIGHT' | 'VOLUME' | 'LENGTH' | 'AREA';
+type Unit = { id: string; name: string; symbol: string | null; type: UnitType; _count?: { products: number } };
+const TYPE_LABELS: Record<UnitType, string> = { PIECE: 'عدد / قطعة', WEIGHT: 'وزن', VOLUME: 'حجم', LENGTH: 'طول', AREA: 'مساحة' };
+const EMPTY = { name: '', symbol: '', type: 'WEIGHT' as UnitType };
+async function readPayload(response: Response) { const body = await response.json().catch(() => ({})); if (!response.ok) throw new Error(body?.error?.message || body?.error || 'تعذر تنفيذ العملية'); return body?.data ?? body; }
 
 export function UnitsPage() {
-  const { t } = useI18n();
-
-  return (
-    <div className="flex flex-col gap-4">
-      {/* Header */}
-      <div>
-        <h1 className="text-h2 font-semibold [color:var(--gs-foreground)] flex items-center gap-2">
-          <Scale className="h-6 w-6 [color:var(--gs-primary)]" aria-hidden="true" />
-          {t('products.units')}
-        </h1>
-        <BreadcrumbEngine className="mt-1" />
-      </div>
-
-      {/* Placeholder card */}
-      <div className="gsd-card p-8 text-center">
-        <div className="flex flex-col items-center gap-4 py-12">
-          <div className="flex h-16 w-16 items-center justify-center rounded-full [background:var(--gs-muted)]">
-            <Scale className="h-8 w-8 [color:var(--gs-foreground-muted)]" aria-hidden="true" />
-          </div>
-          <h2 className="text-lg font-semibold [color:var(--gs-foreground)]">
-            {t('products.units.management')}
-          </h2>
-          <p className="text-sm [color:var(--gs-foreground-secondary)] max-w-md">
-            {t('products.units.description')}
-          </p>
-        </div>
-      </div>
-    </div>
-  );
+  const [units, setUnits] = useState<Unit[]>([]); const [form, setForm] = useState(EMPTY); const [editing, setEditing] = useState<Unit | null>(null); const [search, setSearch] = useState(''); const [loading, setLoading] = useState(true); const [saving, setSaving] = useState(false); const [error, setError] = useState(''); const [notice, setNotice] = useState('');
+  const load = useCallback(async () => { setLoading(true); setError(''); try { const response = await fetchWithAuth(`/units${search.trim() ? `?search=${encodeURIComponent(search.trim())}` : ''}`); const data = await readPayload(response); setUnits(Array.isArray(data) ? data : []); } catch (err) { setError(err instanceof Error ? err.message : 'تعذر تحميل الوحدات'); } finally { setLoading(false); } }, [search]);
+  useEffect(() => { void load(); }, [load]);
+  const closeForm = () => { setEditing(null); setForm(EMPTY); }; const startEdit = (unit: Unit) => { setEditing(unit); setForm({ name: unit.name, symbol: unit.symbol ?? '', type: unit.type }); setNotice(''); };
+  const save = async (event: React.FormEvent) => { event.preventDefault(); setSaving(true); setError(''); setNotice(''); try { const response = await fetchWithAuth(editing ? `/units/${editing.id}` : '/units', { method: editing ? 'PUT' : 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(form) }); await readPayload(response); closeForm(); setNotice(editing ? 'تم تحديث الوحدة بنجاح.' : 'تمت إضافة الوحدة بنجاح.'); await load(); } catch (err) { setError(err instanceof Error ? err.message : 'تعذر حفظ الوحدة'); } finally { setSaving(false); } };
+  const remove = async (unit: Unit) => { if (!window.confirm(`حذف الوحدة «${unit.name}»؟`)) return; setError(''); setNotice(''); try { await readPayload(await fetchWithAuth(`/units/${unit.id}`, { method: 'DELETE' })); setNotice('تم حذف الوحدة.'); await load(); } catch (err) { setError(err instanceof Error ? err.message : 'تعذر حذف الوحدة؛ قد تكون مرتبطة بمنتجات.'); } };
+  const shown = useMemo(() => units, [units]);
+  return <div className="flex flex-col gap-4"><div className="flex flex-wrap items-center justify-between gap-3"><div><h1 className="text-h2 font-semibold [color:var(--gs-foreground)] flex items-center gap-2"><Scale className="h-6 w-6 [color:var(--gs-primary)]" />وحدات القياس</h1><BreadcrumbEngine className="mt-1" /></div><button className="gsd-button gsd-button-primary flex items-center gap-2" onClick={() => { closeForm(); setNotice(''); }}><Plus className="h-4 w-4" />إضافة وحدة</button></div>{error && <div className="gsd-alert gsd-alert-error">{error}</div>}{notice && <div className="gsd-alert gsd-alert-success">{notice}</div>}<div className="gsd-card flex flex-wrap items-center gap-3 p-4"><div className="relative min-w-[240px] flex-1"><Search className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 [color:var(--gs-foreground-muted)]" /><input className="gsd-input w-full pr-9" value={search} onChange={e => setSearch(e.target.value)} placeholder="ابحث باسم الوحدة أو الرمز" /></div><button className="gsd-button gsd-button-secondary flex items-center gap-2" onClick={() => void load()} disabled={loading}><RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />تحديث</button></div><div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1fr)_340px]"><div className="gsd-card overflow-x-auto"><table className="w-full text-right text-sm"><thead><tr className="border-b [border-color:var(--gs-border)]"><th className="p-3">الوحدة</th><th className="p-3">الرمز</th><th className="p-3">النوع</th><th className="p-3">المنتجات</th><th className="p-3">الإجراءات</th></tr></thead><tbody>{shown.map(unit => <tr key={unit.id} className="border-b [border-color:var(--gs-border)] last:border-0"><td className="p-3 font-medium">{unit.name}</td><td className="p-3">{unit.symbol || '—'}</td><td className="p-3">{TYPE_LABELS[unit.type]}</td><td className="p-3">{unit._count?.products ?? 0}</td><td className="p-3"><div className="flex gap-2"><button aria-label="تعديل" className="gsd-icon-button" onClick={() => startEdit(unit)}><Edit3 className="h-4 w-4" /></button><button aria-label="حذف" className="gsd-icon-button text-red-600" onClick={() => void remove(unit)}><Trash2 className="h-4 w-4" /></button></div></td></tr>)}{!loading && shown.length === 0 && <tr><td colSpan={5} className="p-8 text-center [color:var(--gs-foreground-muted)]">لا توجد وحدات قياس.</td></tr>}</tbody></table></div><form className="gsd-card p-5" onSubmit={save}><div className="mb-4 flex items-center justify-between"><h2 className="font-semibold">{editing ? 'تعديل الوحدة' : 'إضافة وحدة'}</h2>{editing && <button type="button" className="gsd-icon-button" onClick={closeForm}><X className="h-4 w-4" /></button>}</div><label className="mb-3 block text-sm">اسم الوحدة<input required maxLength={80} className="gsd-input mt-1 w-full" value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} placeholder="كيلوغرام" /></label><label className="mb-3 block text-sm">الرمز<input maxLength={20} className="gsd-input mt-1 w-full" value={form.symbol} onChange={e => setForm({ ...form, symbol: e.target.value })} placeholder="كجم" /></label><label className="mb-4 block text-sm">نوع الوحدة<select className="gsd-input mt-1 w-full" value={form.type} onChange={e => setForm({ ...form, type: e.target.value as UnitType })}>{Object.entries(TYPE_LABELS).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label><button className="gsd-button gsd-button-primary w-full" disabled={saving}>{saving ? 'جارٍ الحفظ…' : editing ? 'حفظ التعديلات' : 'إضافة الوحدة'}</button></form></div></div>;
 }

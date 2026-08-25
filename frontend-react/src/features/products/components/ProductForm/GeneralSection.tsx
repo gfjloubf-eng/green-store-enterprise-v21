@@ -4,8 +4,10 @@
    Milestone 4.2 — General Information form section
    ============================================================ */
 
+import { useEffect, useState } from 'react';
 import { Info } from 'lucide-react';
 import { useI18n } from '@/i18n/useI18n';
+import { fetchWithAuth } from '@/services/authClient';
 import { FormField } from './FormField';
 import type { ProductFormData, FormErrors } from '../../types/productForm';
 
@@ -35,7 +37,7 @@ const BRAND_OPTIONS = [
   { value: 'br-5', labelKey: 'form.brand.ecoGrow' as const },
 ];
 
-const UNIT_OPTIONS = [
+const FALLBACK_UNIT_OPTIONS = [
   { value: 'unit-1', labelKey: 'form.unit.kilogram' as const },
   { value: 'unit-2', labelKey: 'form.unit.box' as const },
   { value: 'unit-3', labelKey: 'form.unit.bunch' as const },
@@ -48,6 +50,20 @@ const UNIT_OPTIONS = [
 
 export function GeneralSection({ data, errors, onChange }: GeneralSectionProps) {
   const { t } = useI18n();
+  const [unitOptions, setUnitOptions] = useState<{ value: string; label: string }[]>([]);
+  useEffect(() => {
+    let active = true;
+    void fetchWithAuth('/units').then(async (response) => {
+      if (!response.ok) return;
+      const payload = await response.json().catch(() => ({}));
+      const rows = Array.isArray(payload?.data) ? payload.data : Array.isArray(payload) ? payload : [];
+      if (active && rows.length) {
+        setUnitOptions(rows.map((unit: { id: string; name: string; symbol?: string | null }) => ({ value: unit.id, label: unit.symbol ? `${unit.name} (${unit.symbol})` : unit.name })));
+      }
+    }).catch(() => undefined);
+    return () => { active = false; };
+  }, []);
+  const UNIT_OPTIONS = unitOptions.length ? unitOptions : FALLBACK_UNIT_OPTIONS;
 
   return (
     <fieldset className="gsd-card p-5">
