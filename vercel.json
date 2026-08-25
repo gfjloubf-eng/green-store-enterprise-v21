@@ -1,5 +1,6 @@
 {
   "framework": "vite",
+  "installCommand": "npm install --include=dev && npm --prefix frontend-react install --include=dev",
   "buildCommand": "npm run build",
   "outputDirectory": "frontend-react/dist",
   "functions": {
