@@ -5,10 +5,11 @@ import { NotFoundException } from './exceptions';
 import { ValidationException } from '../validation';
 import { InventoryRepository } from './inventory-repository';
 import NotificationRepository from './notification-repository';
+import { invoicePublicToken } from '../modules/invoices/controller';
 
 export type OrderWithRelations = Order & {
   items: (OrderItem & { product?: Product | null })[];
-  invoices?: { id: string; orderId: string; number: string; issuedAt: Date; dueAt?: Date | null; total: number }[];
+  invoices?: { id: string; orderId: string; number: string; issuedAt: Date; dueAt?: Date | null; total: number; publicUrl?: string }[];
   customer?: { id: string; fullName: string; email?: string | null; phone?: string | null } | null;
 };
 
@@ -200,21 +201,29 @@ export class OrderRepository extends BaseRepository implements OrderRepositoryCo
     }
 
     const orderResult = createdOrder as OrderWithRelations;
+    const publicAppUrl = String(process.env.PUBLIC_APP_URL || 'https://green-store-enterprise-v21.vercel.app').replace(/\/+$/, '');
+    const orderWithInvoiceLinks = {
+      ...orderResult,
+      invoices: (orderResult.invoices || []).map((invoice) => ({
+        ...invoice,
+        publicUrl: `${publicAppUrl}/invoices/${encodeURIComponent(invoice.id)}?token=${invoicePublicToken(invoice.id)}`,
+      })),
+    } as OrderWithRelations;
 
     // Cache idempotency result after transaction success
     if (cacheKey) {
-      idempotencyStore.set(cacheKey, { order: orderResult, createdAt: Date.now() });
+      idempotencyStore.set(cacheKey, { order: orderWithInvoiceLinks, createdAt: Date.now() });
     }
 
     try {
       await new NotificationRepository().createForManagementUsers({
         title: 'طلب جديد وصل',
-        body: `الطلب ${orderResult.code} بقيمة ${Number(orderResult.total).toLocaleString('ar-YE')} ر.ي.`,
+        body: `الطلب ${orderWithInvoiceLinks.code} بقيمة ${Number(orderResult.total).toLocaleString('ar-YE')} ر.ي.`,
         channel: 'admin',
         payload: {
           type: 'order_created',
-          orderId: orderResult.id,
-          orderCode: orderResult.code,
+          orderId: orderWithInvoiceLinks.id,
+          orderCode: orderWithInvoiceLinks.code,
           total: orderResult.total,
         },
       });
@@ -222,7 +231,7 @@ export class OrderRepository extends BaseRepository implements OrderRepositoryCo
       // Notification delivery must not make a successful order fail.
     }
 
-    return orderResult;
+    return orderWithInvoiceLinks;
   }
 
   async findOrders(options: {

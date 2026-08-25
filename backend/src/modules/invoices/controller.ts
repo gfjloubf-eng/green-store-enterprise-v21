@@ -25,7 +25,16 @@ export class InvoicesController {
     try {
       const invoice = await this.prisma.invoice.findUnique({ where: { id }, include: { order: { include: { items: true, customer: { select: { fullName: true, phone: true } }, branch: { select: { name: true, phone: true } } } } } }) as any;
       if (!invoice) return notFound('invoice_not_found', ctx);
-      return success({ id: invoice.id, number: invoice.number, issuedAt: invoice.issuedAt, total: invoice.total, order: { code: invoice.order.code, subtotal: invoice.order.subtotal, shipping: invoice.order.shipping, tax: invoice.order.tax, total: invoice.order.total, currency: invoice.order.currency, customer: invoice.order.customer, items: invoice.order.items }, company: { name: invoice.order.branch?.name || 'قطوف الطبيعة', logoUrl: null, phone: invoice.order.branch?.phone || null } }, ctx);
+      let businessLogoUrl: string | null = null;
+      let notificationPhone: string | null = null;
+      try {
+        const settings = await this.prisma.$queryRawUnsafe<Array<{ key: string; value: string }>>('SELECT "key", "value" FROM "system_settings" WHERE "key" IN ($1, $2)', 'business_logo_url', 'notification_phone');
+        businessLogoUrl = settings.find((item) => item.key === 'business_logo_url')?.value || null;
+        notificationPhone = settings.find((item) => item.key === 'notification_phone')?.value || null;
+      } catch {
+        // Keep public invoice available if optional settings are unavailable.
+      }
+      return success({ id: invoice.id, number: invoice.number, issuedAt: invoice.issuedAt, total: invoice.total, order: { code: invoice.order.code, subtotal: invoice.order.subtotal, shipping: invoice.order.shipping, tax: invoice.order.tax, total: invoice.order.total, currency: invoice.order.currency, customer: invoice.order.customer, items: invoice.order.items }, company: { name: invoice.order.branch?.name || 'قطوف الطبيعة', logoUrl: businessLogoUrl, phone: invoice.order.branch?.phone || notificationPhone } }, ctx);
     } catch {
       return internalError('invoice_unavailable', ctx);
     }

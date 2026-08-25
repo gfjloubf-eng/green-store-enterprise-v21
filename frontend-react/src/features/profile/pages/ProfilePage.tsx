@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
-import { User, Mail, Shield, LogOut, CheckCircle2, Lock, Save, KeyRound, AlertCircle } from 'lucide-react';
-import { updateProfile, changePassword } from '@/services/authClient';
+import { User, Mail, Shield, LogOut, CheckCircle2, Lock, Save, KeyRound, AlertCircle, Upload, LoaderCircle } from 'lucide-react';
+import { updateProfile, changePassword, uploadAvatar } from '@/services/authClient';
+import { compressProductImage } from '@/features/products/utils/compressProductImage';
 
 export function ProfilePage() {
   const { user, logout, refreshUser } = useAuth();
@@ -11,6 +12,7 @@ export function ProfilePage() {
   const [profileLoading, setProfileLoading] = useState(false);
   const [profileError, setProfileError] = useState<string | null>(null);
   const [profileSuccess, setProfileSuccess] = useState<string | null>(null);
+  const [avatarUploading, setAvatarUploading] = useState(false);
 
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
@@ -29,6 +31,22 @@ export function ProfilePage() {
         .toUpperCase()
         .slice(0, 2)
     : 'U';
+
+  const handleAvatarUpload = async (file: File | undefined) => {
+    if (!file) return;
+    setAvatarUploading(true);
+    setProfileError(null);
+    try {
+      const compressed = await compressProductImage(file);
+      await uploadAvatar(compressed.dataUrl);
+      await refreshUser();
+      setProfileSuccess('تم رفع الصورة الشخصية وحفظها بنجاح');
+    } catch (err: any) {
+      setProfileError(err?.message || 'تعذر رفع الصورة الشخصية');
+    } finally {
+      setAvatarUploading(false);
+    }
+  };
 
   const formatPerm = (p: any): string => {
     if (typeof p === 'string') return p;
@@ -101,8 +119,13 @@ export function ProfilePage() {
       {/* Profile Header */}
       <div className="gsd-card rounded-3xl p-6 border border-[var(--gs-border)] bg-[var(--gs-surface)] flex flex-col sm:flex-row items-start sm:items-center gap-5">
         <div className="h-20 w-20 rounded-2xl bg-emerald-500/10 text-emerald-600 font-bold text-2xl flex items-center justify-center shrink-0">
-          {initials}
+          {user.avatar ? <img src={user.avatar} alt="الصورة الشخصية" className="h-full w-full rounded-2xl object-cover" /> : initials}
         </div>
+        <label className={`gsd-btn gsd-btn--secondary cursor-pointer rounded-xl inline-flex items-center gap-2 ${avatarUploading ? 'pointer-events-none opacity-60' : ''}`}>
+          {avatarUploading ? <LoaderCircle className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
+          {avatarUploading ? 'جارٍ الرفع...' : 'رفع الصورة الشخصية'}
+          <input type="file" accept="image/jpeg,image/png,image/webp" className="sr-only" disabled={avatarUploading} onChange={(e) => { void handleAvatarUpload(e.target.files?.[0]); e.currentTarget.value = ''; }} />
+        </label>
         <div className="flex-1 space-y-1">
           <div className="flex items-center gap-3 flex-wrap">
             <h1 className="text-xl font-bold [color:var(--gs-foreground)]">{user.name}</h1>

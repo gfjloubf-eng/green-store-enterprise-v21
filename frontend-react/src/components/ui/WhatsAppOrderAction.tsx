@@ -21,7 +21,7 @@ interface WhatsAppOrderActionProps {
   className?: string;
   variant?: 'buttons' | 'dropdown' | 'modal';
   buttonText?: string;
-  beforeOpen?: (target: WhatsAppTarget) => Promise<{ orderCode?: string; invoiceNumber?: string } | void>;
+  beforeOpen?: (target: WhatsAppTarget) => Promise<{ orderCode?: string; invoiceNumber?: string; invoiceUrl?: string } | void>;
 }
 
 export function WhatsAppOrderAction({
@@ -34,7 +34,7 @@ export function WhatsAppOrderAction({
   const [isOpen, setIsOpen] = useState(false);
 
   const handleOrder = async (target: WhatsAppTarget) => {
-    let reference: { orderCode?: string; invoiceNumber?: string } | void;
+    let reference: { orderCode?: string; invoiceNumber?: string; invoiceUrl?: string } | void;
     try {
       reference = await beforeOpen?.(target);
     } catch (error) {
@@ -44,7 +44,7 @@ export function WhatsAppOrderAction({
     }
     const details = getMessage(target).trim();
     const invoiceLine = reference?.orderCode
-      ? `\n\n🧾 رقم العملية/الطلب: ${reference.orderCode}${reference.invoiceNumber ? `\nرقم الفاتورة: ${reference.invoiceNumber}` : ''}\nالشركة: قطوف الطبيعة\nرقم الشركة: +${WHATSAPP_CONTACTS[target].fullNumber}`
+      ? `\n\n🧾 رقم العملية/الطلب: ${reference.orderCode}${reference.invoiceNumber ? `\nرقم الفاتورة: ${reference.invoiceNumber}` : ''}${reference.invoiceUrl ? `\nرابط الفاتورة: ${reference.invoiceUrl}` : ''}\nالشركة: قطوف الطبيعة\nرقم الشركة: +${WHATSAPP_CONTACTS[target].fullNumber}`
       : '';
     const welcome = buildWhatsAppWelcomeMessage(target);
     

@@ -363,6 +363,14 @@ export class AuthService {
 
     if (!user) return null;
 
+    let avatarUrl: string | null = null;
+    try {
+      const avatarRows = await client.$queryRawUnsafe<Array<{ avatarUrl: string | null }>>('SELECT "avatarUrl" FROM "users" WHERE "id" = $1 LIMIT 1', userId);
+      avatarUrl = avatarRows[0]?.avatarUrl ?? null;
+    } catch {
+      // Backward-compatible while the optional avatar migration is pending.
+    }
+
     // derive role and permissions
     let primaryRole: string | null = null;
     const roles: string[] = [];
@@ -424,7 +432,7 @@ export class AuthService {
       fullName: user.displayName ?? null,
       email: user.email,
       phone: user.phone ?? null,
-      avatar: null,
+      avatar: avatarUrl,
       role: primaryRole,
       roles,
       permissions: [...permissions],

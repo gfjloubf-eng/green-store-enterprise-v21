@@ -36,7 +36,7 @@ export interface Order {
   createdAt: string;
   updatedAt: string;
   items: OrderItem[];
-  invoices?: Array<{ id: string; number: string; total: number; issuedAt?: string }>;
+  invoices?: Array<{ id: string; number: string; total: number; issuedAt?: string; publicUrl?: string }>;
   isLocal?: boolean;
   customer?: {
     id: string;
@@ -188,6 +188,7 @@ function mapBackendOrderToOrder(item: any): Order {
       number: String(invoice.number || ''),
       total: Number(invoice.total || 0),
       issuedAt: invoice.issuedAt || undefined,
+      publicUrl: invoice.publicUrl || undefined,
     })) : [],
     items: Array.isArray(item.items) ? item.items.map((i: any) => ({
       id: String(i.id || Math.random()),

@@ -7,6 +7,7 @@ import PrismaService from '../../repositories/prisma-service';
 import type { AuthResponseDto, RefreshTokenRequestDto, SignInRequestDto, SignOutRequestDto, ValidateResponseDto, CurrentUserDto } from '../../dto/auth';
 import { AuthService } from '../../services/auth-service';
 import { guardRequireAuth } from '../../common/security/auth-guards';
+import { uploadAvatarImage } from './avatar-upload';
 
 type ApiContextFields = Pick<ApiMeta, 'timestamp' | 'requestId' | 'version' | 'locale'>;
 
@@ -223,6 +224,21 @@ export class AuthController {
         phone: body.phone ? String(body.phone) : undefined,
       });
       return success<CurrentUserDto>(result, ctx);
+    } catch (error) {
+      return this.mapError(error, ctx);
+    }
+  }
+
+  public async uploadAvatar(request: ControllerRequest<any>): Promise<ApiResponse<{ avatarUrl: string }>> {
+    const ctx = this.createApiContext(request);
+    try {
+      const payload = await guardRequireAuth(this.headerValue(request, 'authorization'));
+      const userId = payload?.sub as string | undefined;
+      if (!userId) return this.errorResponse('unauthorized', 'missing_sub', HTTP_STATUS.UNAUTHORIZED, ctx);
+      const uploaded = await uploadAvatarImage(request, userId);
+      const client = PrismaService.getClient();
+      await client.$executeRawUnsafe('UPDATE "users" SET "avatarUrl" = $1 WHERE "id" = $2', uploaded.url, userId);
+      return success({ avatarUrl: uploaded.url }, ctx);
     } catch (error) {
       return this.mapError(error, ctx);
     }

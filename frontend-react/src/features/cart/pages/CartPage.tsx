@@ -303,6 +303,7 @@ export function CartPage() {
                   return {
                     orderCode: order.code,
                     invoiceNumber: order.invoices?.[0]?.number,
+                    invoiceUrl: order.invoices?.[0]?.publicUrl,
                   };
                 }}
                 variant="dropdown"

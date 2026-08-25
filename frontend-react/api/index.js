@@ -2505,6 +2505,12 @@ var AuthService = class {
       }
     });
     if (!user) return null;
+    let avatarUrl = null;
+    try {
+      const avatarRows = await client.$queryRawUnsafe('SELECT "avatarUrl" FROM "users" WHERE "id" = $1 LIMIT 1', userId);
+      avatarUrl = avatarRows[0]?.avatarUrl ?? null;
+    } catch {
+    }
     let primaryRole = null;
     const roles = [];
     const permissions = /* @__PURE__ */ new Set();
@@ -2555,7 +2561,7 @@ var AuthService = class {
       fullName: user.displayName ?? null,
       email: user.email,
       phone: user.phone ?? null,
-      avatar: null,
+      avatar: avatarUrl,
       role: primaryRole,
       roles,
       permissions: [...permissions],
@@ -2600,6 +2606,45 @@ async function guardRequireAuth(authorizationHeader) {
   const token = parts[1];
   const payload = await jwt_middleware_default(token);
   return payload;
+}
+
+// ../backend/src/modules/auth/avatar-upload.ts
+var MAX_BYTES = 300 * 1024;
+var ALLOWED_TYPES = /* @__PURE__ */ new Set(["image/jpeg", "image/png", "image/webp"]);
+function parseDataUrl(value) {
+  if (typeof value !== "string") throw new Error("image_data_required");
+  const match = value.match(/^data:(image\/(?:jpeg|png|webp));base64,([A-Za-z0-9+/=]+)$/);
+  if (!match || !ALLOWED_TYPES.has(match[1])) throw new Error("image_type_invalid");
+  const bytes = Buffer.from(match[2], "base64");
+  if (!bytes.length || bytes.length > MAX_BYTES) throw new Error("image_size_invalid");
+  return { contentType: match[1], bytes };
+}
+async function uploadAvatarImage(request4, userId) {
+  const body = request4.body ?? {};
+  const { contentType, bytes } = parseDataUrl(body.dataUrl);
+  const baseUrl = String(process.env.SUPABASE_URL ?? "").trim().replace(/\/+$/, "").replace(/\/rest\/v1$/i, "");
+  const serviceRoleKey = String(process.env.SUPABASE_SERVICE_ROLE_KEY ?? "").trim();
+  const bucket = "avatars";
+  if (!baseUrl || !serviceRoleKey) throw new Error("storage_not_configured");
+  const safeUserId = String(userId).replace(/[^a-zA-Z0-9_-]/g, "-");
+  const extension = contentType === "image/png" ? "png" : contentType === "image/webp" ? "webp" : "jpg";
+  const path3 = `users/${safeUserId}/avatar-${Date.now()}.${extension}`;
+  const response = await fetch(`${baseUrl}/storage/v1/object/${bucket}/${path3}`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${serviceRoleKey}`,
+      apikey: serviceRoleKey,
+      "Content-Type": contentType,
+      "Content-Length": String(bytes.byteLength),
+      "x-upsert": "false"
+    },
+    body: bytes
+  });
+  if (!response.ok) {
+    const detail = (await response.text().catch(() => "")).replace(/[^a-zA-Z0-9_ .:-]/g, "").slice(0, 160);
+    throw new Error(`storage_avatar_upload_failed_${response.status}${detail ? `:${detail}` : ""}`);
+  }
+  return { path: path3, url: `${baseUrl}/storage/v1/object/public/${bucket}/${path3}` };
 }
 
 // ../backend/src/modules/auth/controller.ts
@@ -2782,6 +2827,20 @@ var AuthController = class _AuthController {
         phone: body.phone ? String(body.phone) : void 0
       });
       return success(result, ctx);
+    } catch (error) {
+      return this.mapError(error, ctx);
+    }
+  }
+  async uploadAvatar(request4) {
+    const ctx = this.createApiContext(request4);
+    try {
+      const payload = await guardRequireAuth(this.headerValue(request4, "authorization"));
+      const userId = payload?.sub;
+      if (!userId) return this.errorResponse("unauthorized", "missing_sub", HTTP_STATUS.UNAUTHORIZED, ctx);
+      const uploaded = await uploadAvatarImage(request4, userId);
+      const client = prisma_service_default.getClient();
+      await client.$executeRawUnsafe('UPDATE "users" SET "avatarUrl" = $1 WHERE "id" = $2', uploaded.url, userId);
+      return success({ avatarUrl: uploaded.url }, ctx);
     } catch (error) {
       return this.mapError(error, ctx);
     }
@@ -3083,6 +3142,22 @@ function createAuthRoutes(controller = new AuthController()) {
       authenticationRequired: true,
       authorizationRequired: false,
       tags: ["auth"],
+      middleware: []
+    }
+  });
+  builder.register({
+    name: "auth-profile-avatar-upload",
+    method: "POST",
+    path: "/auth/profile/avatar",
+    version: "v1",
+    handler: adapt((ctx) => controller.uploadAvatar(toControllerRequest(ctx))),
+    options: {
+      mode: "private",
+      publicRoute: false,
+      privateRoute: true,
+      authenticationRequired: true,
+      authorizationRequired: false,
+      tags: ["auth", "profile"],
       middleware: []
     }
   });
@@ -4516,6 +4591,45 @@ var CartRepository = class extends base_repository_default {
 };
 var cart_repository_default = CartRepository;
 
+// ../backend/src/modules/invoices/controller.ts
+import { createHmac as createHmac2, timingSafeEqual as timingSafeEqual2 } from "node:crypto";
+init_prisma_service();
+function invoicePublicToken(invoiceId) {
+  const secret = process.env.PUBLIC_INVOICE_SECRET || process.env.JWT_SECRET || "qutoof-public-invoice-secret-change-me";
+  return createHmac2("sha256", secret).update(invoiceId).digest("hex");
+}
+function validToken(invoiceId, token) {
+  const expected = invoicePublicToken(invoiceId);
+  const a = Buffer.from(expected);
+  const b = Buffer.from(token);
+  return a.length === b.length && timingSafeEqual2(a, b);
+}
+var InvoicesController = class {
+  prisma = PrismaService.getClient();
+  async getPublic(request4) {
+    const ctx = { timestamp: request4.context?.metadata?.timestamp ?? (/* @__PURE__ */ new Date()).toISOString(), requestId: request4.context?.metadata?.requestId, version: "v1" };
+    const id = request4.params?.id;
+    const token = Array.isArray(request4.query?.token) ? request4.query?.token[0] : request4.query?.token;
+    if (!id || typeof token !== "string" || !validToken(id, token)) return validationError("invoice_link_invalid_or_expired", ctx);
+    try {
+      const invoice = await this.prisma.invoice.findUnique({ where: { id }, include: { order: { include: { items: true, customer: { select: { fullName: true, phone: true } }, branch: { select: { name: true, phone: true } } } } } });
+      if (!invoice) return notFound("invoice_not_found", ctx);
+      let businessLogoUrl = null;
+      let notificationPhone = null;
+      try {
+        const settings = await this.prisma.$queryRawUnsafe('SELECT "key", "value" FROM "system_settings" WHERE "key" IN ($1, $2)', "business_logo_url", "notification_phone");
+        businessLogoUrl = settings.find((item) => item.key === "business_logo_url")?.value || null;
+        notificationPhone = settings.find((item) => item.key === "notification_phone")?.value || null;
+      } catch {
+      }
+      return success({ id: invoice.id, number: invoice.number, issuedAt: invoice.issuedAt, total: invoice.total, order: { code: invoice.order.code, subtotal: invoice.order.subtotal, shipping: invoice.order.shipping, tax: invoice.order.tax, total: invoice.order.total, currency: invoice.order.currency, customer: invoice.order.customer, items: invoice.order.items }, company: { name: invoice.order.branch?.name || "\u0642\u0637\u0648\u0641 \u0627\u0644\u0637\u0628\u064A\u0639\u0629", logoUrl: businessLogoUrl, phone: invoice.order.branch?.phone || notificationPhone } }, ctx);
+    } catch {
+      return internalError("invoice_unavailable", ctx);
+    }
+  }
+};
+var controller_default = InvoicesController;
+
 // ../backend/src/repositories/order-repository.ts
 var ALLOWED_TRANSITIONS = {
   DRAFT: ["PENDING", "CONFIRMED", "CANCELED"],
@@ -4665,24 +4779,32 @@ var OrderRepository = class extends base_repository_default {
       throw new Error("order_creation_failed");
     }
     const orderResult = createdOrder;
+    const publicAppUrl = String(process.env.PUBLIC_APP_URL || "https://green-store-enterprise-v21.vercel.app").replace(/\/+$/, "");
+    const orderWithInvoiceLinks = {
+      ...orderResult,
+      invoices: (orderResult.invoices || []).map((invoice) => ({
+        ...invoice,
+        publicUrl: `${publicAppUrl}/invoices/${encodeURIComponent(invoice.id)}?token=${invoicePublicToken(invoice.id)}`
+      }))
+    };
     if (cacheKey) {
-      idempotencyStore.set(cacheKey, { order: orderResult, createdAt: Date.now() });
+      idempotencyStore.set(cacheKey, { order: orderWithInvoiceLinks, createdAt: Date.now() });
     }
     try {
       await new notification_repository_default().createForManagementUsers({
         title: "\u0637\u0644\u0628 \u062C\u062F\u064A\u062F \u0648\u0635\u0644",
-        body: `\u0627\u0644\u0637\u0644\u0628 ${orderResult.code} \u0628\u0642\u064A\u0645\u0629 ${Number(orderResult.total).toLocaleString("ar-YE")} \u0631.\u064A.`,
+        body: `\u0627\u0644\u0637\u0644\u0628 ${orderWithInvoiceLinks.code} \u0628\u0642\u064A\u0645\u0629 ${Number(orderResult.total).toLocaleString("ar-YE")} \u0631.\u064A.`,
         channel: "admin",
         payload: {
           type: "order_created",
-          orderId: orderResult.id,
-          orderCode: orderResult.code,
+          orderId: orderWithInvoiceLinks.id,
+          orderCode: orderWithInvoiceLinks.code,
           total: orderResult.total
         }
       });
     } catch {
     }
-    return orderResult;
+    return orderWithInvoiceLinks;
   }
   async findOrders(options) {
     const page = Math.max(1, Number(options.page ?? 1));
@@ -6202,7 +6324,7 @@ var UsersController = class {
     return { statusCode: HTTP_STATUS.INTERNAL_SERVER_ERROR, body: { success: false, error: { code: "internal_error", message: err?.message ?? "internal_error" }, meta: ctx } };
   }
 };
-var controller_default = UsersController;
+var controller_default2 = UsersController;
 
 // ../backend/src/modules/users/routes.ts
 function toControllerRequest2(ctx) {
@@ -6222,7 +6344,7 @@ function toControllerRequest2(ctx) {
 function adapt2(handler2) {
   return (context) => handler2(context);
 }
-function createUserRoutes(controller = new controller_default()) {
+function createUserRoutes(controller = new controller_default2()) {
   const builder = new RouterBuilder();
   builder.register({
     name: "users-list",
@@ -6611,7 +6733,7 @@ var RolesController = class {
     }
   }
 };
-var controller_default2 = RolesController;
+var controller_default3 = RolesController;
 
 // ../backend/src/modules/roles/routes.ts
 function toControllerRequest3(ctx) {
@@ -6631,7 +6753,7 @@ function toControllerRequest3(ctx) {
 function adapt3(handler2) {
   return (context) => handler2(context);
 }
-function createRoleRoutes(controller = new controller_default2()) {
+function createRoleRoutes(controller = new controller_default3()) {
   const builder = new RouterBuilder();
   builder.register({
     name: "roles-list",
@@ -6949,7 +7071,7 @@ var PermissionsController = class {
     }
   }
 };
-var controller_default3 = PermissionsController;
+var controller_default4 = PermissionsController;
 
 // ../backend/src/modules/permissions/routes.ts
 function toControllerRequest4(ctx) {
@@ -6969,7 +7091,7 @@ function toControllerRequest4(ctx) {
 function adapt4(handler2) {
   return (context) => handler2(context);
 }
-function createPermissionRoutes(controller = new controller_default3()) {
+function createPermissionRoutes(controller = new controller_default4()) {
   const builder = new RouterBuilder();
   builder.register({
     name: "permissions-list",
@@ -7228,7 +7350,7 @@ var ProductsController = class {
     return parsed;
   }
 };
-var controller_default4 = ProductsController;
+var controller_default5 = ProductsController;
 
 // ../backend/src/modules/products/routes.ts
 function toControllerRequest5(ctx) {
@@ -7243,7 +7365,7 @@ function toControllerRequest5(ctx) {
 function adapt5(handler2) {
   return (context) => handler2(context);
 }
-function createProductRoutes(controller = new controller_default4()) {
+function createProductRoutes(controller = new controller_default5()) {
   const builder = new RouterBuilder();
   const register = (definition) => {
     builder.register({ ...definition, handler: adapt5(definition.handler) });
@@ -7268,23 +7390,23 @@ function createProductRoutes(controller = new controller_default4()) {
 }
 
 // ../backend/src/modules/products/media-upload.ts
-var MAX_BYTES = 300 * 1024;
-var ALLOWED_TYPES = /* @__PURE__ */ new Set(["image/jpeg", "image/png", "image/webp"]);
+var MAX_BYTES2 = 300 * 1024;
+var ALLOWED_TYPES2 = /* @__PURE__ */ new Set(["image/jpeg", "image/png", "image/webp"]);
 function cleanSegment(value, fallback2) {
   const cleaned = String(value ?? "").trim().replace(/[^a-zA-Z0-9_-]/g, "-").replace(/-+/g, "-").replace(/^-|-$/g, "");
   return cleaned.slice(0, 80) || fallback2;
 }
-function parseDataUrl(value) {
+function parseDataUrl2(value) {
   if (typeof value !== "string") throw new Error("image_data_required");
   const match = value.match(/^data:(image\/(?:jpeg|png|webp));base64,([A-Za-z0-9+/=]+)$/);
-  if (!match || !ALLOWED_TYPES.has(match[1])) throw new Error("image_type_invalid");
+  if (!match || !ALLOWED_TYPES2.has(match[1])) throw new Error("image_type_invalid");
   const bytes = Buffer.from(match[2], "base64");
-  if (!bytes.length || bytes.length > MAX_BYTES) throw new Error("image_size_invalid");
+  if (!bytes.length || bytes.length > MAX_BYTES2) throw new Error("image_size_invalid");
   return { contentType: match[1], bytes };
 }
 async function uploadProductImage(request4) {
   const body = request4.body ?? {};
-  const { contentType, bytes } = parseDataUrl(body.dataUrl);
+  const { contentType, bytes } = parseDataUrl2(body.dataUrl);
   const baseUrl = String(process.env.SUPABASE_URL ?? "").trim().replace(/\/+$/, "").replace(/\/rest\/v1$/i, "");
   const serviceRoleKey = String(process.env.SUPABASE_SERVICE_ROLE_KEY ?? "").trim();
   const bucket = cleanSegment(process.env.SUPABASE_STORAGE_BUCKET, "product-images");
@@ -7561,13 +7683,13 @@ var CustomersController = class {
     return { statusCode: HTTP_STATUS.INTERNAL_SERVER_ERROR, body: { success: false, error: { code: "internal_error", message: "internal_error" }, meta: ctx } };
   }
 };
-var controller_default5 = CustomersController;
+var controller_default6 = CustomersController;
 
 // ../backend/src/modules/customers/routes.ts
 function request(ctx) {
   return { body: ctx.body, headers: ctx.headers, query: ctx.query, params: ctx.params, context: { user: ctx.user, metadata: { timestamp: (/* @__PURE__ */ new Date()).toISOString(), version: "v1" } } };
 }
-function createCustomerRoutes(controller = new controller_default5()) {
+function createCustomerRoutes(controller = new controller_default6()) {
   const builder = new RouterBuilder();
   const options = (permission) => ({
     mode: "private",
@@ -7675,7 +7797,7 @@ var CartController = class {
     };
   }
 };
-var controller_default6 = CartController;
+var controller_default7 = CartController;
 
 // ../backend/src/modules/cart/routes.ts
 function toControllerRequest7(ctx) {
@@ -7693,7 +7815,7 @@ function toControllerRequest7(ctx) {
 function adapt6(handler2) {
   return (context) => handler2(context);
 }
-function createCartRoutes(controller = new controller_default6()) {
+function createCartRoutes(controller = new controller_default7()) {
   const builder = new RouterBuilder();
   const register = (definition) => {
     builder.register({ ...definition, handler: adapt6(definition.handler) });
@@ -8382,7 +8504,7 @@ var DeliveryController = class {
     return { statusCode: HTTP_STATUS.INTERNAL_SERVER_ERROR, body: { success: false, error: { code: "internal_error", message: "internal_error" }, meta: ctx } };
   }
 };
-var controller_default7 = DeliveryController;
+var controller_default8 = DeliveryController;
 
 // ../backend/src/modules/delivery/routes.ts
 function request2(ctx) {
@@ -8397,7 +8519,7 @@ function request2(ctx) {
     }
   };
 }
-function createDeliveryRoutes(controller = new controller_default7()) {
+function createDeliveryRoutes(controller = new controller_default8()) {
   const builder = new RouterBuilder();
   const options = (permission) => ({
     mode: "private",
@@ -8571,13 +8693,13 @@ var SupplierAdminController = class {
     return { statusCode: HTTP_STATUS.INTERNAL_SERVER_ERROR, body: { success: false, error: { code: "internal_error", message: "internal_error" }, meta: ctx } };
   }
 };
-var controller_default8 = SupplierAdminController;
+var controller_default9 = SupplierAdminController;
 
 // ../backend/src/modules/suppliers-admin/routes.ts
 function request3(ctx) {
   return { body: ctx.body, headers: ctx.headers, params: ctx.params, query: ctx.query, context: { user: ctx.user, metadata: { timestamp: (/* @__PURE__ */ new Date()).toISOString(), version: "v1" } } };
 }
-function createSupplierAdminRoutes(controller = new controller_default8()) {
+function createSupplierAdminRoutes(controller = new controller_default9()) {
   const builder = new RouterBuilder();
   const options = (permission) => ({ mode: "private", publicRoute: false, privateRoute: true, authenticationRequired: true, authorizationRequired: true, requiredPermissions: [permission], tags: ["suppliers"], middleware: [] });
   const register = (name, method, path3, permission, handler2) => builder.register({ name, method, path: path3, version: "v1", handler: handler2, options: options(permission) });
@@ -10462,7 +10584,7 @@ var EducationController = class {
     return Array.isArray(value) ? value[0] : value;
   }
 };
-var controller_default9 = EducationController;
+var controller_default10 = EducationController;
 
 // ../backend/src/modules/education/routes.ts
 function toControllerRequest16(ctx) {
@@ -10477,7 +10599,7 @@ function publicOptions() {
 function privateOptions(permission) {
   return { mode: "private", publicRoute: false, privateRoute: true, authenticationRequired: true, authorizationRequired: true, requiredPermissions: [permission], tags: ["education"], middleware: [] };
 }
-function createEducationRoutes(controller = new controller_default9()) {
+function createEducationRoutes(controller = new controller_default10()) {
   const builder = new RouterBuilder();
   const register = (definition) => builder.register({ ...definition, version: "v1", handler: adapt15(definition.handler) });
   register({ name: "education-articles-list", method: "GET", path: "/education/articles", handler: (ctx) => controller.listArticles(toControllerRequest16(ctx)), options: publicOptions() });
@@ -10571,7 +10693,7 @@ var CategoriesController = class {
     }
   }
 };
-var controller_default10 = CategoriesController;
+var controller_default11 = CategoriesController;
 
 // ../backend/src/modules/categories/routes.ts
 function toRequest(ctx) {
@@ -10580,7 +10702,7 @@ function toRequest(ctx) {
 function adapt16(handler2) {
   return (ctx) => handler2(ctx);
 }
-function createCategoriesRoutes(controller = new controller_default10()) {
+function createCategoriesRoutes(controller = new controller_default11()) {
   const builder = new RouterBuilder();
   const options = { mode: "private", publicRoute: false, privateRoute: true, authenticationRequired: true, authorizationRequired: false, tags: ["categories"], middleware: [] };
   builder.register({ name: "categories-list", method: "GET", path: "/categories", version: "v1", handler: adapt16((ctx) => controller.list(toRequest(ctx))), options });
@@ -10590,37 +10712,6 @@ function createCategoriesRoutes(controller = new controller_default10()) {
   return builder.build();
 }
 
-// ../backend/src/modules/invoices/controller.ts
-import { createHmac as createHmac2, timingSafeEqual as timingSafeEqual2 } from "node:crypto";
-init_prisma_service();
-function invoicePublicToken(invoiceId) {
-  const secret = process.env.PUBLIC_INVOICE_SECRET || process.env.JWT_SECRET || "qutoof-public-invoice-secret-change-me";
-  return createHmac2("sha256", secret).update(invoiceId).digest("hex");
-}
-function validToken(invoiceId, token) {
-  const expected = invoicePublicToken(invoiceId);
-  const a = Buffer.from(expected);
-  const b = Buffer.from(token);
-  return a.length === b.length && timingSafeEqual2(a, b);
-}
-var InvoicesController = class {
-  prisma = PrismaService.getClient();
-  async getPublic(request4) {
-    const ctx = { timestamp: request4.context?.metadata?.timestamp ?? (/* @__PURE__ */ new Date()).toISOString(), requestId: request4.context?.metadata?.requestId, version: "v1" };
-    const id = request4.params?.id;
-    const token = Array.isArray(request4.query?.token) ? request4.query?.token[0] : request4.query?.token;
-    if (!id || typeof token !== "string" || !validToken(id, token)) return validationError("invoice_link_invalid_or_expired", ctx);
-    try {
-      const invoice = await this.prisma.invoice.findUnique({ where: { id }, include: { order: { include: { items: true, customer: { select: { fullName: true, phone: true } }, branch: { select: { name: true, phone: true } } } } } });
-      if (!invoice) return notFound("invoice_not_found", ctx);
-      return success({ id: invoice.id, number: invoice.number, issuedAt: invoice.issuedAt, total: invoice.total, order: { code: invoice.order.code, subtotal: invoice.order.subtotal, shipping: invoice.order.shipping, tax: invoice.order.tax, total: invoice.order.total, currency: invoice.order.currency, customer: invoice.order.customer, items: invoice.order.items }, company: { name: invoice.order.branch?.name || "\u0642\u0637\u0648\u0641 \u0627\u0644\u0637\u0628\u064A\u0639\u0629", logoUrl: null, phone: invoice.order.branch?.phone || null } }, ctx);
-    } catch {
-      return internalError("invoice_unavailable", ctx);
-    }
-  }
-};
-var controller_default11 = InvoicesController;
-
 // ../backend/src/modules/invoices/routes.ts
 function toRequest2(ctx) {
   return { body: ctx.body, headers: ctx.headers, query: ctx.query, params: ctx.params, user: ctx.user, context: { metadata: { timestamp: (/* @__PURE__ */ new Date()).toISOString(), version: "v1" } } };
@@ -10628,7 +10719,7 @@ function toRequest2(ctx) {
 function adapt17(handler2) {
   return (ctx) => handler2(ctx);
 }
-function createInvoiceRoutes(controller = new controller_default11()) {
+function createInvoiceRoutes(controller = new controller_default()) {
   const builder = new RouterBuilder();
   builder.register({ name: "invoice-public-get", method: "GET", path: "/invoices/:id/public", version: "v1", handler: adapt17((ctx) => controller.getPublic(toRequest2(ctx))), options: { mode: "public", publicRoute: true, privateRoute: false, authenticationRequired: false, authorizationRequired: false, tags: ["invoices"], middleware: [] } });
   return builder.build();

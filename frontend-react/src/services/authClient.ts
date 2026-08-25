@@ -147,6 +147,22 @@ export async function resetPassword(req: { token: string; newPassword: string; c
   }
 }
 
+export async function uploadAvatar(dataUrl: string): Promise<{ avatarUrl: string }> {
+  const res = await fetchWithAuth('/auth/profile/avatar', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ dataUrl }),
+  });
+  const payload = await parseJsonSafe(res);
+  if (!res.ok) {
+    const message = payload?.error?.message || (res.statusText ? `${res.statusText} (${res.status})` : `فشل رفع الصورة (${res.status})`);
+    const err: any = new Error(message);
+    err.status = res.status;
+    throw err;
+  }
+  return payload?.data as { avatarUrl: string };
+}
+
 export async function updateProfile(req: { name?: string; displayName?: string; phone?: string }): Promise<any> {
   const res = await fetchWithAuth('/auth/profile', {
     method: 'PUT',

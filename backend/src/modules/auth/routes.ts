@@ -238,6 +238,24 @@ export function createAuthRoutes(controller: AuthController = new AuthController
     },
   });
 
+  // POST /auth/profile/avatar — Private avatar upload
+  builder.register({
+    name: 'auth-profile-avatar-upload',
+    method: 'POST',
+    path: '/auth/profile/avatar',
+    version: 'v1',
+    handler: adapt((ctx) => controller.uploadAvatar(toControllerRequest(ctx))),
+    options: {
+      mode: 'private',
+      publicRoute: false,
+      privateRoute: true,
+      authenticationRequired: true,
+      authorizationRequired: false,
+      tags: ['auth', 'profile'],
+      middleware: [],
+    },
+  });
+
   // POST /auth/send-verification — Private send verification token
   builder.register({
     name: 'auth-send-verification',
