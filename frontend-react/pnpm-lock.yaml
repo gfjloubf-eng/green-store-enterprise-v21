@@ -17,6 +17,12 @@ importers:
       '@prisma/config':
         specifier: ^7.9.1
         version: 7.9.1
+      '@vitejs/plugin-react':
+        specifier: ^6.0.1
+        version: 6.0.5(vite@8.2.1(@types/node@24.13.3)(esbuild@0.25.12)(jiti@1.21.7))
+      autoprefixer:
+        specifier: ^10.5.4
+        version: 10.5.4(postcss@8.5.26)
       clsx:
         specifier: ^2.1.1
         version: 2.1.1
@@ -44,6 +50,9 @@ importers:
       tailwind-merge:
         specifier: ^3.6.0
         version: 3.6.0
+      tailwindcss:
+        specifier: ^3.4.19
+        version: 3.4.19
       vite:
         specifier: ^8.0.4
         version: 8.2.1(@types/node@24.13.3)(esbuild@0.25.12)(jiti@1.21.7)
@@ -60,12 +69,6 @@ importers:
       '@types/react-dom':
         specifier: ^19.2.3
         version: 19.2.4(@types/react@19.2.18)
-      '@vitejs/plugin-react':
-        specifier: ^6.0.1
-        version: 6.0.5(vite@8.2.1(@types/node@24.13.3)(esbuild@0.25.12)(jiti@1.21.7))
-      autoprefixer:
-        specifier: ^10.5.4
-        version: 10.5.4(postcss@8.5.26)
       esbuild:
         specifier: ^0.25.0
         version: 0.25.12
@@ -81,9 +84,6 @@ importers:
       globals:
         specifier: ^17.4.0
         version: 17.11.0
-      tailwindcss:
-        specifier: ^3.4.19
-        version: 3.4.19
       typescript:
         specifier: ~6.0.2
         version: 6.0.3
