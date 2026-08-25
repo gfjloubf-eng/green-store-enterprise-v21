@@ -317,6 +317,22 @@ export interface Translations {
   'form.selectUnit': string;
   'form.description': string;
   'form.descriptionPlaceholder': string;
+  'form.originCountry': string;
+  'form.originCountryPlaceholder': string;
+  'form.harvestDate': string;
+  'form.expiryDate': string;
+  'form.storageInstructions': string;
+  'form.storageInstructionsPlaceholder': string;
+  'form.qualityGrade': string;
+  'form.selectQualityGrade': string;
+  'form.weightValue': string;
+  'form.weightUnit': string;
+  'form.packageLength': string;
+  'form.packageWidth': string;
+  'form.packageHeight': string;
+  'form.shippingWeight': string;
+  'form.shippingClass': string;
+  'form.shippingClassPlaceholder': string;
   'form.category.vegetables': string;
   'form.category.fruits': string;
   'form.category.herbs': string;
@@ -378,6 +394,8 @@ export interface Translations {
   'form.validation.alphanumeric': string;
   'form.validation.numbersOnly': string;
   'form.validation.minGtMax': string;
+  'form.validation.invalidDate': string;
+  'form.validation.expiryBeforeHarvest': string;
 
   /* ── Inventory Status ───────────────────────────────────── */
   'invStatus.in_stock': string;
@@ -1118,6 +1136,22 @@ const ar: Translations = {
   'form.selectUnit': 'اختر وحدة',
   'form.description': 'الوصف',
   'form.descriptionPlaceholder': 'أدخل وصف المنتج',
+  'form.originCountry': 'بلد المنشأ',
+  'form.originCountryPlaceholder': 'مثال: اليمن — صنعاء',
+  'form.harvestDate': 'تاريخ الحصاد أو الإنتاج',
+  'form.expiryDate': 'تاريخ الانتهاء',
+  'form.storageInstructions': 'تعليمات التخزين',
+  'form.storageInstructionsPlaceholder': 'مثال: يحفظ مبردًا بين 2 و8 درجات',
+  'form.qualityGrade': 'درجة الجودة',
+  'form.selectQualityGrade': 'اختر درجة الجودة',
+  'form.weightValue': 'وزن المنتج',
+  'form.weightUnit': 'وحدة الوزن',
+  'form.packageLength': 'طول العبوة (سم)',
+  'form.packageWidth': 'عرض العبوة (سم)',
+  'form.packageHeight': 'ارتفاع العبوة (سم)',
+  'form.shippingWeight': 'وزن الشحن',
+  'form.shippingClass': 'فئة الشحن',
+  'form.shippingClassPlaceholder': 'مثال: مبرد أو عادي',
   'form.category.vegetables': 'خضروات',
   'form.category.fruits': 'فواكه',
   'form.category.herbs': 'أعشاب',
@@ -1179,6 +1213,8 @@ const ar: Translations = {
   'form.validation.alphanumeric': 'يرجى إدخال أحرف وأرقام فقط',
   'form.validation.numbersOnly': 'يرجى إدخال أرقام فقط',
   'form.validation.minGtMax': 'يجب أن يكون الحد الأدنى أقل من الحد الأقصى',
+  'form.validation.invalidDate': 'يرجى إدخال تاريخ صحيح',
+  'form.validation.expiryBeforeHarvest': 'تاريخ الانتهاء لا يمكن أن يسبق تاريخ الحصاد',
 
   /* ── Inventory Status ───────────────────────────────────── */
   'invStatus.in_stock': 'متوفر',
@@ -1915,6 +1951,22 @@ const en: Translations = {
   'form.selectUnit': 'Select a unit',
   'form.description': 'Description',
   'form.descriptionPlaceholder': 'Enter product description',
+  'form.originCountry': 'Country of origin',
+  'form.originCountryPlaceholder': 'Example: Yemen — Sana’a',
+  'form.harvestDate': 'Harvest or production date',
+  'form.expiryDate': 'Expiry date',
+  'form.storageInstructions': 'Storage instructions',
+  'form.storageInstructionsPlaceholder': 'Example: Keep refrigerated between 2 and 8°C',
+  'form.qualityGrade': 'Quality grade',
+  'form.selectQualityGrade': 'Select quality grade',
+  'form.weightValue': 'Product weight',
+  'form.weightUnit': 'Weight unit',
+  'form.packageLength': 'Package length (cm)',
+  'form.packageWidth': 'Package width (cm)',
+  'form.packageHeight': 'Package height (cm)',
+  'form.shippingWeight': 'Shipping weight',
+  'form.shippingClass': 'Shipping class',
+  'form.shippingClassPlaceholder': 'Example: refrigerated or standard',
   'form.category.vegetables': 'Vegetables',
   'form.category.fruits': 'Fruits',
   'form.category.herbs': 'Herbs',
@@ -1976,6 +2028,8 @@ const en: Translations = {
   'form.validation.alphanumeric': 'Please enter letters and numbers only',
   'form.validation.numbersOnly': 'Please enter numbers only',
   'form.validation.minGtMax': 'Min stock must be less than max stock',
+  'form.validation.invalidDate': 'Please enter a valid date',
+  'form.validation.expiryBeforeHarvest': 'Expiry date cannot be before harvest date',
 
   /* ── Inventory Status ───────────────────────────────────── */
   'invStatus.in_stock': 'In Stock',

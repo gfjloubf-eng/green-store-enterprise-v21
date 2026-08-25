@@ -80,6 +80,7 @@ model User {
   email                   String                   @unique
   phone                   String?                  @unique
   displayName             String?
+  avatarUrl               String?
   passwordHash            String?
   isActive                Boolean                  @default(true)
   isVerified              Boolean                  @default(false)
@@ -433,6 +434,18 @@ model Product {
   name          String
   slug          String
   description   String?
+  originCountry String?
+  harvestDate   DateTime?
+  expiryDate    DateTime?
+  storageInstructions String?
+  qualityGrade  String?
+  weightValue   Float?
+  weightUnit    String?
+  packageLength Float?
+  packageWidth  Float?
+  packageHeight Float?
+  shippingWeight Float?
+  shippingClass String?
   brandId       String?
   unitId        String?
   categoryId    String?

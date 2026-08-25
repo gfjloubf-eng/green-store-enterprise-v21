@@ -159,6 +159,17 @@ export function validateForm(data: ProductFormData): FormErrors {
   });
   if (discountErr) errors.discount = discountErr;
 
+  /* ── Product dates ──────────────────────────────────── */
+  if (data.harvestDate && Number.isNaN(Date.parse(data.harvestDate))) {
+    errors.harvestDate = 'form.validation.invalidDate';
+  }
+  if (data.expiryDate && Number.isNaN(Date.parse(data.expiryDate))) {
+    errors.expiryDate = 'form.validation.invalidDate';
+  }
+  if (data.harvestDate && data.expiryDate && !errors.harvestDate && !errors.expiryDate && Date.parse(data.expiryDate) < Date.parse(data.harvestDate)) {
+    errors.expiryDate = 'form.validation.expiryBeforeHarvest';
+  }
+
   /* ── Inventory ───────────────────────────────────────── */
 
   const stockErr = validateField(data.initialStock, {

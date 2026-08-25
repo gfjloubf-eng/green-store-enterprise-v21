@@ -37,6 +37,12 @@ const BRAND_OPTIONS = [
   { value: 'br-5', labelKey: 'form.brand.ecoGrow' as const },
 ];
 
+const QUALITY_OPTIONS = [
+  { value: 'PREMIUM', label: 'ممتاز / Premium' },
+  { value: 'STANDARD', label: 'قياسي / Standard' },
+  { value: 'ECONOMY', label: 'اقتصادي / Economy' },
+];
+
 const FALLBACK_UNIT_OPTIONS = [
   { value: 'unit-1', labelKey: 'form.unit.kilogram' as const },
   { value: 'unit-2', labelKey: 'form.unit.box' as const },
@@ -149,6 +155,57 @@ export function GeneralSection({ data, errors, onChange }: GeneralSectionProps) 
           options={UNIT_OPTIONS}
           required
         />
+
+        {/* Origin country */}
+        <FormField
+          labelKey="form.originCountry"
+          placeholderKey="form.originCountryPlaceholder"
+          value={data.originCountry}
+          onChange={(v) => onChange('originCountry', v)}
+        />
+
+        {/* Quality grade */}
+        <FormField
+          labelKey="form.qualityGrade"
+          placeholderKey="form.selectQualityGrade"
+          value={data.qualityGrade}
+          onChange={(v) => onChange('qualityGrade', v)}
+          type="select"
+          options={QUALITY_OPTIONS}
+        />
+
+        {/* Harvest and expiry dates */}
+        <FormField
+          labelKey="form.harvestDate"
+          value={data.harvestDate}
+          onChange={(v) => onChange('harvestDate', v)}
+          type="date"
+        />
+        <FormField
+          labelKey="form.expiryDate"
+          value={data.expiryDate}
+          onChange={(v) => onChange('expiryDate', v)}
+          type="date"
+        />
+
+        {/* Storage instructions */}
+        <FormField
+          labelKey="form.storageInstructions"
+          placeholderKey="form.storageInstructionsPlaceholder"
+          value={data.storageInstructions}
+          onChange={(v) => onChange('storageInstructions', v)}
+          type="textarea"
+          className="md:col-span-2"
+        />
+
+        {/* Logistics: weight and dimensions */}
+        <FormField labelKey="form.weightValue" value={data.weightValue} onChange={(v) => onChange('weightValue', v)} type="number" min={0} step="0.001" />
+        <FormField labelKey="form.weightUnit" value={data.weightUnit} onChange={(v) => onChange('weightUnit', v)} type="select" options={[{ value: 'kg', label: 'كيلوغرام (kg)' }, { value: 'g', label: 'غرام (g)' }, { value: 'l', label: 'لتر (L)' }]} />
+        <FormField labelKey="form.packageLength" value={data.packageLength} onChange={(v) => onChange('packageLength', v)} type="number" min={0} step="0.1" />
+        <FormField labelKey="form.packageWidth" value={data.packageWidth} onChange={(v) => onChange('packageWidth', v)} type="number" min={0} step="0.1" />
+        <FormField labelKey="form.packageHeight" value={data.packageHeight} onChange={(v) => onChange('packageHeight', v)} type="number" min={0} step="0.1" />
+        <FormField labelKey="form.shippingWeight" value={data.shippingWeight} onChange={(v) => onChange('shippingWeight', v)} type="number" min={0} step="0.001" />
+        <FormField labelKey="form.shippingClass" value={data.shippingClass} onChange={(v) => onChange('shippingClass', v)} placeholderKey="form.shippingClassPlaceholder" />
 
         {/* Description */}
         <FormField

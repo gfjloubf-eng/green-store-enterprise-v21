@@ -82,7 +82,7 @@ export class ProductService extends BaseService implements ProductServiceContrac
   }
 
   private validateOptionalFields(payload: Record<string, unknown>, update = false): void {
-    const stringFields = ['sku', 'barcode', 'name', 'slug', 'description', 'brandId', 'unitId', 'categoryId', 'subcategoryId', 'produceKey', 'familyId', 'imageUrl', 'imageAltText'];
+    const stringFields = ['sku', 'barcode', 'name', 'slug', 'description', 'originCountry', 'storageInstructions', 'qualityGrade', 'weightUnit', 'shippingClass', 'brandId', 'unitId', 'categoryId', 'subcategoryId', 'produceKey', 'familyId', 'imageUrl', 'imageAltText'];
     const maxLengths: Record<string, number> = {
       sku: 100,
       barcode: 32,
@@ -97,6 +97,11 @@ export class ProductService extends BaseService implements ProductServiceContrac
       familyId: 36,
       imageUrl: 450000,
       imageAltText: 255,
+      originCountry: 100,
+      storageInstructions: 1000,
+      qualityGrade: 40,
+      weightUnit: 20,
+      shippingClass: 40,
     };
     for (const field of stringFields) {
       if (payload[field] !== undefined && payload[field] !== null && typeof payload[field] !== 'string') {
@@ -107,6 +112,12 @@ export class ProductService extends BaseService implements ProductServiceContrac
         if (payload[field].trim().length > maxLengths[field]) throw new ValidationException(`${field}_too_long`);
       }
     }
+    for (const field of ['weightValue', 'packageLength', 'packageWidth', 'packageHeight', 'shippingWeight']) {
+      if (payload[field] !== undefined && payload[field] !== null) {
+        const value = Number(payload[field]);
+        if (!Number.isFinite(value) || value < 0 || value > 1000000) throw new ValidationException(`${field}_invalid`);
+      }
+    }
     if (typeof payload.slug === 'string' && !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(payload.slug.trim())) {
       throw new ValidationException('slug_invalid');
     }
@@ -114,6 +125,16 @@ export class ProductService extends BaseService implements ProductServiceContrac
       if (typeof payload[field] === 'string' && !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(payload[field].trim())) {
         throw new ValidationException(`${field}_invalid`);
       }
+    }
+    for (const field of ['harvestDate', 'expiryDate']) {
+      if (payload[field] !== undefined && payload[field] !== null) {
+        if (typeof payload[field] !== 'string' && !(payload[field] instanceof Date)) throw new ValidationException(`${field}_invalid`);
+        const date = new Date(payload[field] as string | Date);
+        if (Number.isNaN(date.getTime())) throw new ValidationException(`${field}_invalid`);
+      }
+    }
+    if (payload.harvestDate && payload.expiryDate && new Date(payload.expiryDate as string | Date) < new Date(payload.harvestDate as string | Date)) {
+      throw new ValidationException('expiry_before_harvest');
     }
     if (payload.isPublished !== undefined && typeof payload.isPublished !== 'boolean') {
       throw new ValidationException('isPublished_invalid');
@@ -130,12 +151,18 @@ export class ProductService extends BaseService implements ProductServiceContrac
   }
 
   private toPersistencePayload(payload: Record<string, unknown>, update = false): Record<string, unknown> {
-    const fields = ['sku', 'barcode', 'produceKey', 'familyId', 'name', 'slug', 'description', 'brandId', 'unitId', 'categoryId', 'subcategoryId', 'imageUrl', 'imageAltText', 'isPublished'];
+    const fields = ['sku', 'barcode', 'produceKey', 'familyId', 'name', 'slug', 'description', 'originCountry', 'storageInstructions', 'qualityGrade', 'weightUnit', 'shippingClass', 'brandId', 'unitId', 'categoryId', 'subcategoryId', 'imageUrl', 'imageAltText', 'isPublished'];
     const result: Record<string, unknown> = {};
     for (const field of fields) {
       if (payload[field] !== undefined) {
         result[field] = typeof payload[field] === 'string' ? payload[field].trim() : payload[field];
       }
+    }
+    for (const field of ['weightValue', 'packageLength', 'packageWidth', 'packageHeight', 'shippingWeight']) {
+      if (payload[field] !== undefined) result[field] = payload[field] === null ? null : Number(payload[field]);
+    }
+    for (const field of ['harvestDate', 'expiryDate']) {
+      if (payload[field] !== undefined) result[field] = payload[field] === null ? null : new Date(payload[field] as string | Date);
     }
     if (!update && result.isPublished === undefined) result.isPublished = false;
     return result;

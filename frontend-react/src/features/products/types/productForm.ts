@@ -19,6 +19,18 @@ export interface ProductFormData {
   brandId: string;
   unitId: string;
   description: string;
+  originCountry: string;
+  harvestDate: string;
+  expiryDate: string;
+  storageInstructions: string;
+  qualityGrade: string;
+  weightValue: string;
+  weightUnit: string;
+  packageLength: string;
+  packageWidth: string;
+  packageHeight: string;
+  shippingWeight: string;
+  shippingClass: string;
 
   /* ── Pricing ──────────────────────────────────────────── */
   purchasePrice: string;
@@ -52,6 +64,18 @@ export const DEFAULT_FORM_DATA: ProductFormData = {
   brandId: '',
   unitId: '',
   description: '',
+  originCountry: '',
+  harvestDate: '',
+  expiryDate: '',
+  storageInstructions: '',
+  qualityGrade: '',
+  weightValue: '',
+  weightUnit: 'kg',
+  packageLength: '',
+  packageWidth: '',
+  packageHeight: '',
+  shippingWeight: '',
+  shippingClass: '',
   purchasePrice: '',
   sellingPrice: '',
   tax: '',
