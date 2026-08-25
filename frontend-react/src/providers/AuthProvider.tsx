@@ -136,7 +136,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setStatus('loading');
       try {
         const result = await signIn({ identifier, password });
-        setStoredTokens(result, remember);
+        // الحساب المعتمد يبقى محفوظاً بعد تحديث الصفحة؛ تسجيل الخروج اليدوي وحده يمسح الجلسة.
+        setStoredTokens(result, true);
 
         try {
           const current = await getCurrentUser();
@@ -145,7 +146,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           if (result && result.user) {
             setUser(normalizeUser(result.user, identifier));
           } else {
-            setUser({ id: '0', email: identifier, name: identifier, role: 'USER', roles: ['USER'], permissions: [] });
+            const fallbackUser = { id: '0', email: identifier, name: identifier, role: 'USER', roles: ['USER'], permissions: [] };
+            setUser(fallbackUser);
+            try { window.localStorage.setItem('gs_user_cache', JSON.stringify(fallbackUser)); } catch {}
           }
         }
         setStatus('authenticated');
@@ -196,6 +199,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const logout = useCallback(() => {
     setUser(null);
     setStatus('unauthenticated');
+    try { window.localStorage.removeItem('gs_user_cache'); } catch {}
     clientLogout().catch(() => {});
   }, []);
 
