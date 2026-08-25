@@ -10496,6 +10496,144 @@ function createEducationRoutes(controller = new controller_default9()) {
   return builder.build();
 }
 
+// ../backend/src/modules/categories/controller.ts
+import { randomUUID as randomUUID2 } from "node:crypto";
+init_prisma_service();
+var CategoriesController = class {
+  prisma = PrismaService.getClient();
+  context(request4) {
+    return {
+      timestamp: request4.context?.metadata?.timestamp ?? (/* @__PURE__ */ new Date()).toISOString(),
+      requestId: request4.context?.metadata?.requestId,
+      version: request4.context?.metadata?.version ?? "v1",
+      locale: request4.context?.metadata?.locale
+    };
+  }
+  text(value, max = 120) {
+    return typeof value === "string" ? value.trim().slice(0, max) : "";
+  }
+  async list(request4) {
+    const ctx = this.context(request4);
+    const search = this.text(request4.query?.search, 120);
+    try {
+      const rows = await this.prisma.category.findMany({
+        where: { deletedAt: null, ...search ? { OR: [{ name: { contains: search, mode: "insensitive" } }, { slug: { contains: search, mode: "insensitive" } }] } : {} },
+        orderBy: { name: "asc" },
+        include: { _count: { select: { products: true, children: true } } }
+      });
+      return success(rows, ctx);
+    } catch {
+      return internalError("categories_unavailable", ctx);
+    }
+  }
+  async create(request4) {
+    const ctx = this.context(request4);
+    const body = request4.body ?? {};
+    const name = this.text(body.name);
+    const slug = this.text(body.slug, 120).toLowerCase();
+    const parentId = this.text(body.parentId, 50) || null;
+    if (!name) return validationError("category_name_required", ctx);
+    if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug)) return validationError("category_slug_invalid", ctx);
+    try {
+      const row = await this.prisma.category.create({ data: { id: randomUUID2(), name, slug, parentId } });
+      return created(row, ctx);
+    } catch {
+      return internalError("category_create_failed", ctx);
+    }
+  }
+  async update(request4) {
+    const ctx = this.context(request4);
+    const id = request4.params?.id;
+    const body = request4.body ?? {};
+    const name = this.text(body.name);
+    const slug = this.text(body.slug, 120).toLowerCase();
+    if (!id) return validationError("category_id_required", ctx);
+    if (!name) return validationError("category_name_required", ctx);
+    if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug)) return validationError("category_slug_invalid", ctx);
+    try {
+      const row = await this.prisma.category.update({ where: { id }, data: { name, slug, parentId: this.text(body.parentId, 50) || null } });
+      return success(row, ctx);
+    } catch {
+      return internalError("category_update_failed", ctx);
+    }
+  }
+  async remove(request4) {
+    const ctx = this.context(request4);
+    const id = request4.params?.id;
+    if (!id) return validationError("category_id_required", ctx);
+    try {
+      const used = await this.prisma.product.count({ where: { categoryId: id, deletedAt: null } });
+      if (used > 0) return validationError("category_has_products", ctx);
+      await this.prisma.category.update({ where: { id }, data: { deletedAt: /* @__PURE__ */ new Date() } });
+      return success({ id, deleted: true }, ctx);
+    } catch {
+      return internalError("category_delete_failed", ctx);
+    }
+  }
+};
+var controller_default10 = CategoriesController;
+
+// ../backend/src/modules/categories/routes.ts
+function toRequest(ctx) {
+  return { body: ctx.body, headers: ctx.headers, query: ctx.query, params: ctx.params, user: ctx.user, context: { metadata: { timestamp: (/* @__PURE__ */ new Date()).toISOString(), version: "v1" } } };
+}
+function adapt16(handler2) {
+  return (ctx) => handler2(ctx);
+}
+function createCategoriesRoutes(controller = new controller_default10()) {
+  const builder = new RouterBuilder();
+  const options = { mode: "private", publicRoute: false, privateRoute: true, authenticationRequired: true, authorizationRequired: false, tags: ["categories"], middleware: [] };
+  builder.register({ name: "categories-list", method: "GET", path: "/categories", version: "v1", handler: adapt16((ctx) => controller.list(toRequest(ctx))), options });
+  builder.register({ name: "categories-create", method: "POST", path: "/categories", version: "v1", handler: adapt16((ctx) => controller.create(toRequest(ctx))), options });
+  builder.register({ name: "categories-update", method: "PUT", path: "/categories/:id", version: "v1", handler: adapt16((ctx) => controller.update(toRequest(ctx))), options });
+  builder.register({ name: "categories-delete", method: "DELETE", path: "/categories/:id", version: "v1", handler: adapt16((ctx) => controller.remove(toRequest(ctx))), options });
+  return builder.build();
+}
+
+// ../backend/src/modules/invoices/controller.ts
+import { createHmac as createHmac2, timingSafeEqual as timingSafeEqual2 } from "node:crypto";
+init_prisma_service();
+function invoicePublicToken(invoiceId) {
+  const secret = process.env.PUBLIC_INVOICE_SECRET || process.env.JWT_SECRET || "qutoof-public-invoice-secret-change-me";
+  return createHmac2("sha256", secret).update(invoiceId).digest("hex");
+}
+function validToken(invoiceId, token) {
+  const expected = invoicePublicToken(invoiceId);
+  const a = Buffer.from(expected);
+  const b = Buffer.from(token);
+  return a.length === b.length && timingSafeEqual2(a, b);
+}
+var InvoicesController = class {
+  prisma = PrismaService.getClient();
+  async getPublic(request4) {
+    const ctx = { timestamp: request4.context?.metadata?.timestamp ?? (/* @__PURE__ */ new Date()).toISOString(), requestId: request4.context?.metadata?.requestId, version: "v1" };
+    const id = request4.params?.id;
+    const token = Array.isArray(request4.query?.token) ? request4.query?.token[0] : request4.query?.token;
+    if (!id || typeof token !== "string" || !validToken(id, token)) return validationError("invoice_link_invalid_or_expired", ctx);
+    try {
+      const invoice = await this.prisma.invoice.findUnique({ where: { id }, include: { order: { include: { items: true, customer: { select: { fullName: true, phone: true } }, branch: { select: { name: true, phone: true } } } } } });
+      if (!invoice) return notFound("invoice_not_found", ctx);
+      return success({ id: invoice.id, number: invoice.number, issuedAt: invoice.issuedAt, total: invoice.total, order: { code: invoice.order.code, subtotal: invoice.order.subtotal, shipping: invoice.order.shipping, tax: invoice.order.tax, total: invoice.order.total, currency: invoice.order.currency, customer: invoice.order.customer, items: invoice.order.items }, company: { name: invoice.order.branch?.name || "\u0642\u0637\u0648\u0641 \u0627\u0644\u0637\u0628\u064A\u0639\u0629", logoUrl: null, phone: invoice.order.branch?.phone || null } }, ctx);
+    } catch {
+      return internalError("invoice_unavailable", ctx);
+    }
+  }
+};
+var controller_default11 = InvoicesController;
+
+// ../backend/src/modules/invoices/routes.ts
+function toRequest2(ctx) {
+  return { body: ctx.body, headers: ctx.headers, query: ctx.query, params: ctx.params, user: ctx.user, context: { metadata: { timestamp: (/* @__PURE__ */ new Date()).toISOString(), version: "v1" } } };
+}
+function adapt17(handler2) {
+  return (ctx) => handler2(ctx);
+}
+function createInvoiceRoutes(controller = new controller_default11()) {
+  const builder = new RouterBuilder();
+  builder.register({ name: "invoice-public-get", method: "GET", path: "/invoices/:id/public", version: "v1", handler: adapt17((ctx) => controller.getPublic(toRequest2(ctx))), options: { mode: "public", publicRoute: true, privateRoute: false, authenticationRequired: false, authorizationRequired: false, tags: ["invoices"], middleware: [] } });
+  return builder.build();
+}
+
 // ../backend/src/modules/assistant/service.ts
 var MAX_MESSAGE_LENGTH = 1200;
 var MAX_HISTORY_ITEMS = 8;
@@ -10711,7 +10849,7 @@ function toControllerRequest17(ctx) {
     context: { metadata: { timestamp: (/* @__PURE__ */ new Date()).toISOString(), version: "v1" } }
   };
 }
-function adapt16(handler2) {
+function adapt18(handler2) {
   return (context) => handler2(context);
 }
 function createAssistantRoutes(controller = new AssistantController()) {
@@ -10721,7 +10859,7 @@ function createAssistantRoutes(controller = new AssistantController()) {
     method: "POST",
     path: "/assistant/chat",
     version: "v1",
-    handler: adapt16((ctx) => controller.chat(toControllerRequest17(ctx))),
+    handler: adapt18((ctx) => controller.chat(toControllerRequest17(ctx))),
     options: {
       mode: "public",
       publicRoute: true,
@@ -10774,7 +10912,7 @@ function createSystemRequestHandler() {
   const resolver = new RouteResolver();
   const protection = new RouteProtectionFactory();
   const authService = AuthController.createAuthService();
-  const routes = [...createSystemRoutes(), ...createAuthRoutes(), ...createUserRoutes(), ...createRoleRoutes(), ...createPermissionRoutes(), ...createProductRoutes(), ...createProductMediaRoutes(), ...createCustomerRoutes(), ...createCartRoutes(), ...createOrderRoutes(), ...createInventoryRoutes(), ...createDeliveryRoutes(), ...createSupplierAdminRoutes(), ...createPaymentRoutes(), ...createSettingsRoutes(), ...createNotificationRoutes(), ...createSupportRoutes(), ...createReportsRoutes(), ...createAuditRoutes(), ...createEducationRoutes(), ...createAssistantRoutes()];
+  const routes = [...createSystemRoutes(), ...createAuthRoutes(), ...createUserRoutes(), ...createRoleRoutes(), ...createPermissionRoutes(), ...createProductRoutes(), ...createProductMediaRoutes(), ...createCustomerRoutes(), ...createCartRoutes(), ...createOrderRoutes(), ...createInventoryRoutes(), ...createDeliveryRoutes(), ...createSupplierAdminRoutes(), ...createPaymentRoutes(), ...createSettingsRoutes(), ...createNotificationRoutes(), ...createSupportRoutes(), ...createReportsRoutes(), ...createAuditRoutes(), ...createEducationRoutes(), ...createCategoriesRoutes(), ...createInvoiceRoutes(), ...createAssistantRoutes()];
   for (const route of routes) {
     registry.register(route);
   }

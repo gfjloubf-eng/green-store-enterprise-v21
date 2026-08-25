@@ -30,6 +30,7 @@ const BrandsPage = lazy(() => import('@/features/products/pages/BrandsPage').the
 const UnitsPage = lazy(() => import('@/features/products/pages/UnitsPage').then((m) => ({ default: m.UnitsPage })));
 const BarcodePage = lazy(() => import('@/features/products/pages/BarcodePage').then((m) => ({ default: m.BarcodePage })));
 const AdminOffersPage = lazy(() => import('@/features/products/pages/AdminOffersPage').then((m) => ({ default: m.AdminOffersPage })));
+const PublicInvoicePage = lazy(() => import('@/features/orders/pages/PublicInvoicePage'));
 
 const AdminControlCenterPage = lazy(() => import('@/features/admin/pages/AdminControlCenterPage'));
 const AdminCustomersPage = lazy(() => import('@/features/admin/pages/AdminCustomersPage'));
@@ -91,6 +92,7 @@ export default function App() {
         <Route path="/register" element={<RegisterPage />} />
         <Route path="/forgot-password" element={<ForgotPasswordPage />} />
         <Route path="/reset-password" element={<ResetPasswordPage />} />
+        <Route path="/invoices/:invoiceId" element={<PublicInvoicePage />} />
 
         {/* AppShell Layout containing Public & Protected routes */}
         <Route element={<AppShell />}>

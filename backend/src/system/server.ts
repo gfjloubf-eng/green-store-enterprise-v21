@@ -26,6 +26,8 @@ import { createSupportRoutes } from '../modules/support/routes';
 import { createReportsRoutes } from '../modules/reports/routes';
 import { createAuditRoutes } from '../modules/audit/routes';
 import { createEducationRoutes } from '../modules/education/routes';
+import { createCategoriesRoutes } from '../modules/categories/routes';
+import { createInvoiceRoutes } from '../modules/invoices/routes';
 import { createAssistantRoutes } from '../modules/assistant/routes';
 import { UnauthorizedError, InvalidTokenError } from '../common/security/errors';
 
@@ -68,7 +70,7 @@ export function createSystemRequestHandler() {
   const resolver = new RouteResolver();
   const protection = new RouteProtectionFactory();
   const authService = AuthController.createAuthService();
-  const routes = [...createSystemRoutes(), ...createAuthRoutes(), ...createUserRoutes(), ...createRoleRoutes(), ...createPermissionRoutes(), ...createProductRoutes(), ...createProductMediaRoutes(), ...createCustomerRoutes(), ...createCartRoutes(), ...createOrderRoutes(), ...createInventoryRoutes(), ...createDeliveryRoutes(), ...createSupplierAdminRoutes(), ...createPaymentRoutes(), ...createSettingsRoutes(), ...createNotificationRoutes(), ...createSupportRoutes(), ...createReportsRoutes(), ...createAuditRoutes(), ...createEducationRoutes(), ...createAssistantRoutes()];
+  const routes = [...createSystemRoutes(), ...createAuthRoutes(), ...createUserRoutes(), ...createRoleRoutes(), ...createPermissionRoutes(), ...createProductRoutes(), ...createProductMediaRoutes(), ...createCustomerRoutes(), ...createCartRoutes(), ...createOrderRoutes(), ...createInventoryRoutes(), ...createDeliveryRoutes(), ...createSupplierAdminRoutes(), ...createPaymentRoutes(), ...createSettingsRoutes(), ...createNotificationRoutes(), ...createSupportRoutes(), ...createReportsRoutes(), ...createAuditRoutes(), ...createEducationRoutes(), ...createCategoriesRoutes(), ...createInvoiceRoutes(), ...createAssistantRoutes()];
 
   for (const route of routes) {
     registry.register(route);

@@ -9,9 +9,13 @@
 import { useI18n } from '@/i18n/useI18n';
 import { BreadcrumbEngine } from '@/components/layout/BreadcrumbEngine';
 import { BarChart3 } from 'lucide-react';
+import { InventoryService } from '@/features/inventory/services/inventoryService';
 
 export function InventoryReports() {
   const { t } = useI18n();
+  const summary = InventoryService.getSummary();
+  const lowStock = InventoryService.getLowStock();
+  const outOfStock = InventoryService.getOutOfStock();
 
   return (
     <div className="flex flex-col gap-4">
@@ -24,20 +28,7 @@ export function InventoryReports() {
         <BreadcrumbEngine className="mt-1" />
       </div>
 
-      {/* Placeholder card */}
-      <div className="gsd-card p-8 text-center">
-        <div className="flex flex-col items-center gap-4 py-12">
-          <div className="flex h-16 w-16 items-center justify-center rounded-full [background:var(--gs-muted)]">
-            <BarChart3 className="h-8 w-8 [color:var(--gs-foreground-muted)]" aria-hidden="true" />
-          </div>
-          <h2 className="text-lg font-semibold [color:var(--gs-foreground)]">
-            {t('inventory.inventoryReports.management')}
-          </h2>
-          <p className="text-sm [color:var(--gs-foreground-secondary)] max-w-md">
-            {t('inventory.inventoryReports.description')}
-          </p>
-        </div>
-      </div>
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4"><div className="gsd-card p-5"><p className="text-xs text-slate-500">إجمالي الأصناف</p><strong className="mt-2 block text-2xl">{summary.totalItems ?? 0}</strong></div><div className="gsd-card p-5"><p className="text-xs text-slate-500">إجمالي الكمية</p><strong className="mt-2 block text-2xl">{summary.totalQuantity ?? 0}</strong></div><div className="gsd-card p-5"><p className="text-xs text-amber-700">مخزون منخفض</p><strong className="mt-2 block text-2xl text-amber-700">{lowStock.length}</strong></div><div className="gsd-card p-5"><p className="text-xs text-red-700">نفد المخزون</p><strong className="mt-2 block text-2xl text-red-700">{outOfStock.length}</strong></div></div><div className="gsd-card p-5"><h2 className="font-bold">تنبيه الأصناف التي تحتاج متابعة</h2><div className="mt-3 grid gap-2 sm:grid-cols-2">{[...lowStock, ...outOfStock].slice(0, 20).map((item: any) => <div key={item.id} className="flex justify-between rounded-xl bg-slate-50 p-3 text-sm"><span>{item.productName || item.name || item.productId}</span><b>{item.quantityOnHand ?? item.quantity ?? 0}</b></div>)}{lowStock.length + outOfStock.length === 0 && <p className="text-sm text-slate-500">لا توجد تنبيهات حالياً.</p>}</div></div>
     </div>
   );
 }
