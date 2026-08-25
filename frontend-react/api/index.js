@@ -1948,17 +1948,33 @@ function parseDataUrl(value) {
   if (!bytes.length || bytes.length > MAX_BYTES) throw new Error("image_size_invalid");
   return { contentType: match[1], bytes };
 }
+async function ensureAvatarBucket(baseUrl, bucket, serviceRoleKey) {
+  const response = await fetch(`${baseUrl}/storage/v1/bucket`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${serviceRoleKey}`,
+      apikey: serviceRoleKey,
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({ id: bucket, name: bucket, public: true })
+  });
+  if (!response.ok && response.status !== 409) {
+    const detail = (await response.text().catch(() => "")).replace(/[^a-zA-Z0-9_ .:-]/g, "").slice(0, 120);
+    throw new Error(`storage_avatar_bucket_init_failed_${response.status}${detail ? `:${detail}` : ""}`);
+  }
+}
 async function uploadAvatarImage(request4, userId) {
   const body = request4.body ?? {};
   const { contentType, bytes } = parseDataUrl(body.dataUrl);
   const baseUrl = String(process.env.SUPABASE_URL ?? "").trim().replace(/\/+$/, "").replace(/\/rest\/v1$/i, "");
   const serviceRoleKey = String(process.env.SUPABASE_SERVICE_ROLE_KEY ?? "").trim();
-  const bucket = "avatars";
+  const bucket = String(process.env.SUPABASE_AVATAR_BUCKET ?? "avatars").trim().replace(/[^a-zA-Z0-9_-]/g, "-").slice(0, 80) || "avatars";
   if (!baseUrl || !serviceRoleKey) throw new Error("storage_not_configured");
+  await ensureAvatarBucket(baseUrl, bucket, serviceRoleKey);
   const safeUserId = String(userId).replace(/[^a-zA-Z0-9_-]/g, "-");
   const extension = contentType === "image/png" ? "png" : contentType === "image/webp" ? "webp" : "jpg";
   const path3 = `users/${safeUserId}/avatar-${Date.now()}.${extension}`;
-  const response = await fetch(`${baseUrl}/storage/v1/object/${bucket}/${path3}`, {
+  const response = await fetch(`${baseUrl}/storage/v1/object/${encodeURIComponent(bucket)}/${path3}`, {
     method: "POST",
     headers: {
       Authorization: `Bearer ${serviceRoleKey}`,
@@ -1973,7 +1989,10 @@ async function uploadAvatarImage(request4, userId) {
     const detail = (await response.text().catch(() => "")).replace(/[^a-zA-Z0-9_ .:-]/g, "").slice(0, 160);
     throw new Error(`storage_avatar_upload_failed_${response.status}${detail ? `:${detail}` : ""}`);
   }
-  return { path: path3, url: `${baseUrl}/storage/v1/object/public/${bucket}/${path3}` };
+  return {
+    path: path3,
+    url: `${baseUrl}/storage/v1/object/public/${encodeURIComponent(bucket)}/${path3}`
+  };
 }
 
 // ../backend/src/modules/auth/controller.ts

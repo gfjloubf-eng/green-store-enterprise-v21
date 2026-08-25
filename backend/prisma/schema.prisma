@@ -82,6 +82,7 @@ model User {
   email                   String                   @unique
   phone                   String?                  @unique
   displayName             String?
+  avatarUrl               String?
   passwordHash            String?
   isActive                Boolean                  @default(true)
   isVerified              Boolean                  @default(false)
