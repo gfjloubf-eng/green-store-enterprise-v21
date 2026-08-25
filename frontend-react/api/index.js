@@ -1948,14 +1948,15 @@ function parseDataUrl(value) {
   if (!bytes.length || bytes.length > MAX_BYTES) throw new Error("image_size_invalid");
   return { contentType: match[1], bytes };
 }
+function storageHeaders(apiKey, extra = {}) {
+  const headers = { apikey: apiKey, ...extra };
+  if (apiKey.split(".").length === 3) headers.Authorization = `Bearer ${apiKey}`;
+  return headers;
+}
 async function ensureAvatarBucket(baseUrl, bucket, serviceRoleKey) {
   const response = await fetch(`${baseUrl}/storage/v1/bucket`, {
     method: "POST",
-    headers: {
-      Authorization: `Bearer ${serviceRoleKey}`,
-      apikey: serviceRoleKey,
-      "Content-Type": "application/json"
-    },
+    headers: storageHeaders(serviceRoleKey, { "Content-Type": "application/json" }),
     body: JSON.stringify({ id: bucket, name: bucket, public: true })
   });
   if (!response.ok && response.status !== 409) {
@@ -1976,13 +1977,11 @@ async function uploadAvatarImage(request4, userId) {
   const path3 = `users/${safeUserId}/avatar-${Date.now()}.${extension}`;
   const response = await fetch(`${baseUrl}/storage/v1/object/${encodeURIComponent(bucket)}/${path3}`, {
     method: "POST",
-    headers: {
-      Authorization: `Bearer ${serviceRoleKey}`,
-      apikey: serviceRoleKey,
+    headers: storageHeaders(serviceRoleKey, {
       "Content-Type": contentType,
       "Content-Length": String(bytes.byteLength),
       "x-upsert": "false"
-    },
+    }),
     body: bytes
   });
   if (!response.ok) {
@@ -6813,10 +6812,15 @@ function parseDataUrl2(value) {
   if (!bytes.length || bytes.length > MAX_BYTES2) throw new Error("image_size_invalid");
   return { contentType: match[1], bytes };
 }
+function storageHeaders2(apiKey, extra = {}) {
+  const headers = { apikey: apiKey, ...extra };
+  if (apiKey.split(".").length === 3) headers.Authorization = `Bearer ${apiKey}`;
+  return headers;
+}
 async function ensurePublicBucket(baseUrl, bucket, serviceRoleKey) {
   const response = await fetch(`${baseUrl}/storage/v1/bucket`, {
     method: "POST",
-    headers: { Authorization: `Bearer ${serviceRoleKey}`, apikey: serviceRoleKey, "Content-Type": "application/json" },
+    headers: storageHeaders2(serviceRoleKey, { "Content-Type": "application/json" }),
     body: JSON.stringify({ id: bucket, name: bucket, public: true })
   });
   if (!response.ok && response.status !== 409) {
@@ -6837,13 +6841,11 @@ async function uploadProductImage(request4) {
   const path3 = `products/${sku}/main-${Date.now()}.${extension}`;
   const response = await fetch(`${baseUrl}/storage/v1/object/${encodeURIComponent(bucket)}/${path3}`, {
     method: "POST",
-    headers: {
-      Authorization: `Bearer ${serviceRoleKey}`,
-      apikey: serviceRoleKey,
+    headers: storageHeaders2(serviceRoleKey, {
       "Content-Type": contentType,
       "Content-Length": String(bytes.byteLength),
       "x-upsert": "false"
-    },
+    }),
     body: bytes
   });
   if (!response.ok) {
