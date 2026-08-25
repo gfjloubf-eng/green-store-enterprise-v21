@@ -204,10 +204,15 @@ export class OrderRepository extends BaseRepository implements OrderRepositoryCo
     const publicAppUrl = String(process.env.PUBLIC_APP_URL || 'https://green-store-enterprise-v21.vercel.app').replace(/\/+$/, '');
     const orderWithInvoiceLinks = {
       ...orderResult,
-      invoices: (orderResult.invoices || []).map((invoice) => ({
-        ...invoice,
-        publicUrl: `${publicAppUrl}/invoices/${encodeURIComponent(invoice.id)}?token=${invoicePublicToken(invoice.id)}`,
-      })),
+      invoices: (orderResult.invoices || []).map((invoice) => {
+        let publicUrl: string | undefined;
+        try {
+          publicUrl = `${publicAppUrl}/invoices/${encodeURIComponent(invoice.id)}?token=${invoicePublicToken(invoice.id)}`;
+        } catch {
+          // Missing invoice secret must not break order creation; the link is omitted until configured.
+        }
+        return { ...invoice, publicUrl };
+      }),
     } as OrderWithRelations;
 
     // Cache idempotency result after transaction success

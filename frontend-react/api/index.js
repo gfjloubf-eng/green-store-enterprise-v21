@@ -203,8 +203,8 @@ var init_auth_token_service = __esm({
         const exp = iat + expiresInSec;
         const payload = { iss: this.issuer, sub: subject, iat, exp, ...extra, typ: "access" };
         const encoded = `${base64url(JSON.stringify(header))}.${base64url(JSON.stringify(payload))}`;
-        const signature = sign(encoded);
-        return `${encoded}.${signature}`;
+        const signature2 = sign(encoded);
+        return `${encoded}.${signature2}`;
       }
       createRefreshToken(subject, jti, extra = {}, expiresInSec = REFRESH_TOKEN_EXP_SECONDS) {
         const header = { alg: "HS256", typ: "JWT" };
@@ -213,18 +213,18 @@ var init_auth_token_service = __esm({
         const id = jti ?? randomBytes(16).toString("hex");
         const payload = { iss: this.issuer, sub: subject, iat, exp, jti: id, ...extra, typ: "refresh" };
         const encoded = `${base64url(JSON.stringify(header))}.${base64url(JSON.stringify(payload))}`;
-        const signature = sign(encoded);
-        return `${encoded}.${signature}`;
+        const signature2 = sign(encoded);
+        return `${encoded}.${signature2}`;
       }
       verify(token) {
         try {
           const parts = token.split(".");
           if (parts.length !== 3) return { valid: false, error: "malformed" };
-          const [encodedHeader, encodedPayload, signature] = parts;
+          const [encodedHeader, encodedPayload, signature2] = parts;
           const signed = `${encodedHeader}.${encodedPayload}`;
           const expected = sign(signed);
           const expectedBuffer = Buffer.from(expected, "base64url");
-          const signatureBuffer = Buffer.from(signature, "base64url");
+          const signatureBuffer = Buffer.from(signature2, "base64url");
           if (signatureBuffer.length !== expectedBuffer.length || !timingSafeEqual(signatureBuffer, expectedBuffer)) {
             return { valid: false, error: "invalid signature" };
           }
@@ -4594,14 +4594,26 @@ var cart_repository_default = CartRepository;
 // ../backend/src/modules/invoices/controller.ts
 import { createHmac as createHmac2, timingSafeEqual as timingSafeEqual2 } from "node:crypto";
 init_prisma_service();
-function invoicePublicToken(invoiceId) {
-  const secret = process.env.PUBLIC_INVOICE_SECRET || process.env.JWT_SECRET || "qutoof-public-invoice-secret-change-me";
-  return createHmac2("sha256", secret).update(invoiceId).digest("hex");
+var INVOICE_TOKEN_TTL_SECONDS = 30 * 24 * 60 * 60;
+function getInvoiceSecret() {
+  const secret = String(process.env.PUBLIC_INVOICE_SECRET ?? "").trim();
+  if (secret.length < 32) throw new Error("public_invoice_secret_not_configured");
+  return secret;
+}
+function signature(invoiceId, expiresAt) {
+  return createHmac2("sha256", getInvoiceSecret()).update(`${invoiceId}.${expiresAt}`).digest("hex");
+}
+function invoicePublicToken(invoiceId, nowSeconds = Math.floor(Date.now() / 1e3)) {
+  const expiresAt = nowSeconds + INVOICE_TOKEN_TTL_SECONDS;
+  return `${expiresAt}.${signature(invoiceId, expiresAt)}`;
 }
 function validToken(invoiceId, token) {
-  const expected = invoicePublicToken(invoiceId);
-  const a = Buffer.from(expected);
-  const b = Buffer.from(token);
+  const [expiryText, provided] = String(token).split(".");
+  const expiresAt = Number(expiryText);
+  if (!Number.isInteger(expiresAt) || expiresAt <= Math.floor(Date.now() / 1e3) || !/^[a-f0-9]{64}$/i.test(provided || "")) return false;
+  const expected = signature(invoiceId, expiresAt);
+  const a = Buffer.from(expected, "utf8");
+  const b = Buffer.from(provided, "utf8");
   return a.length === b.length && timingSafeEqual2(a, b);
 }
 var InvoicesController = class {
@@ -4610,7 +4622,13 @@ var InvoicesController = class {
     const ctx = { timestamp: request4.context?.metadata?.timestamp ?? (/* @__PURE__ */ new Date()).toISOString(), requestId: request4.context?.metadata?.requestId, version: "v1" };
     const id = request4.params?.id;
     const token = Array.isArray(request4.query?.token) ? request4.query?.token[0] : request4.query?.token;
-    if (!id || typeof token !== "string" || !validToken(id, token)) return validationError("invoice_link_invalid_or_expired", ctx);
+    if (!id || typeof token !== "string") return validationError("invoice_link_invalid_or_expired", ctx);
+    try {
+      if (!validToken(id, token)) return validationError("invoice_link_invalid_or_expired", ctx);
+    } catch (error) {
+      if (error instanceof Error && error.message === "public_invoice_secret_not_configured") return internalError(error.message, ctx);
+      return validationError("invoice_link_invalid_or_expired", ctx);
+    }
     try {
       const invoice = await this.prisma.invoice.findUnique({ where: { id }, include: { order: { include: { items: true, customer: { select: { fullName: true, phone: true } }, branch: { select: { name: true, phone: true } } } } } });
       if (!invoice) return notFound("invoice_not_found", ctx);
@@ -4782,10 +4800,14 @@ var OrderRepository = class extends base_repository_default {
     const publicAppUrl = String(process.env.PUBLIC_APP_URL || "https://green-store-enterprise-v21.vercel.app").replace(/\/+$/, "");
     const orderWithInvoiceLinks = {
       ...orderResult,
-      invoices: (orderResult.invoices || []).map((invoice) => ({
-        ...invoice,
-        publicUrl: `${publicAppUrl}/invoices/${encodeURIComponent(invoice.id)}?token=${invoicePublicToken(invoice.id)}`
-      }))
+      invoices: (orderResult.invoices || []).map((invoice) => {
+        let publicUrl;
+        try {
+          publicUrl = `${publicAppUrl}/invoices/${encodeURIComponent(invoice.id)}?token=${invoicePublicToken(invoice.id)}`;
+        } catch {
+        }
+        return { ...invoice, publicUrl };
+      })
     };
     if (cacheKey) {
       idempotencyStore.set(cacheKey, { order: orderWithInvoiceLinks, createdAt: Date.now() });
