@@ -6,7 +6,7 @@
   "packageManager": "pnpm@10.12.1",
   "scripts": {
     "dev": "vite",
-    "build": "pnpm exec prisma generate --schema ./prisma/schema.prisma && pnpm exec esbuild api-src/index.ts --bundle --platform=node --target=node20 --format=esm --outfile=api/index.js --external:@prisma/client --external:@prisma/adapter-pg --external:pg --external:hash-wasm && pnpm exec vite build",
+    "build": "pnpm exec prisma generate --schema ./prisma/schema.prisma && pnpm exec esbuild api-src/index.ts --bundle --platform=node --target=node20 --format=esm --outfile=api/index.js --external:@prisma/client --external:@prisma/adapter-pg --external:pg --external:hash-wasm && pnpm dlx vite@8.2.1 build",
     "lint": "eslint .",
     "preview": "vite preview"
   },
