@@ -17,6 +17,18 @@ function parseDataUrl(value: unknown): { contentType: string; bytes: Buffer } {
   return { contentType: match[1], bytes };
 }
 
+async function ensurePublicBucket(baseUrl: string, bucket: string, serviceRoleKey: string): Promise<void> {
+  const response = await fetch(`${baseUrl}/storage/v1/bucket`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${serviceRoleKey}`, apikey: serviceRoleKey, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ id: bucket, name: bucket, public: true }),
+  });
+  if (!response.ok && response.status !== 409) {
+    const detail = (await response.text().catch(() => '')).replace(/[^a-zA-Z0-9_ .:-]/g, '').slice(0, 120);
+    throw new Error(`storage_bucket_init_failed_${response.status}${detail ? `:${detail}` : ''}`);
+  }
+}
+
 export async function uploadProductImage(request: ControllerRequest): Promise<{ url: string; path: string }> {
   const body = (request.body ?? {}) as Record<string, unknown>;
   const { contentType, bytes } = parseDataUrl(body.dataUrl);
@@ -25,6 +37,8 @@ export async function uploadProductImage(request: ControllerRequest): Promise<{ 
   const bucket = cleanSegment(process.env.SUPABASE_STORAGE_BUCKET, 'product-images');
   if (!baseUrl || !serviceRoleKey) throw new Error('storage_not_configured');
   const sku = cleanSegment(body.sku, 'unassigned');
+  // Ensure first-run deployments do not fail when the Storage bucket was not created yet.
+  await ensurePublicBucket(baseUrl, bucket, serviceRoleKey);
   const extension = contentType === 'image/png' ? 'png' : contentType === 'image/webp' ? 'webp' : 'jpg';
   const path = `products/${sku}/main-${Date.now()}.${extension}`;
   const response = await fetch(`${baseUrl}/storage/v1/object/${encodeURIComponent(bucket)}/${path}`, {
