@@ -5627,7 +5627,7 @@ var ProductService = class extends base_service_default {
     if (!await this.productRepo.findById(id)) throw new NotFoundException("product_not_found");
   }
   validateOptionalFields(payload, update = false) {
-    const stringFields = ["sku", "barcode", "name", "slug", "description", "brandId", "unitId", "categoryId", "subcategoryId", "produceKey", "familyId", "imageUrl", "imageAltText"];
+    const stringFields = ["sku", "barcode", "name", "slug", "description", "originCountry", "storageInstructions", "qualityGrade", "weightUnit", "shippingClass", "brandId", "unitId", "categoryId", "subcategoryId", "produceKey", "familyId", "imageUrl", "imageAltText"];
     const maxLengths = {
       sku: 100,
       barcode: 32,
@@ -5641,7 +5641,12 @@ var ProductService = class extends base_service_default {
       produceKey: 120,
       familyId: 36,
       imageUrl: 45e4,
-      imageAltText: 255
+      imageAltText: 255,
+      originCountry: 100,
+      storageInstructions: 1e3,
+      qualityGrade: 40,
+      weightUnit: 20,
+      shippingClass: 40
     };
     for (const field of stringFields) {
       if (payload[field] !== void 0 && payload[field] !== null && typeof payload[field] !== "string") {
@@ -5652,6 +5657,12 @@ var ProductService = class extends base_service_default {
         if (payload[field].trim().length > maxLengths[field]) throw new ValidationException(`${field}_too_long`);
       }
     }
+    for (const field of ["weightValue", "packageLength", "packageWidth", "packageHeight", "shippingWeight"]) {
+      if (payload[field] !== void 0 && payload[field] !== null) {
+        const value = Number(payload[field]);
+        if (!Number.isFinite(value) || value < 0 || value > 1e6) throw new ValidationException(`${field}_invalid`);
+      }
+    }
     if (typeof payload.slug === "string" && !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(payload.slug.trim())) {
       throw new ValidationException("slug_invalid");
     }
@@ -5659,6 +5670,16 @@ var ProductService = class extends base_service_default {
       if (typeof payload[field] === "string" && !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(payload[field].trim())) {
         throw new ValidationException(`${field}_invalid`);
       }
+    }
+    for (const field of ["harvestDate", "expiryDate"]) {
+      if (payload[field] !== void 0 && payload[field] !== null) {
+        if (typeof payload[field] !== "string" && !(payload[field] instanceof Date)) throw new ValidationException(`${field}_invalid`);
+        const date = new Date(payload[field]);
+        if (Number.isNaN(date.getTime())) throw new ValidationException(`${field}_invalid`);
+      }
+    }
+    if (payload.harvestDate && payload.expiryDate && new Date(payload.expiryDate) < new Date(payload.harvestDate)) {
+      throw new ValidationException("expiry_before_harvest");
     }
     if (payload.isPublished !== void 0 && typeof payload.isPublished !== "boolean") {
       throw new ValidationException("isPublished_invalid");
@@ -5674,12 +5695,18 @@ var ProductService = class extends base_service_default {
     }
   }
   toPersistencePayload(payload, update = false) {
-    const fields = ["sku", "barcode", "produceKey", "familyId", "name", "slug", "description", "brandId", "unitId", "categoryId", "subcategoryId", "imageUrl", "imageAltText", "isPublished"];
+    const fields = ["sku", "barcode", "produceKey", "familyId", "name", "slug", "description", "originCountry", "storageInstructions", "qualityGrade", "weightUnit", "shippingClass", "brandId", "unitId", "categoryId", "subcategoryId", "imageUrl", "imageAltText", "isPublished"];
     const result = {};
     for (const field of fields) {
       if (payload[field] !== void 0) {
         result[field] = typeof payload[field] === "string" ? payload[field].trim() : payload[field];
       }
+    }
+    for (const field of ["weightValue", "packageLength", "packageWidth", "packageHeight", "shippingWeight"]) {
+      if (payload[field] !== void 0) result[field] = payload[field] === null ? null : Number(payload[field]);
+    }
+    for (const field of ["harvestDate", "expiryDate"]) {
+      if (payload[field] !== void 0) result[field] = payload[field] === null ? null : new Date(payload[field]);
     }
     if (!update && result.isPublished === void 0) result.isPublished = false;
     return result;
@@ -7242,6 +7269,18 @@ var ProductsController = class {
       name: entity.name,
       slug: entity.slug,
       description: entity.description ?? null,
+      originCountry: entity.originCountry ?? null,
+      harvestDate: entity.harvestDate ? new Date(entity.harvestDate).toISOString() : null,
+      expiryDate: entity.expiryDate ? new Date(entity.expiryDate).toISOString() : null,
+      storageInstructions: entity.storageInstructions ?? null,
+      qualityGrade: entity.qualityGrade ?? null,
+      weightValue: entity.weightValue ?? null,
+      weightUnit: entity.weightUnit ?? null,
+      packageLength: entity.packageLength ?? null,
+      packageWidth: entity.packageWidth ?? null,
+      packageHeight: entity.packageHeight ?? null,
+      shippingWeight: entity.shippingWeight ?? null,
+      shippingClass: entity.shippingClass ?? null,
       brandId: entity.brandId ?? null,
       unitId: entity.unitId ?? null,
       categoryId: entity.categoryId ?? null,
