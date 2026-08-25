@@ -22,6 +22,11 @@ interface InventorySectionProps {
 
 export function InventorySection({ data, errors, onChange, onToggle }: InventorySectionProps) {
   const { t } = useI18n();
+  const initialStock = Number(data.initialStock);
+  const minStock = Number(data.minStock);
+  const maxStock = Number(data.maxStock);
+  const hasRangeError = data.minStock !== '' && data.maxStock !== '' && maxStock < minStock;
+  const hasInitialWarning = data.initialStock !== '' && ((data.minStock !== '' && initialStock < minStock) || (data.maxStock !== '' && initialStock > maxStock));
 
   return (
     <fieldset className="gsd-card p-5">
@@ -100,6 +105,8 @@ export function InventorySection({ data, errors, onChange, onToggle }: Inventory
           </button>
         </div>
       </div>
+      {hasRangeError && <p className="mt-3 text-xs [color:var(--gs-danger)]" role="alert">تنبيه: الحد الأقصى للمخزون يجب أن يكون أكبر من أو مساويًا للحد الأدنى.</p>}
+      {!hasRangeError && hasInitialWarning && <p className="mt-3 text-xs text-amber-700" role="status">ملاحظة: المخزون الأولي خارج النطاق التشغيلي المحدد.</p>}
     </fieldset>
   );
 }

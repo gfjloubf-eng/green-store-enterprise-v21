@@ -4,7 +4,7 @@
    Milestone 4.2 — Pricing form section
    ============================================================ */
 
-import { DollarSign } from 'lucide-react';
+import { DollarSign, TrendingUp } from 'lucide-react';
 import { useI18n } from '@/i18n/useI18n';
 import { FormField } from './FormField';
 import type { ProductFormData, FormErrors } from '../../types/productForm';
@@ -21,6 +21,15 @@ interface PricingSectionProps {
 
 export function PricingSection({ data, errors, onChange }: PricingSectionProps) {
   const { t } = useI18n();
+  const purchase = Number(data.purchasePrice) || 0;
+  const selling = Number(data.sellingPrice) || 0;
+  const tax = Math.min(100, Math.max(0, Number(data.tax) || 0));
+  const discount = Math.max(0, Number(data.discount) || 0);
+  const afterDiscount = Math.max(0, selling - discount);
+  const customerPrice = afterDiscount * (1 + tax / 100);
+  const profit = afterDiscount - purchase;
+  const margin = afterDiscount > 0 ? (profit / afterDiscount) * 100 : 0;
+  const formatMoney = (value: number) => `${value.toFixed(2)} ر.ي`;
 
   return (
     <fieldset className="gsd-card p-5">
@@ -84,6 +93,24 @@ export function PricingSection({ data, errors, onChange }: PricingSectionProps) 
           step="0.01"
         />
       </div>
+
+      <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-3" aria-label="ملخص التسعير">
+        <div className="rounded-xl bg-[color:var(--gs-muted)] p-3">
+          <div className="text-xs [color:var(--gs-muted-foreground)]">السعر المتوقع للعميل بعد الضريبة</div>
+          <div className="mt-1 text-lg font-bold [color:var(--gs-foreground)]">{formatMoney(customerPrice)}</div>
+        </div>
+        <div className="rounded-xl bg-[color:var(--gs-muted)] p-3">
+          <div className="text-xs [color:var(--gs-muted-foreground)]">الربح التقريبي لكل وحدة</div>
+          <div className={`mt-1 text-lg font-bold ${profit >= 0 ? '[color:var(--gs-success)]' : '[color:var(--gs-danger)]'}`}>{formatMoney(profit)}</div>
+        </div>
+        <div className="rounded-xl bg-[color:var(--gs-muted)] p-3">
+          <div className="flex items-center gap-1 text-xs [color:var(--gs-muted-foreground)]"><TrendingUp className="h-3.5 w-3.5" aria-hidden="true" /> هامش الربح</div>
+          <div className={`mt-1 text-lg font-bold ${margin >= 0 ? '[color:var(--gs-success)]' : '[color:var(--gs-danger)]'}`}>{margin.toFixed(1)}%</div>
+        </div>
+      </div>
+      {selling > 0 && selling < purchase && (
+        <p className="mt-3 text-xs [color:var(--gs-danger)]" role="alert">تنبيه: سعر البيع أقل من سعر الشراء، وسيؤدي ذلك إلى خسارة تقريبية.</p>
+      )}
     </fieldset>
   );
 }

@@ -26,7 +26,7 @@ interface FormFieldProps {
   /** Error translation key (empty string if valid) */
   error?: string;
   /** Input type (text, number, textarea, select) */
-  type?: 'text' | 'number' | 'textarea' | 'select' | 'file';
+  type?: 'text' | 'number' | 'date' | 'textarea' | 'select' | 'file';
   /** Select options (for type="select") */
   options?: { value: string; labelKey?: TranslationKey; label?: string }[];
   /** Optional icon to show before the label */

@@ -236,6 +236,18 @@ export const ProductService = {
     produceKey: string;
     sku: string;
     description?: string;
+    originCountry?: string;
+    harvestDate?: string;
+    expiryDate?: string;
+    storageInstructions?: string;
+    qualityGrade?: string;
+    weightValue?: number;
+    weightUnit?: string;
+    packageLength?: number;
+    packageWidth?: number;
+    packageHeight?: number;
+    shippingWeight?: number;
+    shippingClass?: string;
     imageUrl?: string;
     imageAltText?: string;
     categoryId?: string;
@@ -255,6 +267,18 @@ export const ProductService = {
         sku: data.sku.trim(),
         barcode: data.barcode?.trim() || undefined,
         description: data.description?.trim() || undefined,
+        originCountry: data.originCountry?.trim() || undefined,
+        harvestDate: data.harvestDate || undefined,
+        expiryDate: data.expiryDate || undefined,
+        storageInstructions: data.storageInstructions?.trim() || undefined,
+        qualityGrade: data.qualityGrade || undefined,
+        weightValue: data.weightValue,
+        weightUnit: data.weightUnit || undefined,
+        packageLength: data.packageLength,
+        packageWidth: data.packageWidth,
+        packageHeight: data.packageHeight,
+        shippingWeight: data.shippingWeight,
+        shippingClass: data.shippingClass?.trim() || undefined,
         imageUrl: data.imageUrl || undefined,
         imageAltText: data.imageAltText?.trim() || data.name.trim(),
         categoryId: data.categoryId || undefined,
@@ -291,6 +315,18 @@ export const ProductService = {
     sku?: string;
     barcode?: string;
     description?: string;
+    originCountry?: string;
+    harvestDate?: string;
+    expiryDate?: string;
+    storageInstructions?: string;
+    qualityGrade?: string;
+    weightValue?: number;
+    weightUnit?: string;
+    packageLength?: number;
+    packageWidth?: number;
+    packageHeight?: number;
+    shippingWeight?: number;
+    shippingClass?: string;
     imageUrl?: string;
     imageAltText?: string;
     categoryId?: string;
