@@ -144,6 +144,9 @@ export default function App() {
           {/* Product Management Routes */}
           <Route element={<ProtectedRoute requiredPermission="products:create" />}>
             <Route path="products/create" element={<CreateProductPage />} />
+          </Route>
+          {/* Standalone media intake: protected by management role, not product-create permission. */}
+          <Route element={<ProtectedRoute requiredRoles={['SUPER_ADMIN', 'ADMIN', 'MANAGER', 'EMPLOYEE']} />}>
             <Route path="admin/media-upload" element={<StandaloneMediaUploadPage />} />
           </Route>
           <Route element={<ProtectedRoute requiredPermission="products:update" />}>

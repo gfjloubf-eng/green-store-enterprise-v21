@@ -2709,7 +2709,8 @@ function extractUserPermissions(user) {
   return (user?.permissions ?? []).map((permission) => permission.toString());
 }
 function extractUserRoles(user) {
-  return (user?.roles ?? []).map((role) => role.toString().toUpperCase());
+  const roles = user?.roles?.length ? user.roles : user?.role ? [user.role] : [];
+  return roles.map((role) => role.toString().toUpperCase());
 }
 function normalizePermissions2(permissions) {
   return (permissions ?? []).map((permission) => permission.toString());
@@ -2719,7 +2720,7 @@ function normalizeRoles(roles) {
 }
 function buildAuthorizationContext(user, request4) {
   return {
-    roles: user?.roles,
+    roles: extractUserRoles(user),
     permissions: user?.permissions,
     scope: user?.scope,
     requiredScope: request4?.requiredScope,
