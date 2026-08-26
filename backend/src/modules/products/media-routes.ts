@@ -36,14 +36,21 @@ export function createProductMediaRoutes(): readonly RouteDefinition[] {
     options,
   });
   // Standalone image intake: uses the existing session and Storage flow,
-  // but does not create or update a product.
+  // but does not create or update a product. Role protection avoids coupling
+  // this independent utility to the product-create permission matrix.
+  const standaloneOptions: RouteOptions = {
+    ...options,
+    requiredPermissions: [],
+    requiredRoles: ['SUPER_ADMIN', 'ADMIN', 'MANAGER', 'EMPLOYEE'],
+    tags: ['media'],
+  };
   builder.register({
     name: 'standalone-media-upload',
     method: 'POST',
     path: '/media/upload',
     version: 'v1',
     handler,
-    options,
+    options: standaloneOptions,
   });
   return builder.build();
 }
