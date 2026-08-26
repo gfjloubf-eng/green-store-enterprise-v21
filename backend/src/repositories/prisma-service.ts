@@ -56,7 +56,12 @@ export class PrismaService {
         process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
       }
 
-      let connectionString = process.env.DATABASE_URL || 'postgresql://postgres:postgres@localhost:5432/postgres';
+      const configuredDatabaseUrl = process.env.DATABASE_URL?.trim();
+      if (!configuredDatabaseUrl) {
+        throw new Error('DATABASE_URL is required for the API database connection');
+      }
+
+      let connectionString = configuredDatabaseUrl;
       
       // تحسين رابط الاتصال لـ Vercel/Serverless
       if (process.env.NODE_ENV === 'production' && !connectionString.includes('pgbouncer=')) {
