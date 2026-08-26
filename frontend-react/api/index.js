@@ -1953,17 +1953,6 @@ function storageHeaders(apiKey, extra = {}) {
   if (apiKey.split(".").length === 3) headers.Authorization = `Bearer ${apiKey}`;
   return headers;
 }
-async function ensureAvatarBucket(baseUrl, bucket, serviceRoleKey) {
-  const response = await fetch(`${baseUrl}/storage/v1/bucket`, {
-    method: "POST",
-    headers: storageHeaders(serviceRoleKey, { "Content-Type": "application/json" }),
-    body: JSON.stringify({ id: bucket, name: bucket, public: true })
-  });
-  if (!response.ok && response.status !== 409) {
-    const detail = (await response.text().catch(() => "")).replace(/[^a-zA-Z0-9_ .:-]/g, "").slice(0, 120);
-    throw new Error(`storage_avatar_bucket_init_failed_${response.status}${detail ? `:${detail}` : ""}`);
-  }
-}
 async function uploadAvatarImage(request4, userId) {
   const body = request4.body ?? {};
   const { contentType, bytes } = parseDataUrl(body.dataUrl);
@@ -1971,7 +1960,6 @@ async function uploadAvatarImage(request4, userId) {
   const serviceRoleKey = String(process.env.SUPABASE_SERVICE_ROLE_KEY ?? "").trim();
   const bucket = String(process.env.SUPABASE_AVATAR_BUCKET ?? "avatars").trim().replace(/[^a-zA-Z0-9_-]/g, "-").slice(0, 80) || "avatars";
   if (!baseUrl || !serviceRoleKey) throw new Error("storage_not_configured");
-  await ensureAvatarBucket(baseUrl, bucket, serviceRoleKey);
   const safeUserId = String(userId).replace(/[^a-zA-Z0-9_-]/g, "-");
   const extension = contentType === "image/png" ? "png" : contentType === "image/webp" ? "webp" : "jpg";
   const path3 = `users/${safeUserId}/avatar-${Date.now()}.${extension}`;
@@ -6817,17 +6805,6 @@ function storageHeaders2(apiKey, extra = {}) {
   if (apiKey.split(".").length === 3) headers.Authorization = `Bearer ${apiKey}`;
   return headers;
 }
-async function ensurePublicBucket(baseUrl, bucket, serviceRoleKey) {
-  const response = await fetch(`${baseUrl}/storage/v1/bucket`, {
-    method: "POST",
-    headers: storageHeaders2(serviceRoleKey, { "Content-Type": "application/json" }),
-    body: JSON.stringify({ id: bucket, name: bucket, public: true })
-  });
-  if (!response.ok && response.status !== 409) {
-    const detail = (await response.text().catch(() => "")).replace(/[^a-zA-Z0-9_ .:-]/g, "").slice(0, 120);
-    throw new Error(`storage_bucket_init_failed_${response.status}${detail ? `:${detail}` : ""}`);
-  }
-}
 async function uploadProductImage(request4) {
   const body = request4.body ?? {};
   const { contentType, bytes } = parseDataUrl2(body.dataUrl);
@@ -6836,7 +6813,6 @@ async function uploadProductImage(request4) {
   const bucket = cleanSegment(process.env.SUPABASE_STORAGE_BUCKET, "product-images");
   if (!baseUrl || !serviceRoleKey) throw new Error("storage_not_configured");
   const sku = cleanSegment(body.sku, "unassigned");
-  await ensurePublicBucket(baseUrl, bucket, serviceRoleKey);
   const extension = contentType === "image/png" ? "png" : contentType === "image/webp" ? "webp" : "jpg";
   const path3 = `products/${sku}/main-${Date.now()}.${extension}`;
   const response = await fetch(`${baseUrl}/storage/v1/object/${encodeURIComponent(bucket)}/${path3}`, {
