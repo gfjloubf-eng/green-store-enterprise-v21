@@ -19,18 +19,8 @@ function storageHeaders(apiKey: string, extra: Record<string, string> = {}): Rec
   return headers;
 }
 
-export async function ensureAvatarBucket(baseUrl: string, bucket: string, serviceRoleKey: string): Promise<void> {
-  const response = await fetch(`${baseUrl}/storage/v1/bucket`, {
-    method: 'POST',
-    headers: storageHeaders(serviceRoleKey, { 'Content-Type': 'application/json' }),
-    body: JSON.stringify({ id: bucket, name: bucket, public: true }),
-  });
-  if (!response.ok && response.status !== 409) {
-    const detail = (await response.text().catch(() => '')).replace(/[^a-zA-Z0-9_ .:-]/g, '').slice(0, 120);
-    throw new Error(`storage_avatar_bucket_init_failed_${response.status}${detail ? `:${detail}` : ''}`);
-  }
-}
-
+// The avatars bucket is provisioned in Supabase. Uploads must not attempt
+// administrative bucket creation on every user request.
 export async function uploadAvatarImage(request: ControllerRequest, userId: string): Promise<{ url: string; path: string }> {
   const body = (request.body ?? {}) as Record<string, unknown>;
   const { contentType, bytes } = parseDataUrl(body.dataUrl);
@@ -38,7 +28,6 @@ export async function uploadAvatarImage(request: ControllerRequest, userId: stri
   const serviceRoleKey = String(process.env.SUPABASE_SERVICE_ROLE_KEY ?? '').trim();
   const bucket = String(process.env.SUPABASE_AVATAR_BUCKET ?? 'avatars').trim().replace(/[^a-zA-Z0-9_-]/g, '-').slice(0, 80) || 'avatars';
   if (!baseUrl || !serviceRoleKey) throw new Error('storage_not_configured');
-  await ensureAvatarBucket(baseUrl, bucket, serviceRoleKey);
   const safeUserId = String(userId).replace(/[^a-zA-Z0-9_-]/g, '-');
   const extension = contentType === 'image/png' ? 'png' : contentType === 'image/webp' ? 'webp' : 'jpg';
   const path = `users/${safeUserId}/avatar-${Date.now()}.${extension}`;
