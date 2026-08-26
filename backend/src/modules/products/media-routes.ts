@@ -26,12 +26,23 @@ export function createProductMediaRoutes(): readonly RouteDefinition[] {
     tags: ['products', 'media'],
     middleware: [],
   };
+  const handler = (ctx: RouteExecutionContext) => uploadProductImage(toControllerRequest(ctx));
   builder.register({
     name: 'products-media-upload',
     method: 'POST',
     path: '/products/media/upload',
     version: 'v1',
-    handler: (ctx) => uploadProductImage(toControllerRequest(ctx)),
+    handler,
+    options,
+  });
+  // Standalone image intake: uses the existing session and Storage flow,
+  // but does not create or update a product.
+  builder.register({
+    name: 'standalone-media-upload',
+    method: 'POST',
+    path: '/media/upload',
+    version: 'v1',
+    handler,
     options,
   });
   return builder.build();

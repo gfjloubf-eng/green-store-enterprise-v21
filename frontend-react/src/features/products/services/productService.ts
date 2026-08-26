@@ -308,6 +308,22 @@ export const ProductService = {
     return { url: String(result.url), path: String(result.path || '') };
   },
 
+  /** Upload media independently; it never creates or updates a product. */
+  async uploadStandaloneImage(dataUrl: string, reference?: string): Promise<{ url: string; path: string }> {
+    if (!isAuthorizedStaffOrAdmin()) throw new Error('غير مصرح: هذه العملية تتطلب صلاحيات إدارة المتجر');
+    const { fetchWithAuth } = await import('@/services/authClient');
+    const res = await fetchWithAuth('/media/upload', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ dataUrl, sku: reference?.trim() || 'whatsapp-inbox' }),
+    });
+    const payload = await parseJsonSafe(res);
+    if (!res.ok) throw new Error(payload?.error?.message || payload?.error || `HTTP ${res.status}`);
+    const result = payload?.data || payload;
+    if (!result?.url) throw new Error('storage_upload_invalid_response');
+    return { url: String(result.url), path: String(result.path || '') };
+  },
+
   /** Update a product through the authenticated backend API. */
   async updateRemote(id: string, data: {
     name?: string;
