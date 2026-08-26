@@ -95,7 +95,11 @@ var init_prisma_service = __esm({
           if (!process.env.NODE_TLS_REJECT_UNAUTHORIZED && process.env.DATABASE_URL?.includes("sslmode=require")) {
             process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
           }
-          let connectionString = process.env.DATABASE_URL || "postgresql://postgres:postgres@localhost:5432/postgres";
+          const configuredDatabaseUrl = process.env.DATABASE_URL?.trim();
+          if (!configuredDatabaseUrl) {
+            throw new Error("DATABASE_URL is required for the API database connection");
+          }
+          let connectionString = configuredDatabaseUrl;
           if (process.env.NODE_ENV === "production" && !connectionString.includes("pgbouncer=")) {
             const separator = connectionString.includes("?") ? "&" : "?";
             connectionString = `${connectionString}${separator}pgbouncer=true&connection_limit=1`;
