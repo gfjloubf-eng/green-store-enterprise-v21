@@ -30,6 +30,7 @@ const BrandsPage = lazy(() => import('@/features/products/pages/BrandsPage').the
 const UnitsPage = lazy(() => import('@/features/products/pages/UnitsPage').then((m) => ({ default: m.UnitsPage })));
 const BarcodePage = lazy(() => import('@/features/products/pages/BarcodePage').then((m) => ({ default: m.BarcodePage })));
 const AdminOffersPage = lazy(() => import('@/features/products/pages/AdminOffersPage').then((m) => ({ default: m.AdminOffersPage })));
+const StandaloneMediaUploadPage = lazy(() => import('@/features/products/pages/StandaloneMediaUploadPage'));
 const PublicInvoicePage = lazy(() => import('@/features/orders/pages/PublicInvoicePage'));
 
 const AdminControlCenterPage = lazy(() => import('@/features/admin/pages/AdminControlCenterPage'));
@@ -143,6 +144,7 @@ export default function App() {
           {/* Product Management Routes */}
           <Route element={<ProtectedRoute requiredPermission="products:create" />}>
             <Route path="products/create" element={<CreateProductPage />} />
+            <Route path="admin/media-upload" element={<StandaloneMediaUploadPage />} />
           </Route>
           <Route element={<ProtectedRoute requiredPermission="products:update" />}>
             <Route path="products/:id/edit" element={<EditProductPage />} />
