@@ -18,10 +18,9 @@ function parseDataUrl(value: unknown): { contentType: string; bytes: Buffer } {
 }
 
 function storageHeaders(apiKey: string, extra: Record<string, string> = {}): Record<string, string> {
-  const headers: Record<string, string> = { apikey: apiKey, ...extra };
-  // sb_secret keys are not JWTs; only legacy service_role JWTs belong in Authorization.
-  if (apiKey.split('.').length === 3) headers.Authorization = `Bearer ${apiKey}`;
-  return headers;
+  // Supabase Storage requires both headers. Keep apikey for sb_secret keys,
+  // and provide Authorization for the Storage gateway's required auth header.
+  return { Authorization: `Bearer ${apiKey}`, apikey: apiKey, ...extra };
 }
 
 // The product-images bucket is provisioned in Supabase. Uploads must not
