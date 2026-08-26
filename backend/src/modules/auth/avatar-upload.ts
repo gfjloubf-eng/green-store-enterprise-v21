@@ -13,9 +13,11 @@ function parseDataUrl(value: unknown): { contentType: string; bytes: Buffer } {
 }
 
 function storageHeaders(apiKey: string, extra: Record<string, string> = {}): Record<string, string> {
-  // Supabase Storage requires both headers. Keep apikey for sb_secret keys,
-  // and provide Authorization for the Storage gateway's required auth header.
-  return { Authorization: `Bearer ${apiKey}`, apikey: apiKey, ...extra };
+  // `sb_secret_...` is valid as apikey but is not a JWT. Storage still
+  // requires a JWT in Authorization, so use the optional legacy service-role
+  // JWT when configured and keep the current key in apikey.
+  const authorizationKey = String(process.env.SUPABASE_STORAGE_JWT_KEY ?? '').trim() || apiKey;
+  return { Authorization: `Bearer ${authorizationKey}`, apikey: apiKey, ...extra };
 }
 
 // The avatars bucket is provisioned in Supabase. Uploads must not attempt

@@ -1953,7 +1953,8 @@ function parseDataUrl(value) {
   return { contentType: match[1], bytes };
 }
 function storageHeaders(apiKey, extra = {}) {
-  return { Authorization: `Bearer ${apiKey}`, apikey: apiKey, ...extra };
+  const authorizationKey = String(process.env.SUPABASE_STORAGE_JWT_KEY ?? "").trim() || apiKey;
+  return { Authorization: `Bearer ${authorizationKey}`, apikey: apiKey, ...extra };
 }
 async function uploadAvatarImage(request4, userId) {
   const body = request4.body ?? {};
@@ -6803,7 +6804,8 @@ function parseDataUrl2(value) {
   return { contentType: match[1], bytes };
 }
 function storageHeaders2(apiKey, extra = {}) {
-  return { Authorization: `Bearer ${apiKey}`, apikey: apiKey, ...extra };
+  const authorizationKey = String(process.env.SUPABASE_STORAGE_JWT_KEY ?? "").trim() || apiKey;
+  return { Authorization: `Bearer ${authorizationKey}`, apikey: apiKey, ...extra };
 }
 async function uploadProductImage(request4) {
   const body = request4.body ?? {};
