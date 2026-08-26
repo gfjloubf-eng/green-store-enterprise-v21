@@ -1953,9 +1953,7 @@ function parseDataUrl(value) {
   return { contentType: match[1], bytes };
 }
 function storageHeaders(apiKey, extra = {}) {
-  const headers = { apikey: apiKey, ...extra };
-  if (apiKey.split(".").length === 3) headers.Authorization = `Bearer ${apiKey}`;
-  return headers;
+  return { Authorization: `Bearer ${apiKey}`, apikey: apiKey, ...extra };
 }
 async function uploadAvatarImage(request4, userId) {
   const body = request4.body ?? {};
@@ -6805,9 +6803,7 @@ function parseDataUrl2(value) {
   return { contentType: match[1], bytes };
 }
 function storageHeaders2(apiKey, extra = {}) {
-  const headers = { apikey: apiKey, ...extra };
-  if (apiKey.split(".").length === 3) headers.Authorization = `Bearer ${apiKey}`;
-  return headers;
+  return { Authorization: `Bearer ${apiKey}`, apikey: apiKey, ...extra };
 }
 async function uploadProductImage(request4) {
   const body = request4.body ?? {};
@@ -6868,12 +6864,21 @@ function createProductMediaRoutes() {
     tags: ["products", "media"],
     middleware: []
   };
+  const handler2 = (ctx) => uploadProductImage(toControllerRequest6(ctx));
   builder.register({
     name: "products-media-upload",
     method: "POST",
     path: "/products/media/upload",
     version: "v1",
-    handler: (ctx) => uploadProductImage(toControllerRequest6(ctx)),
+    handler: handler2,
+    options
+  });
+  builder.register({
+    name: "standalone-media-upload",
+    method: "POST",
+    path: "/media/upload",
+    version: "v1",
+    handler: handler2,
     options
   });
   return builder.build();
