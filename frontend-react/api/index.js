@@ -6875,13 +6875,19 @@ function createProductMediaRoutes() {
     handler: handler2,
     options
   });
+  const standaloneOptions = {
+    ...options,
+    requiredPermissions: [],
+    requiredRoles: ["SUPER_ADMIN", "ADMIN", "MANAGER", "EMPLOYEE"],
+    tags: ["media"]
+  };
   builder.register({
     name: "standalone-media-upload",
     method: "POST",
     path: "/media/upload",
     version: "v1",
     handler: handler2,
-    options
+    options: standaloneOptions
   });
   return builder.build();
 }
