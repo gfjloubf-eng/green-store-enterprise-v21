@@ -310,7 +310,8 @@ export const ProductService = {
 
   /** Upload media independently; it never creates or updates a product. */
   async uploadStandaloneImage(dataUrl: string, reference?: string): Promise<{ url: string; path: string }> {
-    if (!isAuthorizedStaffOrAdmin()) throw new Error('غير مصرح: هذه العملية تتطلب صلاحيات إدارة المتجر');
+    // Authorization is enforced by the backend route. Do not rely on the
+    // potentially stale cached role for this independent upload utility.
     const { fetchWithAuth } = await import('@/services/authClient');
     const res = await fetchWithAuth('/media/upload', {
       method: 'POST',

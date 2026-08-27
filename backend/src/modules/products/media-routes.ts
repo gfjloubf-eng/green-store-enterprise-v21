@@ -1,5 +1,6 @@
 import { RouterBuilder } from '../../routes';
-import type { RouteDefinition, RouteExecutionContext, RouteHandler, RouteOptions } from '../../routes';
+import { created } from '../../api';
+import type { RouteDefinition, RouteExecutionContext, RouteOptions } from '../../routes';
 import type { Permission } from '../../rbac';
 import type { ControllerRequest } from '../../controllers';
 import { uploadProductImage } from './media-upload';
@@ -26,7 +27,13 @@ export function createProductMediaRoutes(): readonly RouteDefinition[] {
     tags: ['products', 'media'],
     middleware: [],
   };
-  const handler = (ctx: RouteExecutionContext) => uploadProductImage(toControllerRequest(ctx));
+  const handler = async (ctx: RouteExecutionContext) => {
+    const data = await uploadProductImage(toControllerRequest(ctx));
+    return created(data, {
+      timestamp: new Date().toISOString(),
+      version: 'v1',
+    });
+  };
   builder.register({
     name: 'products-media-upload',
     method: 'POST',

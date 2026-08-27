@@ -6867,7 +6867,13 @@ function createProductMediaRoutes() {
     tags: ["products", "media"],
     middleware: []
   };
-  const handler2 = (ctx) => uploadProductImage(toControllerRequest6(ctx));
+  const handler2 = async (ctx) => {
+    const data = await uploadProductImage(toControllerRequest6(ctx));
+    return created(data, {
+      timestamp: (/* @__PURE__ */ new Date()).toISOString(),
+      version: "v1"
+    });
+  };
   builder.register({
     name: "products-media-upload",
     method: "POST",
