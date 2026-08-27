@@ -5,9 +5,14 @@ export function extractUserPermissions(user?: AuthenticatedUser): Permission[] {
   return (user?.permissions ?? []).map((permission) => permission.toString() as Permission);
 }
 
+function normalizeRoleName(role: RoleName | string): RoleName {
+  const normalized = role.toString().trim().toUpperCase().replace(/[ -]+/g, '_');
+  return (normalized === 'SUPERADMIN' ? 'SUPER_ADMIN' : normalized) as RoleName;
+}
+
 export function extractUserRoles(user?: AuthenticatedUser): RoleName[] {
   const roles = user?.roles?.length ? user.roles : ((user as AuthenticatedUser & { role?: RoleName | string } | undefined)?.role ? [((user as AuthenticatedUser & { role?: RoleName | string }).role as RoleName | string)] : []);
-  return roles.map((role) => role.toString().toUpperCase() as RoleName);
+  return roles.map(normalizeRoleName);
 }
 
 export function normalizePermissions(permissions?: Array<Permission | string>): Permission[] {
@@ -15,7 +20,7 @@ export function normalizePermissions(permissions?: Array<Permission | string>): 
 }
 
 export function normalizeRoles(roles?: Array<RoleName | string>): RoleName[] {
-  return (roles ?? []).map((role) => role.toString().toUpperCase() as RoleName);
+  return (roles ?? []).map(normalizeRoleName);
 }
 
 export function buildAuthorizationContext(user?: AuthenticatedUser, request?: PermissionRequest): import('../authorization').AuthorizationContext {
