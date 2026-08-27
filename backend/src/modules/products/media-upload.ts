@@ -18,11 +18,17 @@ function parseDataUrl(value: unknown): { contentType: string; bytes: Buffer } {
 }
 
 function storageHeaders(apiKey: string, extra: Record<string, string> = {}): Record<string, string> {
-  // `sb_secret_...` is valid as apikey but is not a JWT. Storage still
-  // requires a JWT in Authorization, so use the optional legacy service-role
-  // JWT when configured and keep the current key in apikey.
-  const authorizationKey = String(process.env.SUPABASE_STORAGE_JWT_KEY ?? '').trim() || apiKey;
-  return { Authorization: `Bearer ${authorizationKey}`, apikey: apiKey, ...extra };
+  // `sb_secret_...` is valid as apikey but is not a JWT. Never send it as a
+  // Bearer token; only add Authorization when a legacy JWT is configured or
+  // the supplied key is itself a compact JWT.
+  const legacyJwt = String(process.env.SUPABASE_STORAGE_JWT_KEY ?? '').trim();
+  const headers: Record<string, string> = { apikey: apiKey, ...extra };
+  if (legacyJwt) {
+    headers.Authorization = `Bearer ${legacyJwt}`;
+  } else if (apiKey.split('.').length === 3 && apiKey.startsWith('eyJ')) {
+    headers.Authorization = `Bearer ${apiKey}`;
+  }
+  return headers;
 }
 
 // The product-images bucket is provisioned in Supabase. Uploads must not
