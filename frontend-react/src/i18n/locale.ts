@@ -1,4 +1,4 @@
-﻿/* ============================================================
+/* ============================================================
    GSDS v1.1 — Locale Types & Default Translations
    Green Store i18n Architecture
    ============================================================
@@ -392,6 +392,7 @@ export interface Translations {
   'form.validation.minValue': string;
   'form.validation.maxValue': string;
   'form.validation.alphanumeric': string;
+  'form.validation.produceKeyPattern': string;
   'form.validation.numbersOnly': string;
   'form.validation.minGtMax': string;
   'form.validation.invalidDate': string;
@@ -1211,6 +1212,7 @@ const ar: Translations = {
   'form.validation.minValue': 'القيمة أقل من الحد الأدنى',
   'form.validation.maxValue': 'القيمة أكبر من الحد الأقصى',
   'form.validation.alphanumeric': 'يرجى إدخال أحرف وأرقام فقط',
+  'form.validation.produceKeyPattern': 'يُقبل الحروف (عربية أو إنجليزية) والأرقام مع فواصل مثل: تفاح-احمر أو red-apple',
   'form.validation.numbersOnly': 'يرجى إدخال أرقام فقط',
   'form.validation.minGtMax': 'يجب أن يكون الحد الأدنى أقل من الحد الأقصى',
   'form.validation.invalidDate': 'يرجى إدخال تاريخ صحيح',
@@ -2026,6 +2028,7 @@ const en: Translations = {
   'form.validation.minValue': 'Value is below the minimum',
   'form.validation.maxValue': 'Value exceeds the maximum',
   'form.validation.alphanumeric': 'Please enter letters and numbers only',
+  'form.validation.produceKeyPattern': 'Use letters (Arabic or English) and numbers with separators like: تفاح-احمر or red-apple',
   'form.validation.numbersOnly': 'Please enter numbers only',
   'form.validation.minGtMax': 'Min stock must be less than max stock',
   'form.validation.invalidDate': 'Please enter a valid date',

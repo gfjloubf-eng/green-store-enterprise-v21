@@ -10,6 +10,7 @@
 
 import { useState, useCallback, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { AlertCircle } from 'lucide-react';
 import { GeneralSection } from './GeneralSection';
 import { PricingSection } from './PricingSection';
 import { InventorySection } from './InventorySection';
@@ -28,7 +29,24 @@ import {
 import { ProductService } from '../../services/productService';
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-const validReference = (value: string) => UUID_RE.test(value) ? value : undefined;
+const validReference = (value: string) => UUID_RE.test(value.trim()) ? value.trim() : undefined;
+
+/**
+ * Convert any user-typed produce key into a backend-safe ASCII slug.
+ * The backend requires slug to match ^[a-z0-9]+(?:-[a-z0-9]+)*$,
+ * so Arabic letters are stripped and separators become hyphens.
+ * Falls back to a timestamp-based key when nothing safe remains.
+ */
+function toSafeSlug(value: string, fallback?: string): string {
+  const slug = value
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, '-')
+    .replace(/[^a-z0-9-]+/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-+|-+$/g, '');
+  return slug || fallback || `product-${Date.now().toString(36)}`;
+}
 
 interface ProductFormProps {
   /** Optional initial data for edit mode */
@@ -126,7 +144,7 @@ export function ProductForm({ initialData, productId, isEdit = false, onSuccess,
     try {
       const payload = {
         name: formData.productName,
-        produceKey: formData.produceKey,
+        produceKey: toSafeSlug(formData.produceKey, formData.sku),
         sku: formData.sku || `SKU-${Math.floor(100000 + Math.random() * 900000)}`,
         description: formData.description,
         originCountry: formData.originCountry || undefined,
@@ -220,6 +238,17 @@ export function ProductForm({ initialData, productId, isEdit = false, onSuccess,
       {/* Action Buttons */}
       {saveError && (
         <p className="text-sm [color:var(--gs-danger)]" role="alert">{saveError}</p>
+      )}
+      {!valid && !isSaving && (
+        <div
+          role="alert"
+          className="flex items-start gap-2 rounded-xl border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-sm [color:var(--gs-foreground)]"
+        >
+          <AlertCircle className="h-4 w-4 shrink-0 mt-0.5 [color:var(--gs-warning)]" aria-hidden="true" />
+          <span>
+            يرجى إكمال الحقول المطلوبة المميزة بعلامة * قبل الحفظ — الحقول الناقصة أو غير الصحيحة تظهر بحدود حمراء مع رسالة توضيحية.
+          </span>
+        </div>
       )}
       <FormActions
         onSave={handleSave}

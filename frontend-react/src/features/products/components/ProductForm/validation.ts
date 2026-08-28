@@ -85,8 +85,10 @@ export function validateForm(data: ProductFormData): FormErrors {
     fieldName: 'form.produceKey',
     required: true,
     minLength: 2,
-    pattern: /^[a-z0-9]+(?:-[a-z0-9]+)*$/,
-    patternMessage: 'form.validation.alphanumeric',
+    // Accept Arabic, English letters, digits, and separators (space, hyphen, underscore, dot).
+    // A safe ASCII slug is auto-generated at save time (see ProductForm.toSafeSlug).
+    pattern: /^[\p{L}\p{N}]+(?:[\s\-_.][\p{L}\p{N}]+)*$/u,
+    patternMessage: 'form.validation.produceKeyPattern',
   });
   if (produceKeyErr) errors.produceKey = produceKeyErr;
 

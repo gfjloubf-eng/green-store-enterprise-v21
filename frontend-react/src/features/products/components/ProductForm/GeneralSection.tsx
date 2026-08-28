@@ -96,6 +96,7 @@ export function GeneralSection({ data, errors, onChange }: GeneralSectionProps) 
           placeholderKey="form.produceKeyPlaceholder"
           value={data.produceKey}
           onChange={(v) => onChange('produceKey', v)}
+          error={errors.produceKey}
           hintKey="form.produceKeyHint"
           required
           className="md:col-span-2"
