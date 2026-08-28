@@ -28,3 +28,6 @@ coonect_db/
 cart bag/coonect_db/
 backend/server.log
 backend/server.err
+
+# Allow the example file (contains no secrets)
+!.env.example
