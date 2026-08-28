@@ -108,21 +108,25 @@ export function validateForm(data: ProductFormData): FormErrors {
   });
   if (barcodeErr) errors.barcode = barcodeErr;
 
+  // Category / Brand / Unit are optional in the database (String? nullable)
+  // and the backend accepts them as undefined. Requiring them here only
+  // blocks the Save button when the reference lists are unavailable,
+  // so we keep them optional in validation.
   const catErr = validateField(data.categoryId, {
     fieldName: 'form.category',
-    required: true,
+    required: false,
   });
   if (catErr) errors.categoryId = catErr;
 
   const brandErr = validateField(data.brandId, {
     fieldName: 'form.brand',
-    required: true,
+    required: false,
   });
   if (brandErr) errors.brandId = brandErr;
 
   const unitErr = validateField(data.unitId, {
     fieldName: 'form.unit',
-    required: true,
+    required: false,
   });
   if (unitErr) errors.unitId = unitErr;
 

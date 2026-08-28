@@ -57,6 +57,9 @@ export function entityToFormData(
 ): Partial<ProductFormData> {
   return {
     productName: dto.name,
+    // CRITICAL: without this, Edit mode leaves produceKey empty forever,
+    // validation fails silently and the Save button stays disabled.
+    produceKey: dto.produceKey || '',
     sku: dto.sku,
     barcode: dto.barcode,
     categoryId: dto.category.id,

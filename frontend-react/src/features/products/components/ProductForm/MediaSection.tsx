@@ -14,7 +14,7 @@ function imageUploadErrorMessage(error: unknown): string {
     image_too_large: 'الصورة الأصلية أكبر من 8MB. اختر صورة أصغر.',
     image_decode_failed: 'تعذر قراءة الصورة في المتصفح. جرّب صورة أخرى أو افتح الصفحة مجدداً.',
     image_canvas_unavailable: 'المتصفح لا يستطيع تجهيز الصورة حالياً.',
-    storage_not_configured: 'إعدادات التخزين غير مفعلة في الخادم.',
+    storage_not_configured: 'إعدادات التخزين غير مفعلة في الخادم. أضف SUPABASE_URL و SUPABASE_SERVICE_ROLE_KEY في Vercel (Settings ← Environment Variables) ثم أعد النشر. يمكنك إكمال الحفظ بدون صورة الآن.',
     authentication_required: 'انتهت جلسة الأدمن. سجّل الدخول ثم أعد المحاولة.',
     authorization_denied: 'الحساب لا يملك صلاحية رفع صور المنتجات.',
     storage_upload_invalid_response: 'الخادم لم يُرجع رابط الصورة الدائم.',

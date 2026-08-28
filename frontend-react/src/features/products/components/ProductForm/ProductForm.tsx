@@ -144,7 +144,7 @@ export function ProductForm({ initialData, productId, isEdit = false, onSuccess,
     try {
       const payload = {
         name: formData.productName,
-        produceKey: toSafeSlug(formData.produceKey, formData.sku),
+        produceKey: toSafeSlug(formData.produceKey, formData.sku || formData.productName),
         sku: formData.sku || `SKU-${Math.floor(100000 + Math.random() * 900000)}`,
         description: formData.description,
         originCountry: formData.originCountry || undefined,
