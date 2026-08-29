@@ -129,6 +129,11 @@ class ProductStore {
     this.entities.set(entity.id, entity);
   }
 
+  /** Replace the whole store (backend is the source of truth) */
+  replace(entities: Map<string, ProductEntity>): void {
+    this.entities = new Map(entities);
+  }
+
   /** Update an existing entity */
   update(id: string, updated: ProductEntity): boolean {
     if (!this.entities.has(id)) return false;
@@ -185,10 +190,14 @@ export const ProductService = {
           const payload = await parseJsonSafe(res);
           const list = Array.isArray(payload) ? payload : (Array.isArray(payload?.data) ? payload.data : null);
           if (list && list.length > 0) {
+            // Backend is the source of truth: replace the local store
+            // instead of accumulating, so deleted/updated items stay in sync.
+            const next = new Map<string, ProductEntity>();
             for (const item of list) {
               const entity = mapBackendProductToEntity(item);
-              if (entity.id && entity.name) store.add(entity);
+              if (entity.id && entity.name) next.set(entity.id, entity);
             }
+            store.replace(next);
             writePublicCatalogCache(toDTOList(store.getAll()));
           }
         }
@@ -289,7 +298,14 @@ export const ProductService = {
     });
     const payload = await parseJsonSafe(res);
     if (!res.ok) throw new Error(payload?.error?.message || payload?.error || `HTTP ${res.status}`);
-    return toDTO(mapBackendProductToEntity(payload?.data || payload));
+    // Add the created product to the local store immediately so it shows up
+    // in the products list without waiting for the next backend sync.
+    const created = mapBackendProductToEntity(payload?.data || payload);
+    if (created.id && created.name) {
+      store.add(created);
+      lastSyncAt = 0; // force a fresh backend fetch on next list visit
+    }
+    return toDTO(created);
   },
 
   /** Upload compressed product media to Supabase Storage through the authenticated backend API. */
@@ -366,7 +382,14 @@ export const ProductService = {
     });
     const payload = await parseJsonSafe(res);
     if (!res.ok) throw new Error(payload?.error?.message || payload?.error || `HTTP ${res.status}`);
-    return toDTO(mapBackendProductToEntity(payload?.data || payload));
+    // Update the local store immediately so edits reflect in the list
+    // without waiting for the next backend sync.
+    const updated = mapBackendProductToEntity(payload?.data || payload);
+    if (updated.id && updated.name) {
+      store.add(updated);
+      lastSyncAt = 0; // force a fresh backend fetch on next list visit
+    }
+    return toDTO(updated);
   },
 
   /**
@@ -530,7 +553,10 @@ export const ProductService = {
       updatedAt: item.updatedAt ?? new Date().toISOString(),
     }));
 
-    if (mapped.length > 0) {
+    // Trust the backend whenever the request succeeded: an authenticated
+    // staff/admin sees the real list (even if empty). Only fall back to the
+    // local mock store when the request itself failed (unauthenticated).
+    if (mapped.length > 0 || isAuthorizedStaffOrAdmin()) {
       return {
         products: mapped,
         total: totalCount,
