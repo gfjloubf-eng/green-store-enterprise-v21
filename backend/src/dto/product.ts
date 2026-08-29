@@ -39,6 +39,9 @@ export interface ProductResponseDto {
   name: string;
   slug: string;
   description: string | null;
+  category: { id: string; name: string; slug: string };
+  brand: { id: string; name: string };
+  unit: { id: string; name: string; symbol: string | null };
   originCountry: string | null;
   harvestDate: string | null;
   expiryDate: string | null;

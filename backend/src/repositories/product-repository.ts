@@ -105,7 +105,32 @@ export class ProductRepository extends BaseRepository implements ProductReposito
       ? { AND: [{ deletedAt: null }, options.filters] }
       : { deletedAt: null };
 
-    return super.paginate({ ...options, filters }) as Promise<PaginatedResult<Product>>;
+    const page = Math.max(1, options.page ?? 1);
+    const limit = Math.max(1, Math.min(100, options.limit ?? 25));
+    const skip = (page - 1) * limit;
+    const orderBy = options.sort && (options.order === 'asc' || options.order === 'desc')
+      ? { [options.sort]: options.order }
+      : undefined;
+
+    // Include relations so the DTO can expose category/brand/unit objects
+    // (the storefront groups products by category.name).
+    const [data, total] = await Promise.all([
+      this.model.findMany({
+        where: filters as any,
+        skip,
+        take: limit,
+        orderBy,
+        include: {
+          images: { orderBy: { sortOrder: 'asc' as const } },
+          category: true,
+          brand: true,
+          unit: true,
+        },
+      }),
+      this.model.count({ where: filters as any }),
+    ]);
+
+    return { data, total, page, limit } as PaginatedResult<Product>;
   }
 }
 

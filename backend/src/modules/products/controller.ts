@@ -20,7 +20,7 @@ export class ProductsController {
   }
 
   private mapToDto(entity: Product): ProductResponseDto {
-    const enriched = entity as Product & { images?: Array<{ id: string; url: string; altText: string | null; sortOrder: number }> };
+    const enriched = entity as Product & { images?: Array<{ id: string; url: string; altText: string | null; sortOrder: number }>; category?: { id: string; name: string; slug: string } | null; brand?: { id: string; name: string } | null; unit?: { id: string; name: string; symbol?: string | null } | null };
     const images = Array.isArray(enriched.images)
       ? enriched.images.map((image) => ({ id: image.id, url: image.url, altText: image.altText ?? null, sortOrder: image.sortOrder }))
       : [];
@@ -30,6 +30,17 @@ export class ProductsController {
       name: entity.name,
       slug: entity.slug,
       description: entity.description ?? null,
+      // Nested category/brand/unit objects so the storefront can group by
+      // category.name and show brand/unit labels.
+      category: enriched.category
+        ? { id: enriched.category.id, name: enriched.category.name, slug: enriched.category.slug ?? '' }
+        : { id: entity.categoryId ?? 'cat-1', name: 'عام', slug: 'general' },
+      brand: enriched.brand
+        ? { id: enriched.brand.id, name: enriched.brand.name }
+        : { id: entity.brandId ?? 'brand-1', name: 'قطوف الطبيعة' },
+      unit: enriched.unit
+        ? { id: enriched.unit.id, name: enriched.unit.name, symbol: enriched.unit.symbol ?? null }
+        : { id: entity.unitId ?? 'unit-1', name: 'كيلو', symbol: 'كجم' },
       originCountry: (entity as Product & { originCountry?: string | null }).originCountry ?? null,
       harvestDate: (entity as Product & { harvestDate?: Date | null }).harvestDate ? new Date((entity as Product & { harvestDate: Date }).harvestDate).toISOString() : null,
       expiryDate: (entity as Product & { expiryDate?: Date | null }).expiryDate ? new Date((entity as Product & { expiryDate: Date }).expiryDate).toISOString() : null,

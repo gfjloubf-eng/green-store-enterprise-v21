@@ -57,6 +57,7 @@ const FALLBACK_UNIT_OPTIONS = [
 export function GeneralSection({ data, errors, onChange }: GeneralSectionProps) {
   const { t } = useI18n();
   const [unitOptions, setUnitOptions] = useState<{ value: string; label: string }[]>([]);
+  const [categoryOptions, setCategoryOptions] = useState<{ value: string; label: string }[]>([]);
   useEffect(() => {
     let active = true;
     void fetchWithAuth('/units').then(async (response) => {
@@ -67,9 +68,22 @@ export function GeneralSection({ data, errors, onChange }: GeneralSectionProps) 
         setUnitOptions(rows.map((unit: { id: string; name: string; symbol?: string | null }) => ({ value: unit.id, label: unit.symbol ? `${unit.name} (${unit.symbol})` : unit.name })));
       }
     }).catch(() => undefined);
+    // Load real categories from the backend so the selected categoryId is a
+    // real UUID that the API accepts (hardcoded cat-* values are stripped by
+    // validReference and products end up without a category, invisible in the
+    // storefront sections).
+    void fetchWithAuth('/categories').then(async (response) => {
+      if (!response.ok) return;
+      const payload = await response.json().catch(() => ({}));
+      const rows = Array.isArray(payload?.data) ? payload.data : Array.isArray(payload) ? payload : [];
+      if (active && rows.length) {
+        setCategoryOptions(rows.map((cat: { id: string; name: string }) => ({ value: cat.id, label: cat.name })));
+      }
+    }).catch(() => undefined);
     return () => { active = false; };
   }, []);
   const UNIT_OPTIONS = unitOptions.length ? unitOptions : FALLBACK_UNIT_OPTIONS;
+  const CATEGORY_OPTIONS_REAL = categoryOptions.length ? categoryOptions : CATEGORY_OPTIONS;
 
   return (
     <fieldset className="gsd-card p-5">
@@ -129,7 +143,7 @@ export function GeneralSection({ data, errors, onChange }: GeneralSectionProps) 
           onChange={(v) => onChange('categoryId', v)}
           error={errors.categoryId}
           type="select"
-          options={CATEGORY_OPTIONS}
+          options={CATEGORY_OPTIONS_REAL}
           required
         />
 
