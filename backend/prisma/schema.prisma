@@ -498,7 +498,6 @@ model ProductFamily {
   updatedAt   DateTime           @updatedAt
   deletedAt   DateTime?
   articles    EducationalArticle[]
-  products    Product[]
 
   @@map("product_families")
 }
