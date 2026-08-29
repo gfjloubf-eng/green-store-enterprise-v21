@@ -1,3 +1,7 @@
+/* ============================================================
+   GSDS v1.2 — CheckoutPage Component (Safe Order Finalization)
+   ============================================================ */
+
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { MapPin, Clock, Tag, ShoppingBag, AlertCircle, CheckCircle2, ArrowRight, Store, Eye, Package } from 'lucide-react';

@@ -115,7 +115,7 @@ export function CartPage() {
         <div>
           <h1 className="text-2xl font-bold [color:var(--gs-foreground)] flex items-center gap-3">
             <ShoppingCart className="h-6 w-6 text-emerald-600" />
-            سلة التسوق الخاصة بك
+            سلة مشترياتك
           </h1>
           <p className="text-xs [color:var(--gs-foreground-secondary)] mt-1">
             إدارة الخضروات والمنتجات المطلوبة قبل إتمام الطلب.
@@ -273,7 +273,7 @@ export function CartPage() {
               onClick={() => navigate('/checkout')}
               className="gsd-btn gsd-btn--primary gsd-btn--lg w-full rounded-2xl inline-flex items-center justify-center gap-2 mt-4 text-xs font-bold py-3 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              متابعة الطلب الإلكتوني
+              متابعة إتمام الطلب
               <ArrowRight className="h-4 w-4" />
             </button>
 
@@ -326,7 +326,7 @@ export function CartPage() {
             onClick={() => navigate('/checkout')}
             className="gsd-btn gsd-btn--primary gsd-btn--md rounded-2xl px-5 py-2.5 text-xs font-bold inline-flex items-center gap-2 min-h-[44px] touch-manipulation"
           >
-            متابعة الطلب
+            متابعة إتمام الطلب
             <ArrowRight className="h-4 w-4" />
           </button>
         </div>
