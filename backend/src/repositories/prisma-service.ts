@@ -63,10 +63,17 @@ export class PrismaService {
 
       let connectionString = configuredDatabaseUrl;
       
-      // تحسين رابط الاتصال لـ Vercel/Serverless
-      if (process.env.NODE_ENV === 'production' && !connectionString.includes('pgbouncer=')) {
-        const separator = connectionString.includes('?') ? '&' : '?';
-        connectionString = `${connectionString}${separator}pgbouncer=true&connection_limit=1`;
+      // تحسين رابط الاتصال لـ Vercel/Serverless:
+      // force pgbouncer + a single connection per serverless instance so the
+      // Supabase pool (max 15 on free tier) is never exhausted by multiple
+      // concurrent requests/lambdas (EMAXCONNSESSION).
+      if (process.env.NODE_ENV === 'production') {
+        const url = new URL(connectionString);
+        const params = url.searchParams;
+        if (!params.has('pgbouncer')) params.set('pgbouncer', 'true');
+        if (!params.has('connection_limit')) params.set('connection_limit', '1');
+        url.search = params.toString();
+        connectionString = url.toString();
       }
 
       const adapter = new PrismaPg({ connectionString });
