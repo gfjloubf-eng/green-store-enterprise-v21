@@ -151,6 +151,9 @@ export class ProductService extends BaseService implements ProductServiceContrac
   }
 
   private toPersistencePayload(payload: Record<string, unknown>, update = false): Record<string, unknown> {
+    // NOTE: imageUrl/imageAltText remain in the list on purpose: the
+    // repository extracts them before calling Prisma and stores them in
+    // the ProductImage table. barcode is also extracted by the repository.
     const fields = ['sku', 'barcode', 'produceKey', 'familyId', 'name', 'slug', 'description', 'originCountry', 'storageInstructions', 'qualityGrade', 'weightUnit', 'shippingClass', 'brandId', 'unitId', 'categoryId', 'subcategoryId', 'imageUrl', 'imageAltText', 'isPublished'];
     const result: Record<string, unknown> = {};
     for (const field of fields) {
