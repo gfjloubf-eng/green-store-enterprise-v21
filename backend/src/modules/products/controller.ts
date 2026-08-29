@@ -20,16 +20,23 @@ export class ProductsController {
   }
 
   private mapToDto(entity: Product): ProductResponseDto {
-    const enriched = entity as Product & { images?: Array<{ id: string; url: string; altText: string | null; sortOrder: number }>; category?: { id: string; name: string; slug: string } | null; brand?: { id: string; name: string } | null; unit?: { id: string; name: string; symbol?: string | null } | null };
+    const enriched = entity as Product & { images?: Array<{ id: string; url: string; altText: string | null; sortOrder: number }>; category?: { id: string; name: string; slug: string } | null; brand?: { id: string; name: string } | null; unit?: { id: string; name: string; symbol?: string | null } | null; variants?: Array<{ price: number; sku: string | null }> };
     const images = Array.isArray(enriched.images)
       ? enriched.images.map((image) => ({ id: image.id, url: image.url, altText: image.altText ?? null, sortOrder: image.sortOrder }))
       : [];
+    // Price comes from the default product variant (the products table has
+    // no price column; the repository stores price on product_variants).
+    const defaultVariant = Array.isArray(enriched.variants) && enriched.variants.length > 0 ? enriched.variants[0] : null;
+    const sellingPrice = defaultVariant ? Number(defaultVariant.price) || 0 : 0;
+    const variantSku = defaultVariant?.sku ?? entity.sku ?? null;
     return {
       id: entity.id,
-      sku: entity.sku ?? null,
+      sku: variantSku,
       name: entity.name,
       slug: entity.slug,
       description: entity.description ?? null,
+      sellingPrice,
+      purchasePrice: 0,
       // Nested category/brand/unit objects so the storefront can group by
       // category.name and show brand/unit labels.
       category: enriched.category

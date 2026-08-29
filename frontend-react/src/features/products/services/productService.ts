@@ -52,7 +52,7 @@ function mapBackendProductToEntity(item: any): ProductEntity {
     offer: item.offer ? item.offer : undefined,
     tax: 0,
     discount: Number(item.discount || item.offer?.discountValue || 0),
-    stock: Number(item.stock ?? item.quantity ?? 0),
+    stock: item.stock != null || item.quantity != null ? Number(item.stock ?? item.quantity) : 1,
     minStock: Number(item.minStock || 0),
     maxStock: Number(item.maxStock || 0),
     trackInventory: true,

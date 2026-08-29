@@ -122,6 +122,7 @@ export class ProductRepository extends BaseRepository implements ProductReposito
         orderBy,
         include: {
           images: { orderBy: { sortOrder: 'asc' as const } },
+          variants: { take: 1 },
           category: true,
           brand: true,
           unit: true,
