@@ -33,19 +33,29 @@ const validReference = (value: string) => UUID_RE.test(value.trim()) ? value.tri
 
 /**
  * Convert any user-typed produce key into a backend-safe ASCII slug.
- * The backend requires slug to match ^[a-z0-9]+(?:-[a-z0-9]+)*$,
- * so Arabic letters are stripped and separators become hyphens.
- * Falls back to a timestamp-based key when nothing safe remains.
+ * The backend requires slug to match ^[a-z0-9]+(?:-[a-z0-9]+)*$ and must be
+ * unique, so Arabic-only keys (which strip to nothing) fall back to a
+ * sanitized base + a short unique suffix. This prevents collisions like
+ * product_slug_exists when two products share the same SKU.
  */
 function toSafeSlug(value: string, fallback?: string): string {
-  const slug = value
-    .trim()
-    .toLowerCase()
-    .replace(/\s+/g, '-')
-    .replace(/[^a-z0-9-]+/g, '-')
-    .replace(/-+/g, '-')
-    .replace(/^-+|-+$/g, '');
-  return slug || fallback || `product-${Date.now().toString(36)}`;
+  const clean = (s: string) =>
+    s
+      .trim()
+      .toLowerCase()
+      .replace(/\s+/g, '-')
+      .replace(/[^a-z0-9-]+/g, '-')
+      .replace(/-+/g, '-')
+      .replace(/^-+|-+$/g, '');
+
+  const slug = clean(value);
+  if (slug) return slug;
+
+  // Arabic-only (or empty) produce key: build a unique slug from the
+  // fallback so repeated SKUs never collide on the slug column.
+  const base = clean(fallback || 'product') || 'product';
+  const suffix = `${Date.now().toString(36).slice(-4)}${Math.random().toString(36).slice(2, 5)}`;
+  return `${base}-${suffix}`;
 }
 
 interface ProductFormProps {
@@ -170,14 +180,32 @@ export function ProductForm({ initialData, productId, isEdit = false, onSuccess,
       if (isEdit && productId) {
         await ProductService.updateRemote(productId, payload);
       } else {
-        await ProductService.createRemote(payload);
+        try {
+          await ProductService.createRemote(payload);
+        } catch (err) {
+          if (err instanceof Error && err.message.includes('product_slug_exists')) {
+            // The auto-generated slug collided (e.g. Arabic-only produce key
+            // falling back to a reused SKU). Retry once with a unique suffix.
+            await ProductService.createRemote({
+              ...payload,
+              produceKey: `${payload.produceKey}-${Date.now().toString(36).slice(-6)}`,
+            });
+          } else {
+            throw err;
+          }
+        }
       }
 
       onSuccess?.();
       if (!onSuccess) navigate('/products');
     } catch (err) {
       console.error('Error saving product:', err);
-      setSaveError(err instanceof Error ? err.message : 'تعذر حفظ المنتج.');
+      const message = err instanceof Error ? err.message : '';
+      if (message.includes('product_slug_exists')) {
+        setSaveError('تعذر الحفظ: هوية الصنف مستخدمة بالفعل لمنتج آخر. غيّر «هوية الصنف الثابتة» إلى قيمة فريدة (مثال: خيار-أخضر) أو استخدم SKU مختلفاً.');
+      } else {
+        setSaveError(message || 'تعذر حفظ المنتج.');
+      }
     } finally {
       setIsSaving(false);
     }

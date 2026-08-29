@@ -59,7 +59,9 @@ export function entityToFormData(
     productName: dto.name,
     // CRITICAL: without this, Edit mode leaves produceKey empty forever,
     // validation fails silently and the Save button stays disabled.
-    produceKey: dto.produceKey || '',
+    // The backend no longer returns produceKey, so the stored slug is the
+    // closest stable identity to prefill (keeps the slug stable on edit).
+    produceKey: dto.produceKey || dto.slug || '',
     sku: dto.sku,
     barcode: dto.barcode,
     categoryId: dto.category.id,
