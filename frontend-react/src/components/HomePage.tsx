@@ -232,20 +232,20 @@ export function HomePage() {
             </p>
 
             <div className="flex flex-wrap gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => document.getElementById('qutoof-shop-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
+                className="gsd-btn gsd-btn--primary gsd-btn--md inline-flex items-center justify-center gap-2 rounded-2xl px-6 py-3.5 font-extrabold text-sm shadow-lg hover:shadow-emerald-500/25 transition"
+              >
+                ابدأ التسوق الآن
+                <ArrowRight className="h-4 w-4" />
+              </button>
               <WhatsAppOrderAction
                 variant="modal"
-                buttonText="طلب سريع عبر واتساب"
+                buttonText="مساعدة في الطلب عبر واتساب"
                 className="w-auto min-w-[220px]"
                 getMessage={() => 'أرغب في طلب خضروات وفواكه طازجة من قطوف الطبيعة.'}
               />
-              <button
-                type="button"
-                onClick={() => navigate('/stores')}
-                className="gsd-btn gsd-btn--ghost gsd-btn--md inline-flex items-center justify-center gap-2 border border-emerald-400/30 text-emerald-100 hover:bg-emerald-800/50 rounded-2xl px-5 py-3 font-semibold"
-              >
-                تصفح المحلات الموردة
-                <ArrowRight className="h-4 w-4" />
-              </button>
             </div>
           </div>
 
@@ -274,74 +274,84 @@ export function HomePage() {
         </div>
       </section>
 
-      {/* Daily Tip Widget - AI/Curated Educational Content */}
-      <section className="rounded-3xl bg-emerald-900 p-5 text-white shadow-lg border border-emerald-700/50 relative overflow-hidden group">
-        <div className="absolute top-0 left-0 w-32 h-32 bg-amber-400/10 blur-3xl -translate-x-16 -translate-y-16 group-hover:bg-amber-400/20 transition-colors" />
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between relative z-10">
-          <div className="flex gap-4">
-            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-amber-300 text-emerald-950 shadow-inner">
-              <Lightbulb className="h-6 w-6" />
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <p className="text-[10px] font-black uppercase tracking-wider text-emerald-300">هل تعلم؟ · معلومة اليوم</p>
-                <Sparkles className="h-3 w-3 text-amber-300 animate-pulse" />
-              </div>
-              <h2 className="mt-1 text-lg font-black tracking-tight">{dailyTip.title}</h2>
-              <p className="mt-2 max-w-3xl text-sm leading-relaxed text-emerald-50/90 font-medium">
-                {dailyTip.body}
-              </p>
-            </div>
-          </div>
-          <div className="flex flex-col items-end gap-2">
-             <Link to="/education" className="text-[10px] font-bold text-emerald-900 bg-amber-300 px-3 py-1.5 rounded-full hover:bg-amber-400 transition-colors">
-              مركز المعرفة
-            </Link>
-            <a href={dailyTip.sourceUrl} target="_blank" rel="noreferrer" className="text-[9px] font-medium text-emerald-300/80 hover:text-emerald-200 transition-colors underline underline-offset-4">
-              المصدر: {dailyTip.sourceLabel}
-            </a>
-          </div>
-        </div>
-      </section>
+      {/* Category Navigation Bar - Mobile Horizontal Scrollable */}
+      <section aria-label="أقسام المتجر الرئيسية" className="qutoof-category-bar py-1">
+        <div className="flex items-center gap-2 overflow-x-auto no-scrollbar pb-1 pt-1 scroll-smooth">
+          <button
+            type="button"
+            onClick={() => {
+              setSelectedCategory('Fruits');
+              document.getElementById('qutoof-fruits-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }}
+            className={`flex shrink-0 items-center gap-2 px-4 py-2.5 rounded-2xl text-xs font-bold transition-all border ${
+              selectedCategory === 'Fruits'
+                ? 'bg-emerald-600 text-white border-emerald-600 shadow-md'
+                : 'bg-[var(--gs-surface)] text-[var(--gs-foreground)] border-[var(--gs-border-subtle)] hover:border-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-950/40'
+            }`}
+          >
+            <span className="text-base" aria-hidden="true">🍎</span>
+            <span>الفواكه</span>
+          </button>
 
-      {/* Mobile-first shortcuts for the storefront's main journeys */}
-      <section aria-label="روابط قطوف السريعة" className="grid grid-cols-2 gap-2 sm:grid-cols-4 sm:gap-3">
-        <button
-          type="button"
-          onClick={() => document.getElementById('qutoof-fruits-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
-          className="flex min-h-[72px] items-center gap-2 rounded-2xl border border-emerald-200/70 bg-emerald-50/80 px-3 py-2 text-right text-emerald-900 shadow-sm transition hover:-translate-y-0.5 hover:border-emerald-400 dark:border-emerald-900/60 dark:bg-emerald-950/30 dark:text-emerald-100"
-        >
-          <span className="text-2xl" aria-hidden="true">🍎</span>
-          <span><strong className="block text-xs">فواكه طازجة</strong><span className="text-[10px] opacity-75">تصفح الأصناف</span></span>
-        </button>
-        <button
-          type="button"
-          onClick={() => navigate('/education')}
-          className="flex min-h-[72px] items-center gap-2 rounded-2xl border border-amber-200/70 bg-amber-50/80 px-3 py-2 text-right text-amber-950 shadow-sm transition hover:-translate-y-0.5 hover:border-amber-400 dark:border-amber-900/60 dark:bg-amber-950/30 dark:text-amber-100"
-        >
-          <BookOpen className="h-5 w-5 shrink-0 text-amber-600" />
-          <span><strong className="block text-xs">الإرشادات</strong><span className="text-[10px] opacity-75">معرفة غذائية موثوقة</span></span>
-        </button>
-        <button
-          type="button"
-          onClick={() => navigate('/consultation')}
-          className="flex min-h-[72px] items-center gap-2 rounded-2xl border border-sky-200/70 bg-sky-50/80 px-3 py-2 text-right text-sky-950 shadow-sm transition hover:-translate-y-0.5 hover:border-sky-400 dark:border-sky-900/60 dark:bg-sky-950/30 dark:text-sky-100"
-        >
-          <span className="text-2xl" aria-hidden="true">🌿</span>
-          <span><strong className="block text-xs">استشارة طبيعية</strong><span className="text-[10px] opacity-75">معلومات عامة لا تشخيص</span></span>
-        </button>
-        <a
-          href="tel:+967712275038"
-          className="flex min-h-[72px] items-center gap-2 rounded-2xl border border-rose-200/70 bg-rose-50/80 px-3 py-2 text-right text-rose-950 shadow-sm transition hover:-translate-y-0.5 hover:border-rose-400 dark:border-rose-900/60 dark:bg-rose-950/30 dark:text-rose-100"
-        >
-          <PhoneCall className="h-5 w-5 shrink-0 text-rose-600" />
-          <span><strong className="block text-xs">اتصل بنا</strong><span className="text-[10px] opacity-75">712 275 038</span></span>
-        </a>
+          <button
+            type="button"
+            onClick={() => {
+              setSelectedCategory('Vegetables');
+              document.getElementById('qutoof-vegetables-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }}
+            className={`flex shrink-0 items-center gap-2 px-4 py-2.5 rounded-2xl text-xs font-bold transition-all border ${
+              selectedCategory === 'Vegetables'
+                ? 'bg-emerald-600 text-white border-emerald-600 shadow-md'
+                : 'bg-[var(--gs-surface)] text-[var(--gs-foreground)] border-[var(--gs-border-subtle)] hover:border-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-950/40'
+            }`}
+          >
+            <span className="text-base" aria-hidden="true">🥦</span>
+            <span>الخضروات</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => {
+              setPriceFilter('all');
+              setSelectedCategory('');
+              document.getElementById('qutoof-offers-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }}
+            className="flex shrink-0 items-center gap-2 px-4 py-2.5 rounded-2xl text-xs font-bold transition-all border bg-amber-500/10 text-amber-800 dark:text-amber-300 border-amber-500/30 hover:bg-amber-500/20"
+          >
+            <span className="text-base" aria-hidden="true">🔥</span>
+            <span>العروض</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => {
+              setYemeniOnly(true);
+              document.getElementById('qutoof-yemeni-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }}
+            className={`flex shrink-0 items-center gap-2 px-4 py-2.5 rounded-2xl text-xs font-bold transition-all border ${
+              yemeniOnly
+                ? 'bg-emerald-700 text-white border-emerald-700 shadow-md'
+                : 'bg-[var(--gs-surface)] text-[var(--gs-foreground)] border-[var(--gs-border-subtle)] hover:border-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-950/40'
+            }`}
+          >
+            <span className="text-base" aria-hidden="true">🇾🇪</span>
+            <span>المنتجات اليمنية</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => navigate('/education')}
+            className="flex shrink-0 items-center gap-2 px-4 py-2.5 rounded-2xl text-xs font-bold transition-all border bg-[var(--gs-surface)] text-[var(--gs-foreground)] border-[var(--gs-border-subtle)] hover:border-amber-400 hover:bg-amber-50 dark:hover:bg-amber-950/40"
+          >
+            <BookOpen className="h-4 w-4 text-amber-600 shrink-0" />
+            <span>مركز المعرفة</span>
+          </button>
+        </div>
       </section>
 
       {/* 2. Today's Offers Presentation Banner */}
       {todayOffers.length > 0 && !searchQuery && (
-        <section className="space-y-4">
+        <section id="qutoof-offers-section" className="scroll-mt-24 space-y-4">
           <div className="flex items-center justify-between border-b border-[var(--gs-border-subtle)] pb-3">
             <h2 className="text-xl sm:text-2xl font-bold text-[var(--gs-foreground)] flex items-center gap-2">
               🔥 عروض قطوف اليوم
@@ -377,7 +387,7 @@ export function HomePage() {
 
       {/* 3. Main Marketplace Browser / Search Results */}
       {searchQuery.trim() || selectedCategory || selectedStore || priceFilter !== 'all' || freshToday || organicOnly || seasonalOnly || yemeniOnly ? (
-        <section className="space-y-4 min-h-[40vh]">
+        <section id="qutoof-shop-section" className="scroll-mt-24 space-y-4 min-h-[40vh]">
           <div className="flex items-center justify-between border-b border-[var(--gs-border-subtle)] pb-3">
             <h2 className="text-xl sm:text-2xl font-bold text-[var(--gs-foreground)]">
               {searchQuery.trim() ? `نتائج البحث عن "${searchQuery}"` : 'تصفح المنتجات المختارة'}
@@ -431,7 +441,7 @@ export function HomePage() {
         </section>
       ) : (
         /* Standard Categorized Produce Marketplace Sections */
-        <div className="space-y-10">
+        <div id="qutoof-shop-section" className="scroll-mt-24 space-y-10">
           {/* Fruits Section */}
           <section id="qutoof-fruits-section" className="scroll-mt-24 space-y-4">
             <div className="flex items-center justify-between border-b border-[var(--gs-border-subtle)] pb-3">
@@ -464,7 +474,7 @@ export function HomePage() {
           </section>
 
           {/* Vegetables Section */}
-          <section className="space-y-4">
+          <section id="qutoof-vegetables-section" className="scroll-mt-24 space-y-4">
             <div className="flex items-center justify-between border-b border-[var(--gs-border-subtle)] pb-3">
               <h2 className="text-xl sm:text-2xl font-bold text-[var(--gs-foreground)] flex items-center gap-2">
                 🥦 الخضروات اليومية
@@ -496,7 +506,7 @@ export function HomePage() {
 
           {/* Yemeni Local Produce Section */}
           {yemeniProducts.length > 0 && (
-            <section className="space-y-4">
+            <section id="qutoof-yemeni-section" className="scroll-mt-24 space-y-4">
               <div className="flex items-center justify-between border-b border-[var(--gs-border-subtle)] pb-3">
                 <h2 className="text-xl sm:text-2xl font-bold text-[var(--gs-foreground)] flex items-center gap-2">
                   🇾🇪 المنتجات البلدية اليمنية
@@ -563,6 +573,36 @@ export function HomePage() {
           )}
         </div>
       )}
+
+      {/* Daily Tip / Educational Knowledge Banner - Positioned after products section */}
+      <section aria-label="معلومة اليوم الإرشادية" className="rounded-3xl bg-emerald-900 p-5 text-white shadow-lg border border-emerald-700/50 relative overflow-hidden group my-4">
+        <div className="absolute top-0 left-0 w-32 h-32 bg-amber-400/10 blur-3xl -translate-x-16 -translate-y-16 group-hover:bg-amber-400/20 transition-colors" />
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between relative z-10">
+          <div className="flex gap-4">
+            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-amber-300 text-emerald-950 shadow-inner">
+              <Lightbulb className="h-6 w-6" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <p className="text-[10px] font-black uppercase tracking-wider text-emerald-300">هل تعلم؟ · معلومة اليوم الإرشادية</p>
+                <Sparkles className="h-3 w-3 text-amber-300 animate-pulse" />
+              </div>
+              <h2 className="mt-1 text-lg font-black tracking-tight">{dailyTip.title}</h2>
+              <p className="mt-2 max-w-3xl text-sm leading-relaxed text-emerald-50/90 font-medium">
+                {dailyTip.body}
+              </p>
+            </div>
+          </div>
+          <div className="flex flex-col items-end gap-2 shrink-0">
+            <Link to="/education" className="text-[10px] font-bold text-emerald-900 bg-amber-300 px-3.5 py-2 rounded-full hover:bg-amber-400 transition-colors">
+              تصفح مركز المعرفة
+            </Link>
+            <a href={dailyTip.sourceUrl} target="_blank" rel="noreferrer" className="text-[9px] font-medium text-emerald-300/80 hover:text-emerald-200 transition-colors underline underline-offset-4">
+              المصدر: {dailyTip.sourceLabel}
+            </a>
+          </div>
+        </div>
+      </section>
 
       {toastMessage && (
         <div className="fixed bottom-20 left-1/2 -translate-x-1/2 z-50 rounded-2xl bg-emerald-900/95 dark:bg-emerald-950/95 text-white px-5 py-3 text-xs font-extrabold shadow-2xl flex items-center gap-2 border border-emerald-500/40 backdrop-blur-md transition-all animate-bounce">
