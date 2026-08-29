@@ -1,7 +1,5 @@
 export interface CreateProductDto {
   sku?: string | null;
-  produceKey?: string | null;
-  familyId?: string | null;
   name: string;
   slug: string;
   description?: string | null;
@@ -38,8 +36,6 @@ export interface ProductImageResponseDto {
 export interface ProductResponseDto {
   id: string;
   sku: string | null;
-  produceKey: string | null;
-  familyId: string | null;
   name: string;
   slug: string;
   description: string | null;

@@ -431,8 +431,6 @@ model Product {
   id            String             @id @default(uuid())
   tenantId      String?
   sku           String?
-  produceKey    String?
-  familyId      String?
   name          String
   slug          String
   description   String?
@@ -465,7 +463,6 @@ model Product {
   tags          ProductTag[]
   variants      ProductVariant[]
   educationLinks ArticleProduct[]
-  family        ProductFamily?      @relation(fields: [familyId], references: [id])
   brand         Brand?             @relation(fields: [brandId], references: [id])
   category      Category?          @relation(fields: [categoryId], references: [id])
   subcategory   Subcategory?       @relation(fields: [subcategoryId], references: [id])

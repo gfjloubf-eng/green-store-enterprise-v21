@@ -45,7 +45,7 @@ export class EducationController {
     try {
       const article = await this.prisma.educationalArticle.findFirst({
         where: { slug, status: 'PUBLISHED', deletedAt: null },
-        include: { family: true, productLinks: { include: { product: { select: { id: true, name: true, slug: true, produceKey: true } } } } },
+        include: { family: true, productLinks: { include: { product: { select: { id: true, name: true, slug: true } } } } },
       });
       return article ? success(article, ctx) : notFound('education_article_not_found', ctx);
     } catch {
@@ -133,7 +133,7 @@ export class EducationController {
         },
         orderBy: { updatedAt: 'desc' },
         take: 100,
-        include: { family: { select: { id: true, familyKey: true, name: true } }, productLinks: { select: { productId: true, product: { select: { id: true, name: true, produceKey: true } } } } },
+        include: { family: { select: { id: true, familyKey: true, name: true } }, productLinks: { select: { productId: true, product: { select: { id: true, name: true } } } } },
       });
       return success(rows, ctx);
     } catch {

@@ -82,7 +82,7 @@ export class ProductService extends BaseService implements ProductServiceContrac
   }
 
   private validateOptionalFields(payload: Record<string, unknown>, update = false): void {
-    const stringFields = ['sku', 'barcode', 'name', 'slug', 'description', 'originCountry', 'storageInstructions', 'qualityGrade', 'weightUnit', 'shippingClass', 'brandId', 'unitId', 'categoryId', 'subcategoryId', 'produceKey', 'familyId', 'imageUrl', 'imageAltText'];
+    const stringFields = ['sku', 'barcode', 'name', 'slug', 'description', 'originCountry', 'storageInstructions', 'qualityGrade', 'weightUnit', 'shippingClass', 'brandId', 'unitId', 'categoryId', 'subcategoryId', 'imageUrl', 'imageAltText'];
     const maxLengths: Record<string, number> = {
       sku: 100,
       barcode: 32,
@@ -93,8 +93,6 @@ export class ProductService extends BaseService implements ProductServiceContrac
       unitId: 36,
       categoryId: 36,
       subcategoryId: 36,
-      produceKey: 120,
-      familyId: 36,
       imageUrl: 450000,
       imageAltText: 255,
       originCountry: 100,
@@ -154,7 +152,7 @@ export class ProductService extends BaseService implements ProductServiceContrac
     // NOTE: imageUrl/imageAltText remain in the list on purpose: the
     // repository extracts them before calling Prisma and stores them in
     // the ProductImage table. barcode is also extracted by the repository.
-    const fields = ['sku', 'barcode', 'produceKey', 'familyId', 'name', 'slug', 'description', 'originCountry', 'storageInstructions', 'qualityGrade', 'weightUnit', 'shippingClass', 'brandId', 'unitId', 'categoryId', 'subcategoryId', 'imageUrl', 'imageAltText', 'isPublished'];
+    const fields = ['sku', 'barcode', 'name', 'slug', 'description', 'originCountry', 'storageInstructions', 'qualityGrade', 'weightUnit', 'shippingClass', 'brandId', 'unitId', 'categoryId', 'subcategoryId', 'imageUrl', 'imageAltText', 'isPublished'];
     const result: Record<string, unknown> = {};
     for (const field of fields) {
       if (payload[field] !== undefined) {
