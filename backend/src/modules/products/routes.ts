@@ -41,6 +41,19 @@ export function createProductRoutes(controller: ProductsController = new Product
     middleware: [],
   });
 
+  const publicOptions = (): RouteOptions => ({
+    mode: 'public' as const,
+    publicRoute: true,
+    privateRoute: false,
+    authenticationRequired: false,
+    authorizationRequired: false,
+    requiredPermissions: [],
+    tags: ['products'],
+    middleware: [],
+  });
+
+  // Public catalog for the customer-facing storefront (no auth required).
+  register({ name: 'products-list-public', method: 'GET', path: '/products/public', version: 'v1', handler: (ctx) => controller.listPublic(toControllerRequest(ctx)), options: publicOptions() });
   register({ name: 'products-list', method: 'GET', path: '/products', version: 'v1', handler: (ctx) => controller.list(toControllerRequest(ctx)), options: privateOptions('products:read') });
   register({ name: 'products-get', method: 'GET', path: '/products/:id', version: 'v1', handler: (ctx) => controller.get(toControllerRequest(ctx)), options: privateOptions('products:read') });
   register({ name: 'products-create', method: 'POST', path: '/products', version: 'v1', handler: (ctx) => controller.create(toControllerRequest(ctx)), options: privateOptions('products:create') });

@@ -109,6 +109,29 @@ export class ProductsController {
     }
   }
 
+  /**
+   * Public catalog: returns only published, non-deleted products.
+   * No authentication required — used by the customer-facing storefront.
+   */
+  async listPublic(request: ControllerRequest): Promise<ApiResponse<unknown>> {
+    const ctx = this.context(request);
+    const q = request.query ?? {};
+    try {
+      const limit = this.parsePositiveInteger(this.queryValue(q.limit), 100, 200);
+      const result = await this.productService.paginate({
+        page: 1,
+        limit,
+        sort: 'createdAt',
+        order: 'desc',
+        filters: { isPublished: true, deletedAt: null },
+      });
+      const data = result.data.map((entity) => this.mapToDto(entity));
+      return paginated(data, result.page ?? 1, result.limit ?? limit, result.total ?? 0, ctx);
+    } catch (err) {
+      return this.error(err, ctx);
+    }
+  }
+
   async get(request: ControllerRequest): Promise<ApiResponse<unknown>> {
     const ctx = this.context(request);
     const id = request.params?.id;

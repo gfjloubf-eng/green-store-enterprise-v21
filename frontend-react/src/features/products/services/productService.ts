@@ -185,7 +185,10 @@ export const ProductService = {
 
     syncInFlight = (async () => {
       try {
-        const res = await fetch(`${getApiBase()}/products`);
+        // Use the public catalog endpoint (no auth) so the customer-facing
+        // storefront sees real products from the backend, not mock data.
+        // Auth'd staff get the same list (published products only).
+        const res = await fetch(`${getApiBase()}/products/public`);
         if (res.ok) {
           const payload = await parseJsonSafe(res);
           const list = Array.isArray(payload) ? payload : (Array.isArray(payload?.data) ? payload.data : null);
