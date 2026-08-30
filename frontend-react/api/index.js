@@ -2708,15 +2708,19 @@ var service_default = new AuthorizationService();
 function extractUserPermissions(user) {
   return (user?.permissions ?? []).map((permission) => permission.toString());
 }
+function normalizeRoleName(role) {
+  const normalized = role.toString().trim().toUpperCase().replace(/[ -]+/g, "_");
+  return normalized === "SUPERADMIN" ? "SUPER_ADMIN" : normalized;
+}
 function extractUserRoles(user) {
   const roles = user?.roles?.length ? user.roles : user?.role ? [user.role] : [];
-  return roles.map((role) => role.toString().toUpperCase());
+  return roles.map(normalizeRoleName);
 }
 function normalizePermissions2(permissions) {
   return (permissions ?? []).map((permission) => permission.toString());
 }
 function normalizeRoles(roles) {
-  return (roles ?? []).map((role) => role.toString().toUpperCase());
+  return (roles ?? []).map(normalizeRoleName);
 }
 function buildAuthorizationContext(user, request4) {
   return {
@@ -6805,8 +6809,14 @@ function parseDataUrl2(value) {
   return { contentType: match[1], bytes };
 }
 function storageHeaders2(apiKey, extra = {}) {
-  const authorizationKey = String(process.env.SUPABASE_STORAGE_JWT_KEY ?? "").trim() || apiKey;
-  return { Authorization: `Bearer ${authorizationKey}`, apikey: apiKey, ...extra };
+  const legacyJwt = String(process.env.SUPABASE_STORAGE_JWT_KEY ?? "").trim();
+  const headers = { apikey: apiKey, ...extra };
+  if (legacyJwt) {
+    headers.Authorization = `Bearer ${legacyJwt}`;
+  } else if (apiKey.split(".").length === 3 && apiKey.startsWith("eyJ")) {
+    headers.Authorization = `Bearer ${apiKey}`;
+  }
+  return headers;
 }
 async function uploadProductImage(request4) {
   const body = request4.body ?? {};
