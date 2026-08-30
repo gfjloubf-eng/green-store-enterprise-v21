@@ -4,7 +4,7 @@
 
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { MapPin, Clock, Tag, ShoppingBag, AlertCircle, CheckCircle2, ArrowRight, Store, Eye, Package } from 'lucide-react';
+import { MapPin, Clock, Tag, ShoppingBag, AlertCircle, CheckCircle2, ArrowRight, Store, Eye, Package, Copy, Check, FileText, ExternalLink } from 'lucide-react';
 import { createOrder, type Order } from '@/services/orderClient';
 import { getCart, type Cart } from '@/services/cartClient';
 import { SupportTeamCards } from '@/components/support/SupportTeamCards';
@@ -23,6 +23,7 @@ export function CheckoutPage() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
   const [createdOrder, setCreatedOrder] = useState<Order | null>(null);
+  const [copiedCode, setCopiedCode] = useState(false);
 
   useEffect(() => {
     getCart()
@@ -61,11 +62,124 @@ export function CheckoutPage() {
     }
   };
 
+  const handleCopyCode = (code: string) => {
+    navigator.clipboard.writeText(code).then(() => {
+      setCopiedCode(true);
+      setTimeout(() => setCopiedCode(false), 2500);
+    });
+  };
+
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[50vh] gap-3" dir="rtl">
         <div className="h-8 w-8 animate-spin rounded-full border-3 border-emerald-500 border-t-transparent" />
         <span className="text-sm font-medium [color:var(--gs-foreground-secondary)]">جاري تجهيز بيانات الطلب...</span>
+      </div>
+    );
+  }
+
+  // 1. Dedicated Standalone Order Success View
+  if (success && createdOrder) {
+    const orderCode = createdOrder.code || createdOrder.id;
+    const invoice = createdOrder.invoices?.[0];
+    const invoiceUrl = invoice?.publicUrl || (invoice?.id ? `/invoices/${invoice.id}` : null);
+
+    return (
+      <div className="max-w-3xl mx-auto space-y-6 pb-12" dir="rtl">
+        {/* Success Header Banner */}
+        <div className="gsd-card rounded-3xl p-6 sm:p-8 border border-emerald-500/30 bg-gradient-to-b from-emerald-500/10 via-[var(--gs-surface)] to-[var(--gs-surface)] space-y-6 text-center shadow-lg">
+          <div className="h-20 w-20 rounded-full bg-emerald-500/20 text-emerald-600 flex items-center justify-center mx-auto ring-8 ring-emerald-500/10">
+            <CheckCircle2 className="h-10 w-10 text-emerald-600" />
+          </div>
+          <div>
+            <h1 className="text-2xl sm:text-3xl font-extrabold text-[var(--gs-foreground)]">تم إنشاء طلبك بنجاح ✓</h1>
+            <p className="text-xs sm:text-sm text-[var(--gs-foreground-secondary)] mt-2 max-w-md mx-auto leading-relaxed">
+              تم استلام طلبك وبدء تجهيزه في المتجر. يمكنك تتبع حالة الطلب واستعراض الفاتورة في أي وقت.
+            </p>
+          </div>
+
+          {/* Key Order Info Grid */}
+          <div className="grid gap-3 grid-cols-2 sm:grid-cols-4 pt-4 border-t border-[var(--gs-border-subtle)] text-right">
+            <div className="rounded-2xl bg-[var(--gs-background)] p-3 border border-[var(--gs-border-subtle)] space-y-1">
+              <span className="text-[10px] font-bold text-[var(--gs-foreground-muted)] block">رقم الطلب</span>
+              <div className="flex items-center justify-between">
+                <strong className="font-mono text-xs sm:text-sm text-[var(--gs-foreground)] truncate">{orderCode}</strong>
+                <button
+                  type="button"
+                  onClick={() => handleCopyCode(orderCode)}
+                  className="p-1 text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 rounded-lg transition"
+                  title="نسخ رقم الطلب"
+                >
+                  {copiedCode ? <Check className="h-3.5 w-3.5 text-emerald-600" /> : <Copy className="h-3.5 w-3.5" />}
+                </button>
+              </div>
+            </div>
+
+            <div className="rounded-2xl bg-[var(--gs-background)] p-3 border border-[var(--gs-border-subtle)] space-y-1">
+              <span className="text-[10px] font-bold text-[var(--gs-foreground-muted)] block">الإجمالي النهائي</span>
+              <strong className="text-xs sm:text-sm text-emerald-600 block">{formatPrice(createdOrder.total || cart?.grandTotal, locale)}</strong>
+            </div>
+
+            <div className="rounded-2xl bg-[var(--gs-background)] p-3 border border-[var(--gs-border-subtle)] space-y-1">
+              <span className="text-[10px] font-bold text-[var(--gs-foreground-muted)] block">حالة الطلب</span>
+              <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700 bg-emerald-50 dark:bg-emerald-950/40 px-2 py-0.5 rounded-full border border-emerald-200 dark:border-emerald-800">
+                نشط / قيد التجهيز
+              </span>
+            </div>
+
+            <div className="rounded-2xl bg-[var(--gs-background)] p-3 border border-[var(--gs-border-subtle)] space-y-1">
+              <span className="text-[10px] font-bold text-[var(--gs-foreground-muted)] block">طريقة الدفع</span>
+              <span className="text-xs font-bold text-[var(--gs-foreground)] block">
+                {paymentMethod === 'CARD' ? 'بطاقة مدى / ائتمان' : 'الدفع عند الاستلام'}
+              </span>
+            </div>
+          </div>
+
+          {/* Action Buttons */}
+          <div className="flex flex-wrap items-center justify-center gap-3 pt-4 border-t border-[var(--gs-border-subtle)]">
+            <button
+              type="button"
+              onClick={() => navigate(`/orders/${createdOrder.id}`)}
+              className="gsd-btn gsd-btn--primary gsd-btn--md rounded-2xl inline-flex items-center gap-2 px-5 py-3 text-xs font-bold shadow-md"
+            >
+              <Eye className="h-4 w-4" />
+              تتبع وعرض الطلب
+            </button>
+
+            {invoiceUrl ? (
+              <a
+                href={invoiceUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="gsd-btn gsd-btn--ghost gsd-btn--md rounded-2xl inline-flex items-center gap-2 px-5 py-3 text-xs font-bold border border-emerald-600/30 text-emerald-700 hover:bg-emerald-600 hover:text-white"
+              >
+                <FileText className="h-4 w-4" />
+                عرض الفاتورة
+                <ExternalLink className="h-3 w-3" />
+              </a>
+            ) : (
+              <span className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-2xl bg-amber-500/10 text-amber-800 dark:text-amber-300 text-xs font-semibold border border-amber-500/20">
+                <FileText className="h-4 w-4 text-amber-600" />
+                جارٍ إصدار الفاتورة الإلكترونية رسمياً...
+              </span>
+            )}
+
+            <button
+              type="button"
+              onClick={() => navigate('/products')}
+              className="gsd-btn gsd-btn--ghost gsd-btn--md rounded-2xl inline-flex items-center gap-2 px-5 py-3 text-xs font-bold text-[var(--gs-foreground-secondary)] hover:bg-[var(--gs-muted)]"
+            >
+              <Package className="h-4 w-4" />
+              متابعة التسوق
+            </button>
+          </div>
+        </div>
+
+        {/* Customer Support Integration */}
+        <div className="gsd-card rounded-3xl p-5 border border-[var(--gs-border)] bg-[var(--gs-surface)] space-y-3">
+          <h3 className="text-sm font-bold text-[var(--gs-foreground)]">تحتاج مساعدة بخصوص هذا الطلب؟</h3>
+          <SupportTeamCards onOpenTicket={() => navigate('/support')} />
+        </div>
       </div>
     );
   }
@@ -83,59 +197,6 @@ export function CheckoutPage() {
         <div className="rounded-2xl bg-rose-500/10 border border-rose-500/20 p-4 text-xs text-rose-600 flex items-center gap-2">
           <AlertCircle className="h-4 w-4 shrink-0" />
           <span>{error}</span>
-        </div>
-      )}
-
-      {success && (
-        <div className="space-y-4">
-          <div className="rounded-3xl bg-emerald-500/10 border border-emerald-500/20 p-6 text-xs text-emerald-800 space-y-4">
-            <div className="flex items-center gap-3 text-lg font-bold text-emerald-700">
-              <CheckCircle2 className="h-7 w-7 shrink-0 text-emerald-600" />
-              <span>تم إنشاء طلبك بنجاح ✓</span>
-            </div>
-            <p className="text-xs text-emerald-800 leading-relaxed">
-              تم استلام طلبك وبدء تجهيزه. يسعدنا تقديم أفضل خدمة لك عبر منصة قطوف.
-            </p>
-
-            {createdOrder && (
-              <div className="grid gap-3 sm:grid-cols-2 pt-2 border-t border-emerald-500/20 text-xs">
-                <div>
-                  <span className="text-emerald-700 block">رقم الطلب:</span>
-                  <strong className="font-mono text-sm text-emerald-950">{createdOrder.code || createdOrder.id}</strong>
-                </div>
-                <div>
-                  <span className="text-emerald-700 block">المبلغ الإجمالي:</span>
-                  <strong className="text-sm text-emerald-950">{formatPrice(createdOrder.total || cart?.grandTotal, locale)}</strong>
-                </div>
-              </div>
-            )}
-
-            <div className="flex flex-wrap items-center gap-3 pt-3">
-              {createdOrder && (
-                <button
-                  type="button"
-                  onClick={() => navigate(`/orders/${createdOrder.id}`)}
-                  className="gsd-btn gsd-btn--primary gsd-btn--md rounded-2xl inline-flex items-center gap-2 px-5 py-2.5 text-xs font-bold"
-                >
-                  <Eye className="h-4 w-4" />
-                  عرض الطلب
-                </button>
-              )}
-              <button
-                type="button"
-                onClick={() => navigate('/products')}
-                className="gsd-btn gsd-btn--ghost gsd-btn--md rounded-2xl inline-flex items-center gap-2 px-5 py-2.5 text-xs font-bold border border-emerald-600/30 text-emerald-700 hover:bg-emerald-600 hover:text-white"
-              >
-                <Package className="h-4 w-4" />
-                متابعة التسوق
-              </button>
-            </div>
-          </div>
-
-          <div className="gsd-card rounded-3xl p-5 border border-[var(--gs-border)] bg-[var(--gs-surface)] space-y-3">
-            <h3 className="text-sm font-bold text-[var(--gs-foreground)]">تحتاج مساعدة بخصوص طلبك؟</h3>
-            <SupportTeamCards onOpenTicket={() => navigate('/support')} />
-          </div>
         </div>
       )}
 

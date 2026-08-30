@@ -118,7 +118,7 @@ export function CartPage() {
             سلة مشترياتك
           </h1>
           <p className="text-xs [color:var(--gs-foreground-secondary)] mt-1">
-            إدارة الخضروات والمنتجات المطلوبة قبل إتمام الطلب.
+            راجع الخضروات والفواكه والكميات المطلوبة قبل إتمام الطلب.
           </p>
         </div>
 
@@ -247,9 +247,9 @@ export function CartPage() {
           </div>
 
           {/* Totals Summary */}
-          <div className="gsd-card rounded-3xl p-5 border border-[var(--gs-border)] bg-[var(--gs-surface)] h-fit space-y-4">
+          <div className="gsd-card rounded-3xl p-5 border border-[var(--gs-border)] bg-[var(--gs-surface)] h-fit space-y-4 lg:sticky lg:top-24">
             <h2 className="text-base font-bold [color:var(--gs-foreground)] border-b border-[var(--gs-border)] pb-3">
-              ملخص الحساب
+              ملخص طلبك
             </h2>
 
             <div className="space-y-2 text-xs text-[var(--gs-foreground-secondary)]">
@@ -262,7 +262,7 @@ export function CartPage() {
                 <strong className="text-[var(--gs-foreground)]">{formatPrice(cart?.taxTotal, locale)}</strong>
               </div>
               <div className="border-t border-[var(--gs-border-subtle)] pt-2 flex items-center justify-between text-sm font-bold text-emerald-600">
-                <span>الإجمالي الكلي:</span>
+                <span>الإجمالي المتوقع:</span>
                 <span>{formatPrice(cart?.grandTotal, locale)}</span>
               </div>
             </div>
