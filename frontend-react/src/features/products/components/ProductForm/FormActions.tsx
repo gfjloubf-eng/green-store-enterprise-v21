@@ -57,9 +57,10 @@ export function FormActions({ onSave, onCancel, onReset, isSaving = false, isVal
       <button
         type="button"
         onClick={onSave}
-        disabled={!isValid || isSaving}
+        disabled={isSaving}
         className="gsd-btn gsd-btn--primary gsd-btn--md"
         aria-label={t('form.save')}
+        aria-disabled={!isValid || isSaving}
       >
         <Save className="h-4 w-4" aria-hidden="true" />
         {t('form.save')}
