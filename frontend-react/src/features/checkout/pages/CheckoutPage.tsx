@@ -62,11 +62,16 @@ export function CheckoutPage() {
     }
   };
 
-  const handleCopyCode = (code: string) => {
-    navigator.clipboard.writeText(code).then(() => {
-      setCopiedCode(true);
-      setTimeout(() => setCopiedCode(false), 2500);
-    });
+  const handleCopyCode = async (code: string) => {
+    try {
+      if (navigator?.clipboard?.writeText) {
+        await navigator.clipboard.writeText(code);
+        setCopiedCode(true);
+        setTimeout(() => setCopiedCode(false), 2500);
+      }
+    } catch {
+      // Prevent browser permission errors from breaking page interaction
+    }
   };
 
   if (loading) {
@@ -81,8 +86,8 @@ export function CheckoutPage() {
   // 1. Dedicated Standalone Order Success View
   if (success && createdOrder) {
     const orderCode = createdOrder.code || createdOrder.id;
-    const invoice = createdOrder.invoices?.[0];
-    const invoiceUrl = invoice?.publicUrl || (invoice?.id ? `/invoices/${invoice.id}` : null);
+    const rawInvoiceUrl = createdOrder.invoices?.[0]?.publicUrl;
+    const safeInvoiceUrl = rawInvoiceUrl && (rawInvoiceUrl.startsWith('http://') || rawInvoiceUrl.startsWith('https://') || rawInvoiceUrl.startsWith('/')) ? rawInvoiceUrl : null;
 
     return (
       <div className="max-w-3xl mx-auto space-y-6 pb-12" dir="rtl">
@@ -146,9 +151,9 @@ export function CheckoutPage() {
               تتبع وعرض الطلب
             </button>
 
-            {invoiceUrl ? (
+            {safeInvoiceUrl ? (
               <a
-                href={invoiceUrl}
+                href={safeInvoiceUrl}
                 target="_blank"
                 rel="noreferrer"
                 className="gsd-btn gsd-btn--ghost gsd-btn--md rounded-2xl inline-flex items-center gap-2 px-5 py-3 text-xs font-bold border border-emerald-600/30 text-emerald-700 hover:bg-emerald-600 hover:text-white"
