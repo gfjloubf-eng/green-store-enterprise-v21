@@ -188,7 +188,10 @@ export const ProductService = {
         // Use the public catalog endpoint (no auth) so the customer-facing
         // storefront sees real products from the backend, not mock data.
         // Auth'd staff get the same list (published products only).
-        const res = await fetch(`${getApiBase()}/products/public`);
+        const apiBase = getApiBase();
+        const isLocalApi = apiBase.includes('127.0.0.1') || apiBase.includes('localhost');
+        const publicProductsUrl = isLocalApi ? `${apiBase}/products/public` : `${apiBase}/api/products/public`;
+        const res = await fetch(publicProductsUrl);
         if (res.ok) {
           const payload = await parseJsonSafe(res);
           const list = Array.isArray(payload) ? payload : (Array.isArray(payload?.data) ? payload.data : null);
