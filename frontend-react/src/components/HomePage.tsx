@@ -80,9 +80,9 @@ export function HomePage() {
     return map;
   }, [allStores]);
 
-  const [products, setProducts] = useState<ProductDTO[]>(() =>
-    ProductService.getAll().filter((product) => product.status === 'active' && product.stock > 0),
-  );
+  // Do not paint the bundled demo catalog while the real public catalog is loading.
+  // ProductService still provides its safe cache/mock fallback if the API is unavailable.
+  const [products, setProducts] = useState<ProductDTO[]>([]);
   const [isPricesSyncing, setIsPricesSyncing] = useState(true);
 
   useEffect(() => {

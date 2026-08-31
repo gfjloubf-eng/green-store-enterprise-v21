@@ -192,9 +192,9 @@ export const ProductService = {
         if (res.ok) {
           const payload = await parseJsonSafe(res);
           const list = Array.isArray(payload) ? payload : (Array.isArray(payload?.data) ? payload.data : null);
-          if (list && list.length > 0) {
-            // Backend is the source of truth: replace the local store
-            // instead of accumulating, so deleted/updated items stay in sync.
+          if (list) {
+            // Backend is the source of truth, including a valid empty catalog.
+            // Never keep bundled demo products when the API successfully returns [].
             const next = new Map<string, ProductEntity>();
             for (const item of list) {
               const entity = mapBackendProductToEntity(item);
