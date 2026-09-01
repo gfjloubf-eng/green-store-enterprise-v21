@@ -59,6 +59,9 @@ function mapBackendProductToEntity(item: any): ProductEntity {
     image: String(item.image || item.imageUrl || item.url || ''),
     status: (item.status === 'inactive' || item.status === 'out_of_stock' || item.status === 'active') ? item.status : 'active',
     produceKey: String(item.produceKey || item.slug || ''),
+    originCountry: item.originCountry ? String(item.originCountry) : undefined,
+    harvestDate: item.harvestDate ? String(item.harvestDate) : undefined,
+    isSeasonal: item.isSeasonal === true,
     createdAt: String(item.createdAt || new Date().toISOString()),
     updatedAt: String(item.updatedAt || new Date().toISOString()),
   };

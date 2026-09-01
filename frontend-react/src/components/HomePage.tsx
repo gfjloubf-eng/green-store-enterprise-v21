@@ -156,8 +156,15 @@ export function HomePage() {
     const seasonal: ProductDTO[] = [];
 
     for (const product of products) {
-      if (product.category.name === 'Fruits') fruits.push(product);
-      if (product.category.name === 'Vegetables') vegetables.push(product);
+      const categorySlug = product.category.slug?.trim().toLowerCase();
+      const categoryName = product.category.name.trim().toLowerCase();
+
+      if (categorySlug === 'fruits' || categoryName === 'fruits' || categoryName === 'فواكه') {
+        fruits.push(product);
+      }
+      if (categorySlug === 'vegetables' || categoryName === 'vegetables' || categoryName === 'خضروات') {
+        vegetables.push(product);
+      }
       if (isYemeni(product)) yemeni.push(product);
       const priceInfo = calculateEffectivePrice(product);
       if (priceInfo.hasActiveOffer) offers.push(product);

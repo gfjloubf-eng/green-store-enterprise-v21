@@ -15,9 +15,12 @@ const TOP_RATED_BRANDS: Record<string, number> = {
 };
 
 export function isFreshToday(product: ProductRecord) {
-  const createdAt = new Date(product.createdAt).getTime();
-  const thirtyDaysAgo = Date.now() - 1000 * 60 * 60 * 24 * 30;
-  return createdAt >= thirtyDaysAgo || product.status === 'active';
+  const harvestDate = 'harvestDate' in product ? product.harvestDate : undefined;
+  if (!harvestDate) return false;
+  const harvestedAt = new Date(harvestDate).getTime();
+  if (!Number.isFinite(harvestedAt)) return false;
+  const oneDay = 1000 * 60 * 60 * 24;
+  return harvestedAt <= Date.now() + oneDay && harvestedAt >= Date.now() - oneDay;
 }
 
 export function isOrganic(product: ProductRecord) {
@@ -29,11 +32,18 @@ export function isOrganic(product: ProductRecord) {
 }
 
 export function isSeasonal(product: ProductRecord) {
-  return ['Vegetables', 'Fruits', 'Herbs'].includes(product.category.name);
+  return 'isSeasonal' in product && product.isSeasonal === true;
 }
 
 export function isYemeni(product: ProductRecord) {
+  const originCountry =
+    'originCountry' in product
+      ? String(product.originCountry || '').toLowerCase()
+      : '';
+
   return (
+    originCountry.includes('اليمن') ||
+    originCountry.includes('yemen') ||
     YEMENI_BRAND_IDS.has(product.brand.id) ||
     product.name.includes('يمني') ||
     product.name.includes('بلدي') ||

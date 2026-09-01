@@ -1,10 +1,10 @@
 import { useNavigate } from 'react-router-dom';
-import { Heart, Star, Plus, Check, Loader2 } from 'lucide-react';
+import { Heart, Plus, Check, Loader2 } from 'lucide-react';
 import type { ProductDTO } from '@/features/products/domain/productDTO';
 import { placeholderImage } from '@/assets/images/products/productImages';
 import { formatPrice } from '@/lib/formatters';
 import { formatUnitLabel } from '@/lib/unitLabels';
-import { getProductRating, isOrganic, isYemeni } from '@/features/marketplace/utils/productTags';
+import { isOrganic, isYemeni } from '@/features/marketplace/utils/productTags';
 import { calculateEffectivePrice } from '@/features/products/services/offerService';
 
 export interface ProduceCardProps {
@@ -29,8 +29,8 @@ export function ProduceCard({
   locale,
 }: ProduceCardProps) {
   const navigate = useNavigate();
-  const rating = getProductRating(product);
   const priceInfo = calculateEffectivePrice(product);
+  const defaultBadge = isYemeni(product) ? 'محلي' : isOrganic(product) ? 'عضوي' : 'متوفر';
   const isOutOfStock = product.stock <= 0;
 
   return (
@@ -46,7 +46,7 @@ export function ProduceCard({
         >
           {priceInfo.hasActiveOffer
             ? `${priceInfo.offerTitle || 'عرض'} (-${priceInfo.discountPercentage}%)`
-            : badgeText || (isYemeni(product) ? 'محلي' : isOrganic(product) ? 'عضوي' : 'طازج')}
+              : badgeText || (isYemeni(product) ? 'محلي' : isOrganic(product) ? 'عضوي' : defaultBadge)}
         </span>
         <button
           type="button"
@@ -91,12 +91,9 @@ export function ProduceCard({
         <div className="text-xs font-extrabold text-[var(--gs-foreground)] line-clamp-2 min-h-[32px]">
           {product.name}
         </div>
-        <div className="flex items-center justify-between text-[11px] text-[var(--gs-foreground-secondary)]">
+        <div className="flex items-center justify-between gap-2 text-[11px] text-[var(--gs-foreground-secondary)]">
           <span>{formatUnitLabel(product.unit)}</span>
-          <span className="flex items-center gap-0.5 text-amber-600 font-bold">
-            <Star className="h-3 w-3 fill-amber-400 text-amber-500" />
-            {rating.toFixed(1)}
-          </span>
+          <span className="truncate">{product.category.name}</span>
         </div>
       </div>
 
