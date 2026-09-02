@@ -43,7 +43,7 @@ import { ProductService } from '../services/productService';
 import { useProductDetail } from '../hooks/useProductService';
 import { getData, getErrorMessage, isState } from '../state/productState';
 import { useLocalStorageState } from '@/hooks/useLocalStorageState';
-import { getProductBadges, getProductRating } from '@/features/marketplace/utils/productTags';
+import { getProductBadges } from '@/features/marketplace/utils/productTags';
 import { getProduceIntelligence } from '../domain/produceIntelligence';
 import { EducationalImageCard } from '@/components/ui/EducationalImageCard';
 import { WhatsAppOrderAction } from '@/components/ui/WhatsAppOrderAction';
@@ -79,7 +79,9 @@ export function ProductDetailsPage() {
   }, [product]);
 
   const handleAddToCart = async () => {
-    if (!product || adding || product.stock <= 0 || !Number.isFinite(product.sellingPrice) || product.sellingPrice <= 0) return;
+    if (!product || adding || product.stock <= 0) return;
+    const priceInfo = calculateEffectivePrice(product);
+    if (!Number.isFinite(product.sellingPrice) || product.sellingPrice <= 0 || !Number.isFinite(priceInfo.finalPrice) || priceInfo.finalPrice <= 0) return;
     setAdding(true);
     try {
       await addItemToCart(product.id, quantity).catch(() => null);
@@ -265,11 +267,6 @@ export function ProductDetailsPage() {
                       </div>
                     )}
                   </div>
-
-                  <div className="inline-flex items-center gap-1.5 rounded-full bg-amber-100 dark:bg-amber-950/60 px-3.5 py-1.5 text-xs font-bold text-amber-800 dark:text-amber-300 border border-amber-300/40">
-                    <Star className="h-4 w-4 fill-amber-400 text-amber-500" />
-                    {getProductRating(product).toFixed(1)} / 5.0
-                  </div>
                 </div>
 
                 {/* Price Display */}
@@ -277,6 +274,9 @@ export function ProductDetailsPage() {
                   const priceInfo = calculateEffectivePrice(product);
                   const isLow = product.stock > 0 && product.stock <= 10;
                   const isOut = product.stock <= 0;
+                  const originalPriceValid = Number.isFinite(product.sellingPrice) && product.sellingPrice > 0;
+                  const finalPriceValid = Number.isFinite(priceInfo.finalPrice) && priceInfo.finalPrice > 0;
+                  const hasValidPrice = originalPriceValid && finalPriceValid;
 
                   return (
                     <div className="space-y-3">
@@ -299,9 +299,11 @@ export function ProductDetailsPage() {
                                 {formatPrice(priceInfo.originalPrice, locale)}
                               </span>
                             )}
-                            <span className="text-sm font-normal text-emerald-800 dark:text-emerald-300">
-                              / {formatUnitLabel(product.unit)}
-                            </span>
+                            {hasValidPrice && (
+                              <span className="text-sm font-normal text-emerald-800 dark:text-emerald-300">
+                                / {formatUnitLabel(product.unit)}
+                              </span>
+                            )}
                           </div>
                         </div>
                         <div className="text-left">
@@ -331,7 +333,7 @@ export function ProductDetailsPage() {
                         </div>
                         <div className="flex items-center gap-1.5 rounded-2xl bg-[var(--gs-muted)]/60 px-3 py-2 border border-[var(--gs-border-subtle)]">
                           <ShieldCheck className="h-3.5 w-3.5 text-emerald-600 shrink-0" />
-                          <span>محصول بلدي طازج يومياً</span>
+                          <span>راجع وصف المنتج وبيانات المنشأ قبل الطلب</span>
                         </div>
                       </div>
                     </div>

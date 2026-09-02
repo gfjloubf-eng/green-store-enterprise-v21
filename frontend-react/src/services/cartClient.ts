@@ -46,6 +46,14 @@ function getLocalCart(): Cart {
   };
 }
 
+export const CART_UPDATED_EVENT = 'green_store_cart_updated';
+
+function notifyCartUpdated(): void {
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent(CART_UPDATED_EVENT));
+  }
+}
+
 function saveLocalCart(cart: Cart): Cart {
   try {
     let subtotal = 0;
@@ -79,9 +87,14 @@ export async function getCart(): Promise<Cart | null> {
 
 export async function addItemToCart(productId: string, quantity = 1, productDetails?: { name: string; sellingPrice: number; image?: string }): Promise<Cart> {
   const prod = ProductService.getById(productId);
+  const rawPrice = prod ? prod.sellingPrice : productDetails?.sellingPrice;
   const effectivePrice = prod
     ? calculateEffectivePrice(prod).finalPrice
-    : (productDetails?.sellingPrice ?? 10);
+    : (productDetails?.sellingPrice ?? 0);
+
+  if (!Number.isFinite(rawPrice) || (rawPrice ?? 0) <= 0 || !Number.isFinite(effectivePrice) || effectivePrice <= 0) {
+    throw new Error('عذراً، هذا المنتج غير متاح للطلب بسبب عدم توفر السعر');
+  }
 
   if (prod && prod.stock <= 0) {
     throw new Error('عذراً، هذا المنتج نفد من المخزون حالياً');
@@ -95,7 +108,10 @@ export async function addItemToCart(productId: string, quantity = 1, productDeta
     });
     if (res.ok) {
       const payload = await res.json();
-      if (payload?.data) return payload.data;
+      if (payload?.data) {
+        notifyCartUpdated();
+        return payload.data;
+      }
     }
   } catch {
     // fallback below
@@ -129,7 +145,9 @@ export async function addItemToCart(productId: string, quantity = 1, productDeta
     });
   }
 
-  return saveLocalCart(localCart);
+  const updatedCart = saveLocalCart(localCart);
+  notifyCartUpdated();
+  return updatedCart;
 }
 
 export async function updateCartItem(itemId: string, quantity: number): Promise<Cart> {
@@ -141,7 +159,10 @@ export async function updateCartItem(itemId: string, quantity: number): Promise<
     });
     if (res.ok) {
       const payload = await res.json();
-      if (payload?.data) return payload.data;
+      if (payload?.data) {
+        notifyCartUpdated();
+        return payload.data;
+      }
     }
   } catch {
     // fallback below
@@ -162,7 +183,9 @@ export async function updateCartItem(itemId: string, quantity: number): Promise<
     }
   }
 
-  return saveLocalCart(localCart);
+  const updatedCart = saveLocalCart(localCart);
+  notifyCartUpdated();
+  return updatedCart;
 }
 
 export async function removeCartItem(itemId: string): Promise<Cart> {
@@ -172,7 +195,10 @@ export async function removeCartItem(itemId: string): Promise<Cart> {
     });
     if (res.ok) {
       const payload = await res.json();
-      if (payload?.data) return payload.data;
+      if (payload?.data) {
+        notifyCartUpdated();
+        return payload.data;
+      }
     }
   } catch {
     // fallback below
@@ -180,7 +206,9 @@ export async function removeCartItem(itemId: string): Promise<Cart> {
 
   const localCart = getLocalCart();
   localCart.items = localCart.items.filter((i) => i.id !== itemId);
-  return saveLocalCart(localCart);
+  const updatedCart = saveLocalCart(localCart);
+  notifyCartUpdated();
+  return updatedCart;
 }
 
 export async function clearCart(): Promise<void> {
@@ -193,5 +221,6 @@ export async function clearCart(): Promise<void> {
   }
 
   localStorage.removeItem(LOCAL_STORAGE_CART_KEY);
+  notifyCartUpdated();
 }
 

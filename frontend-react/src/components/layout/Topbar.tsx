@@ -51,14 +51,30 @@ export function Topbar({ onMenuClick, mobileOpen = false, storefront = false, cl
   );
 
   useEffect(() => {
-    getCart().then((c) => {
-      if (c?.items) {
-        const total = c.items.reduce((acc, item) => acc + item.quantity, 0);
-        setCartCount(total);
-      } else {
-        setCartCount(0);
-      }
-    }).catch(() => setCartCount(0));
+    let active = true;
+    const fetchCartCount = () => {
+      getCart()
+        .then((c) => {
+          if (!active) return;
+          if (c?.items) {
+            const total = c.items.reduce((acc, item) => acc + item.quantity, 0);
+            setCartCount(total);
+          } else {
+            setCartCount(0);
+          }
+        })
+        .catch(() => {
+          if (active) setCartCount(0);
+        });
+    };
+
+    fetchCartCount();
+    window.addEventListener(CART_UPDATED_EVENT, fetchCartCount);
+
+    return () => {
+      active = false;
+      window.removeEventListener(CART_UPDATED_EVENT, fetchCartCount);
+    };
   }, [location.pathname]);
 
   useEffect(() => {

@@ -32,7 +32,9 @@ export function ProduceCard({
   const priceInfo = calculateEffectivePrice(product);
   const defaultBadge = isYemeni(product) ? 'محلي' : isOrganic(product) ? 'عضوي' : 'متوفر';
   const isOutOfStock = product.stock <= 0;
-  const hasValidPrice = Number.isFinite(priceInfo.finalPrice) && priceInfo.finalPrice > 0;
+  const originalPriceValid = Number.isFinite(product.sellingPrice) && product.sellingPrice > 0;
+  const finalPriceValid = Number.isFinite(priceInfo.finalPrice) && priceInfo.finalPrice > 0;
+  const hasValidPrice = originalPriceValid && finalPriceValid;
   const cannotOrder = isOutOfStock || !hasValidPrice;
   const categoryLabel = (() => {
     const slug = product.category.slug?.trim().toLowerCase();

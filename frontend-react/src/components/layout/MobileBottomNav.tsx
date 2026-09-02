@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { BookOpen, Home, PhoneCall, ShoppingBag, ShoppingCart, Settings, HelpCircle } from 'lucide-react';
-import { getCart } from '@/services/cartClient';
+import { getCart, CART_UPDATED_EVENT } from '@/services/cartClient';
 
 interface MobileBottomNavProps {
   storefront?: boolean;
@@ -13,16 +13,30 @@ export function MobileBottomNav({ storefront = false }: MobileBottomNavProps) {
   const [cartCount, setCartCount] = useState(0);
 
   useEffect(() => {
-    getCart()
-      .then((c) => {
-        if (c?.items) {
-          const total = c.items.reduce((acc, item) => acc + item.quantity, 0);
-          setCartCount(total);
-        } else {
-          setCartCount(0);
-        }
-      })
-      .catch(() => setCartCount(0));
+    let active = true;
+    const fetchCartCount = () => {
+      getCart()
+        .then((c) => {
+          if (!active) return;
+          if (c?.items) {
+            const total = c.items.reduce((acc, item) => acc + item.quantity, 0);
+            setCartCount(total);
+          } else {
+            setCartCount(0);
+          }
+        })
+        .catch(() => {
+          if (active) setCartCount(0);
+        });
+    };
+
+    fetchCartCount();
+    window.addEventListener(CART_UPDATED_EVENT, fetchCartCount);
+
+    return () => {
+      active = false;
+      window.removeEventListener(CART_UPDATED_EVENT, fetchCartCount);
+    };
   }, [location.pathname]);
 
   const navItems = storefront

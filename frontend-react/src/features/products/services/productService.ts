@@ -229,19 +229,7 @@ export const ProductService = {
    * Async fetch single product by ID from Backend API with local fallback.
    */
   async syncByIdFromBackend(id: string): Promise<ProductDTO | undefined> {
-    try {
-      const res = await fetch(`${getApiBase()}/products/${id}`);
-      if (res.ok) {
-        const payload = await parseJsonSafe(res);
-        const item = payload?.data || payload;
-        if (item && item.id && item.name) {
-          const entity = mapBackendProductToEntity(item);
-          store.add(entity);
-        }
-      }
-    } catch {
-      // Safe fallback: Local store remains active
-    }
+    await this.syncAllFromBackend();
     return this.getById(id);
   },
 
@@ -527,6 +515,11 @@ export const ProductService = {
     page: number;
     totalPages: number;
   }> {
+    if (!isAuthorizedStaffOrAdmin()) {
+      await this.syncAllFromBackend();
+      return this.getTableData(filters);
+    }
+
     const { fetchWithAuth } = await import('@/services/authClient');
     const params = new URLSearchParams();
     if (filters.rowsPerPage) params.set('limit', String(filters.rowsPerPage));
@@ -562,19 +555,12 @@ export const ProductService = {
       updatedAt: item.updatedAt ?? new Date().toISOString(),
     }));
 
-    // Trust the backend whenever the request succeeded: an authenticated
-    // staff/admin sees the real list (even if empty). Only fall back to the
-    // local mock store when the request itself failed (unauthenticated).
-    if (mapped.length > 0 || isAuthorizedStaffOrAdmin()) {
-      return {
-        products: mapped,
-        total: totalCount,
-        page: payload?.meta?.page ?? 1,
-        totalPages: payload?.meta?.totalPages ?? 1,
-      };
-    }
-
-    return this.getTableData(filters);
+    return {
+      products: mapped,
+      total: totalCount,
+      page: payload?.meta?.page ?? 1,
+      totalPages: payload?.meta?.totalPages ?? 1,
+    };
   },
 };
 
