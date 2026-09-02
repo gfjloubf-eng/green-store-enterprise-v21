@@ -124,7 +124,16 @@ export function HomePage() {
     const hasPriceLimit = priceEntry && priceEntry.id !== 'all';
 
     return base.filter((product) => {
-      if (selectedCategory && product.category.name !== selectedCategory) return false;
+      if (selectedCategory) {
+        const categorySlug = product.category.slug?.trim().toLowerCase();
+        const categoryName = product.category.name.trim().toLowerCase();
+        const matchesCategory = selectedCategory === 'fruits'
+          ? categorySlug === 'fruits' || categoryName === 'fruits' || categoryName === 'فواكه'
+          : selectedCategory === 'vegetables'
+            ? categorySlug === 'vegetables' || categoryName === 'vegetables' || categoryName === 'خضروات'
+            : categoryName === selectedCategory.toLowerCase();
+        if (!matchesCategory) return false;
+      }
       if (selectedStore && storeByProductIdMap.get(product.id) !== selectedStore) return false;
       if (hasPriceLimit && (product.sellingPrice < priceEntry.min || product.sellingPrice > priceEntry.max)) return false;
       if (freshToday && !isFreshToday(product)) return false;
@@ -148,9 +157,10 @@ export function HomePage() {
   ]);
 
   // Produce Section Groupings
-  const { fruitsProducts, vegetablesProducts, yemeniProducts, todayOffers, seasonalProducts } = useMemo(() => {
+  const { fruitsProducts, vegetablesProducts, otherProducts, yemeniProducts, todayOffers, seasonalProducts } = useMemo(() => {
     const fruits: ProductDTO[] = [];
     const vegetables: ProductDTO[] = [];
+    const other: ProductDTO[] = [];
     const yemeni: ProductDTO[] = [];
     const offers: ProductDTO[] = [];
     const seasonal: ProductDTO[] = [];
@@ -159,12 +169,11 @@ export function HomePage() {
       const categorySlug = product.category.slug?.trim().toLowerCase();
       const categoryName = product.category.name.trim().toLowerCase();
 
-      if (categorySlug === 'fruits' || categoryName === 'fruits' || categoryName === 'فواكه') {
-        fruits.push(product);
-      }
-      if (categorySlug === 'vegetables' || categoryName === 'vegetables' || categoryName === 'خضروات') {
-        vegetables.push(product);
-      }
+      const isFruit = categorySlug === 'fruits' || categoryName === 'fruits' || categoryName === 'فواكه';
+      const isVegetable = categorySlug === 'vegetables' || categoryName === 'vegetables' || categoryName === 'خضروات';
+      if (isFruit) fruits.push(product);
+      if (isVegetable) vegetables.push(product);
+      if (!isFruit && !isVegetable) other.push(product);
       if (isYemeni(product)) yemeni.push(product);
       const priceInfo = calculateEffectivePrice(product);
       if (priceInfo.hasActiveOffer) offers.push(product);
@@ -174,6 +183,7 @@ export function HomePage() {
     return {
       fruitsProducts: fruits,
       vegetablesProducts: vegetables,
+      otherProducts: other,
       yemeniProducts: yemeni.slice(0, 6),
       todayOffers: offers.slice(0, 4),
       seasonalProducts: seasonal.slice(0, 4),
@@ -184,6 +194,11 @@ export function HomePage() {
   const dailyTip = useMemo(() => getDailyTip(), []);
 
   const handleQuickAdd = async (product: ProductDTO) => {
+    if (!Number.isFinite(product.sellingPrice) || product.sellingPrice <= 0 || product.stock <= 0) {
+      setToastMessage(product.stock <= 0 ? 'هذا المنتج غير متوفر حاليًا.' : 'لا يمكن طلب هذا المنتج قبل تحديد سعره.');
+      setTimeout(() => setToastMessage(null), 2500);
+      return;
+    }
     setAddingId(product.id);
     try {
       await addItemToCart(product.id, 1).catch(() => null);
@@ -287,11 +302,11 @@ export function HomePage() {
           <button
             type="button"
             onClick={() => {
-              setSelectedCategory('Fruits');
+              setSelectedCategory('fruits');
               document.getElementById('qutoof-fruits-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
             }}
             className={`flex shrink-0 items-center gap-2 px-4 py-2.5 rounded-2xl text-xs font-bold transition-all border ${
-              selectedCategory === 'Fruits'
+                selectedCategory === 'fruits'
                 ? 'bg-emerald-600 text-white border-emerald-600 shadow-md'
                 : 'bg-[var(--gs-surface)] text-[var(--gs-foreground)] border-[var(--gs-border-subtle)] hover:border-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-950/40'
             }`}
@@ -303,11 +318,11 @@ export function HomePage() {
           <button
             type="button"
             onClick={() => {
-              setSelectedCategory('Vegetables');
+              setSelectedCategory('vegetables');
               document.getElementById('qutoof-vegetables-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
             }}
             className={`flex shrink-0 items-center gap-2 px-4 py-2.5 rounded-2xl text-xs font-bold transition-all border ${
-              selectedCategory === 'Vegetables'
+                selectedCategory === 'vegetables'
                 ? 'bg-emerald-600 text-white border-emerald-600 shadow-md'
                 : 'bg-[var(--gs-surface)] text-[var(--gs-foreground)] border-[var(--gs-border-subtle)] hover:border-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-950/40'
             }`}
@@ -453,11 +468,11 @@ export function HomePage() {
           <section id="qutoof-fruits-section" className="scroll-mt-24 space-y-4">
             <div className="flex items-center justify-between border-b border-[var(--gs-border-subtle)] pb-3">
               <h2 className="text-xl sm:text-2xl font-bold text-[var(--gs-foreground)] flex items-center gap-2">
-                🍎 الفواكه الطازجة
+                🍎 الفواكه
               </h2>
               <button
                 type="button"
-                onClick={() => setSelectedCategory('Fruits')}
+                onClick={() => setSelectedCategory('fruits')}
                 className="text-xs font-bold text-emerald-700 hover:text-emerald-800 flex items-center gap-1"
               >
                 عرض الكل ({fruitsProducts.length})
@@ -484,11 +499,11 @@ export function HomePage() {
           <section id="qutoof-vegetables-section" className="scroll-mt-24 space-y-4">
             <div className="flex items-center justify-between border-b border-[var(--gs-border-subtle)] pb-3">
               <h2 className="text-xl sm:text-2xl font-bold text-[var(--gs-foreground)] flex items-center gap-2">
-                🥦 الخضروات اليومية
+                🥦 الخضروات
               </h2>
               <button
                 type="button"
-                onClick={() => setSelectedCategory('Vegetables')}
+                onClick={() => setSelectedCategory('vegetables')}
                 className="text-xs font-bold text-emerald-700 hover:text-emerald-800 flex items-center gap-1"
               >
                 عرض الكل ({vegetablesProducts.length})
@@ -510,6 +525,31 @@ export function HomePage() {
               ))}
             </div>
           </section>
+
+          {otherProducts.length > 0 && (
+            <section id="qutoof-other-section" className="scroll-mt-24 space-y-4">
+              <div className="flex items-center justify-between border-b border-[var(--gs-border-subtle)] pb-3">
+                <h2 className="text-xl sm:text-2xl font-bold text-[var(--gs-foreground)] flex items-center gap-2">
+                  🛍️ منتجات أخرى
+                </h2>
+                <span className="text-xs font-bold text-[var(--gs-foreground-muted)]">{otherProducts.length} منتج</span>
+              </div>
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2.5 sm:gap-4">
+                {otherProducts.map((product) => (
+                  <ProduceCard
+                    key={`other-${product.id}`}
+                    product={product}
+                    isFavorite={favorites.includes(product.id)}
+                    isAdding={addingId === product.id}
+                    isAdded={addedIds[product.id]}
+                    onQuickAdd={() => handleQuickAdd(product)}
+                    onToggleFavorite={() => toggleFavorite(product.id)}
+                    locale={locale}
+                  />
+                ))}
+              </div>
+            </section>
+          )}
 
           {/* Yemeni Local Produce Section */}
           {yemeniProducts.length > 0 && (

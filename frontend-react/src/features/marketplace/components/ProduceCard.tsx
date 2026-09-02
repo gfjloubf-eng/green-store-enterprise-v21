@@ -32,6 +32,18 @@ export function ProduceCard({
   const priceInfo = calculateEffectivePrice(product);
   const defaultBadge = isYemeni(product) ? 'محلي' : isOrganic(product) ? 'عضوي' : 'متوفر';
   const isOutOfStock = product.stock <= 0;
+  const hasValidPrice = Number.isFinite(priceInfo.finalPrice) && priceInfo.finalPrice > 0;
+  const cannotOrder = isOutOfStock || !hasValidPrice;
+  const categoryLabel = (() => {
+    const slug = product.category.slug?.trim().toLowerCase();
+    const name = product.category.name.trim();
+    const normalizedName = name.toLowerCase();
+    if (slug === 'fruits' || normalizedName === 'fruits' || name === 'فواكه') return 'فواكه';
+    if (slug === 'vegetables' || normalizedName === 'vegetables' || name === 'خضروات') return 'خضروات';
+    if (slug === 'herbs' || normalizedName === 'herbs' || name === 'أعشاب') return 'أعشاب';
+    if (slug === 'general' || normalizedName === 'general' || name === 'عام') return 'عام';
+    return name;
+  })();
 
   return (
     <div className="group gsd-card rounded-2xl p-3 border border-[var(--gs-border-subtle)] hover:border-emerald-500 transition duration-200 flex flex-col justify-between relative bg-[var(--gs-surface)] shadow-xs hover:shadow-md">
@@ -93,7 +105,7 @@ export function ProduceCard({
         </div>
         <div className="flex items-center justify-between gap-2 text-[11px] text-[var(--gs-foreground-secondary)]">
           <span>{formatUnitLabel(product.unit)}</span>
-          <span className="truncate">{product.category.name}</span>
+          <span className="truncate">{categoryLabel}</span>
         </div>
       </div>
 
@@ -106,19 +118,25 @@ export function ProduceCard({
             </div>
           )}
           <div className="text-xs font-black text-emerald-700 dark:text-emerald-400">
-            {formatPrice(priceInfo.finalPrice, locale)}{' '}
-            <span className="text-[10px] font-normal text-emerald-800/80 dark:text-emerald-300/80">
-              / {formatUnitLabel(product.unit, true)}
-            </span>
+            {hasValidPrice ? (
+              <>
+                {formatPrice(priceInfo.finalPrice, locale)}{' '}
+                <span className="text-[10px] font-normal text-emerald-800/80 dark:text-emerald-300/80">
+                  / {formatUnitLabel(product.unit, true)}
+                </span>
+              </>
+            ) : (
+              <span className="text-rose-600 dark:text-rose-300">السعر غير متاح</span>
+            )}
           </div>
         </div>
 
         <button
           type="button"
           onClick={onQuickAdd}
-          disabled={isAdding || isOutOfStock}
+          disabled={isAdding || cannotOrder}
           className={`min-h-10 px-3 rounded-xl font-bold text-xs inline-flex items-center justify-center gap-1 transition-all ${
-            isOutOfStock
+            cannotOrder
               ? 'bg-gray-400 text-white cursor-not-allowed opacity-60'
               : isAdded
                 ? 'bg-emerald-700 text-white'
@@ -128,6 +146,8 @@ export function ProduceCard({
         >
           {isOutOfStock ? (
             'نفد'
+          ) : !hasValidPrice ? (
+            'غير متاح'
           ) : isAdding ? (
             <>
               <Loader2 className="h-3.5 w-3.5 animate-spin" />

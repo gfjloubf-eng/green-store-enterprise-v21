@@ -79,7 +79,7 @@ export function ProductDetailsPage() {
   }, [product]);
 
   const handleAddToCart = async () => {
-    if (!product || adding) return;
+    if (!product || adding || product.stock <= 0 || !Number.isFinite(product.sellingPrice) || product.sellingPrice <= 0) return;
     setAdding(true);
     try {
       await addItemToCart(product.id, quantity).catch(() => null);
@@ -131,6 +131,18 @@ export function ProductDetailsPage() {
   }, [product]);
 
   const productBadges = product ? getProductBadges(product) : [];
+  const categoryLabel = product
+    ? (() => {
+        const slug = product.category.slug?.trim().toLowerCase();
+        const name = product.category.name.trim();
+        const normalizedName = name.toLowerCase();
+        if (slug === 'fruits' || normalizedName === 'fruits' || name === 'فواكه') return 'فواكه';
+        if (slug === 'vegetables' || normalizedName === 'vegetables' || name === 'خضروات') return 'خضروات';
+        if (slug === 'herbs' || normalizedName === 'herbs' || name === 'أعشاب') return 'أعشاب';
+        if (slug === 'general' || normalizedName === 'general' || name === 'عام') return 'عام';
+        return name;
+      })()
+    : '';
 
   // Helper for generating custom WhatsApp message for Dual Ordering
   const getWhatsAppMessage = (_target: WhatsAppTarget) => {
@@ -236,7 +248,7 @@ export function ProductDetailsPage() {
                       {product.name}
                     </h2>
                     <p className="text-sm [color:var(--gs-foreground-secondary)] mt-1 flex items-center gap-2">
-                      <span>الفئة: <strong>{product.category.name}</strong></span>
+                      <span>الفئة: <strong>{categoryLabel}</strong></span>
                       <span>•</span>
                       <span>الماركة: <strong>{product.brand.name}</strong></span>
                     </p>
@@ -280,7 +292,7 @@ export function ProductDetailsPage() {
                           </div>
                           <div className="mt-0.5 flex items-baseline gap-2">
                             <span className="text-3xl font-black text-emerald-700 dark:text-emerald-400">
-                              {formatPrice(priceInfo.finalPrice, locale)}
+                              {hasValidPrice ? formatPrice(priceInfo.finalPrice, locale) : 'السعر غير متاح'}
                             </span>
                             {priceInfo.hasActiveOffer && (
                               <span className="text-sm font-semibold text-gray-400 line-through">
@@ -391,14 +403,16 @@ export function ProductDetailsPage() {
                   {(() => {
                     const priceInfo = calculateEffectivePrice(product);
                     const isOutOfStock = product.stock <= 0;
+                    const hasValidPrice = Number.isFinite(priceInfo.finalPrice) && priceInfo.finalPrice > 0;
+                    const cannotOrder = isOutOfStock || !hasValidPrice;
 
                     return (
                       <button
                         type="button"
                         onClick={handleAddToCart}
-                        disabled={adding || isOutOfStock}
+                        disabled={adding || cannotOrder}
                         className={`w-full gsd-btn gsd-btn--primary gsd-btn--md inline-flex items-center justify-center gap-2 rounded-2xl h-12 font-bold text-sm shadow-md transition ${
-                          isOutOfStock
+                          cannotOrder
                             ? 'bg-gray-400 text-white cursor-not-allowed opacity-60'
                             : added
                               ? 'bg-emerald-700 text-white'
@@ -407,6 +421,8 @@ export function ProductDetailsPage() {
                       >
                         {isOutOfStock ? (
                           '🔴 هذا المنتج غير متوفر بالمخزون حالياً'
+                        ) : !hasValidPrice ? (
+                          'السعر غير متاح — تواصل معنا للاستفسار'
                         ) : added ? (
                           <>
                             <Check className="h-5 w-5" />
