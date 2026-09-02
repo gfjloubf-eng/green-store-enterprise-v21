@@ -100,9 +100,13 @@ var init_prisma_service = __esm({
             throw new Error("DATABASE_URL is required for the API database connection");
           }
           let connectionString = configuredDatabaseUrl;
-          if (process.env.NODE_ENV === "production" && !connectionString.includes("pgbouncer=")) {
-            const separator = connectionString.includes("?") ? "&" : "?";
-            connectionString = `${connectionString}${separator}pgbouncer=true&connection_limit=1`;
+          if (process.env.NODE_ENV === "production") {
+            const url = new URL(connectionString);
+            const params = url.searchParams;
+            if (!params.has("pgbouncer")) params.set("pgbouncer", "true");
+            if (!params.has("connection_limit")) params.set("connection_limit", "1");
+            url.search = params.toString();
+            connectionString = url.toString();
           }
           const adapter = new PrismaPg({ connectionString });
           const createClient = () => new PrismaClient({
@@ -3280,7 +3284,27 @@ var ProductRepository = class extends base_repository_default {
   }
   async paginate(options) {
     const filters = options.filters && Object.keys(options.filters).length > 0 ? { AND: [{ deletedAt: null }, options.filters] } : { deletedAt: null };
-    return super.paginate({ ...options, filters });
+    const page = Math.max(1, options.page ?? 1);
+    const limit = Math.max(1, Math.min(100, options.limit ?? 25));
+    const skip = (page - 1) * limit;
+    const orderBy = options.sort && (options.order === "asc" || options.order === "desc") ? { [options.sort]: options.order } : void 0;
+    const [data, total] = await Promise.all([
+      this.model.findMany({
+        where: filters,
+        skip,
+        take: limit,
+        orderBy,
+        include: {
+          images: { orderBy: { sortOrder: "asc" } },
+          variants: { take: 1 },
+          category: true,
+          brand: true,
+          unit: true
+        }
+      }),
+      this.model.count({ where: filters })
+    ]);
+    return { data, total, page, limit };
   }
 };
 var product_repository_default = ProductRepository;
@@ -4970,7 +4994,7 @@ var ProductService = class extends base_service_default {
     if (!await this.productRepo.findById(id)) throw new NotFoundException("product_not_found");
   }
   validateOptionalFields(payload, update = false) {
-    const stringFields = ["sku", "barcode", "name", "slug", "description", "originCountry", "storageInstructions", "qualityGrade", "weightUnit", "shippingClass", "brandId", "unitId", "categoryId", "subcategoryId", "produceKey", "familyId", "imageUrl", "imageAltText"];
+    const stringFields = ["sku", "barcode", "name", "slug", "description", "originCountry", "storageInstructions", "qualityGrade", "weightUnit", "shippingClass", "brandId", "unitId", "categoryId", "subcategoryId", "imageUrl", "imageAltText"];
     const maxLengths = {
       sku: 100,
       barcode: 32,
@@ -4981,8 +5005,6 @@ var ProductService = class extends base_service_default {
       unitId: 36,
       categoryId: 36,
       subcategoryId: 36,
-      produceKey: 120,
-      familyId: 36,
       imageUrl: 45e4,
       imageAltText: 255,
       originCountry: 100,
@@ -5038,7 +5060,7 @@ var ProductService = class extends base_service_default {
     }
   }
   toPersistencePayload(payload, update = false) {
-    const fields = ["sku", "barcode", "produceKey", "familyId", "name", "slug", "description", "originCountry", "storageInstructions", "qualityGrade", "weightUnit", "shippingClass", "brandId", "unitId", "categoryId", "subcategoryId", "imageUrl", "imageAltText", "isPublished"];
+    const fields = ["sku", "barcode", "name", "slug", "description", "originCountry", "storageInstructions", "qualityGrade", "weightUnit", "shippingClass", "brandId", "unitId", "categoryId", "subcategoryId", "imageUrl", "imageAltText", "isPublished"];
     const result = {};
     for (const field of fields) {
       if (payload[field] !== void 0) {
@@ -6604,14 +6626,22 @@ var ProductsController = class {
   mapToDto(entity) {
     const enriched = entity;
     const images = Array.isArray(enriched.images) ? enriched.images.map((image) => ({ id: image.id, url: image.url, altText: image.altText ?? null, sortOrder: image.sortOrder })) : [];
+    const defaultVariant = Array.isArray(enriched.variants) && enriched.variants.length > 0 ? enriched.variants[0] : null;
+    const sellingPrice = defaultVariant ? Number(defaultVariant.price) || 0 : 0;
+    const variantSku = defaultVariant?.sku ?? entity.sku ?? null;
     return {
       id: entity.id,
-      sku: entity.sku ?? null,
-      produceKey: enriched.produceKey ?? null,
-      familyId: enriched.familyId ?? null,
+      sku: variantSku,
       name: entity.name,
       slug: entity.slug,
       description: entity.description ?? null,
+      sellingPrice,
+      purchasePrice: 0,
+      // Nested category/brand/unit objects so the storefront can group by
+      // category.name and show brand/unit labels.
+      category: enriched.category ? { id: enriched.category.id, name: enriched.category.name, slug: enriched.category.slug ?? "" } : { id: entity.categoryId ?? "cat-1", name: "\u0639\u0627\u0645", slug: "general" },
+      brand: enriched.brand ? { id: enriched.brand.id, name: enriched.brand.name } : { id: entity.brandId ?? "brand-1", name: "\u0642\u0637\u0648\u0641 \u0627\u0644\u0637\u0628\u064A\u0639\u0629" },
+      unit: enriched.unit ? { id: enriched.unit.id, name: enriched.unit.name, symbol: enriched.unit.symbol ?? null } : { id: entity.unitId ?? "unit-1", name: "\u0643\u064A\u0644\u0648", symbol: "\u0643\u062C\u0645" },
       originCountry: entity.originCountry ?? null,
       harvestDate: entity.harvestDate ? new Date(entity.harvestDate).toISOString() : null,
       expiryDate: entity.expiryDate ? new Date(entity.expiryDate).toISOString() : null,
@@ -6681,6 +6711,28 @@ var ProductsController = class {
       const result = await this.productService.paginate({ page, limit, sort, order, filters: where });
       const data = result.data.map((entity) => this.mapToDto(entity));
       return paginated(data, result.page ?? page, result.limit ?? limit, result.total ?? 0, ctx);
+    } catch (err) {
+      return this.error(err, ctx);
+    }
+  }
+  /**
+   * Public catalog: returns only published, non-deleted products.
+   * No authentication required — used by the customer-facing storefront.
+   */
+  async listPublic(request4) {
+    const ctx = this.context(request4);
+    const q = request4.query ?? {};
+    try {
+      const limit = this.parsePositiveInteger(this.queryValue(q.limit), 100, 200);
+      const result = await this.productService.paginate({
+        page: 1,
+        limit,
+        sort: "createdAt",
+        order: "desc",
+        filters: { isPublished: true, deletedAt: null }
+      });
+      const data = result.data.map((entity) => this.mapToDto(entity));
+      return paginated(data, result.page ?? 1, result.limit ?? limit, result.total ?? 0, ctx);
     } catch (err) {
       return this.error(err, ctx);
     }
@@ -6784,6 +6836,17 @@ function createProductRoutes(controller = new controller_default5()) {
     tags: ["products"],
     middleware: []
   });
+  const publicOptions2 = () => ({
+    mode: "public",
+    publicRoute: true,
+    privateRoute: false,
+    authenticationRequired: false,
+    authorizationRequired: false,
+    requiredPermissions: [],
+    tags: ["products"],
+    middleware: []
+  });
+  register({ name: "products-list-public", method: "GET", path: "/products/public", version: "v1", handler: (ctx) => controller.listPublic(toControllerRequest5(ctx)), options: publicOptions2() });
   register({ name: "products-list", method: "GET", path: "/products", version: "v1", handler: (ctx) => controller.list(toControllerRequest5(ctx)), options: privateOptions2("products:read") });
   register({ name: "products-get", method: "GET", path: "/products/:id", version: "v1", handler: (ctx) => controller.get(toControllerRequest5(ctx)), options: privateOptions2("products:read") });
   register({ name: "products-create", method: "POST", path: "/products", version: "v1", handler: (ctx) => controller.create(toControllerRequest5(ctx)), options: privateOptions2("products:create") });
@@ -9804,7 +9867,7 @@ var EducationController = class {
     try {
       const article = await this.prisma.educationalArticle.findFirst({
         where: { slug, status: "PUBLISHED", deletedAt: null },
-        include: { family: true, productLinks: { include: { product: { select: { id: true, name: true, slug: true, produceKey: true } } } } }
+        include: { family: true, productLinks: { include: { product: { select: { id: true, name: true, slug: true } } } } }
       });
       return article ? success(article, ctx) : notFound("education_article_not_found", ctx);
     } catch {
@@ -9886,7 +9949,7 @@ var EducationController = class {
         },
         orderBy: { updatedAt: "desc" },
         take: 100,
-        include: { family: { select: { id: true, familyKey: true, name: true } }, productLinks: { select: { productId: true, product: { select: { id: true, name: true, produceKey: true } } } } }
+        include: { family: { select: { id: true, familyKey: true, name: true } }, productLinks: { select: { productId: true, product: { select: { id: true, name: true } } } } }
       });
       return success(rows, ctx);
     } catch {
