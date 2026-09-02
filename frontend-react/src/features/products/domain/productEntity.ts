@@ -15,6 +15,7 @@ import type { ProductStatus, ProductOffer } from '../types/product';
 export interface EntityRef {
   id: string;
   name: string;
+  slug?: string;
 }
 
 /**
@@ -73,6 +74,10 @@ export interface ProductEntity {
   status: ProductStatus;
   /** Canonical produce identity key (e.g., 'apple', 'carrot') */
   produceKey?: string;
+  /** Backend-provided origin metadata */
+  originCountry?: string;
+  harvestDate?: string;
+  isSeasonal?: boolean;
   /** Created date ISO string */
   createdAt: string;
   /** Updated date ISO string */

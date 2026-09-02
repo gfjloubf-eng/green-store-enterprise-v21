@@ -268,7 +268,11 @@ export function ProductTable({
                         <button
                           type="button"
                           onClick={() => onAddToCart(product)}
-                          className="gsd-btn gsd-btn--ghost gsd-btn--sm h-8 w-8 p-0 text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/40"
+                          disabled={product.stock <= 0 || !Number.isFinite(product.sellingPrice) || product.sellingPrice <= 0}
+                          className={cn(
+                            "gsd-btn gsd-btn--ghost gsd-btn--sm h-8 w-8 p-0 text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/40",
+                            (product.stock <= 0 || !Number.isFinite(product.sellingPrice) || product.sellingPrice <= 0) && "opacity-40 cursor-not-allowed text-gray-400 hover:bg-transparent"
+                          )}
                           aria-label={`إضافة للسلة ${product.name}`}
                           title="إضافة للسلة"
                         >

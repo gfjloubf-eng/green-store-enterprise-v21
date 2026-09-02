@@ -1,7 +1,6 @@
 import { createContext, useContext, useReducer, useMemo } from 'react';
 import type { ReactNode } from 'react';
 import type { CartItem, CartTotals } from './cartTypes';
-import { mockCart } from './mockCart';
 
 type Action =
   | { type: 'add'; product: CartItem['product']; quantity?: number }
@@ -11,7 +10,7 @@ type Action =
 
 type State = { items: CartItem[] };
 
-const initialState: State = { items: mockCart };
+const initialState: State = { items: [] };
 
 function totalsFromItems(items: CartItem[]): CartTotals {
   const subtotal = items.reduce((s, it) => s + it.product.sellingPrice * it.quantity, 0);

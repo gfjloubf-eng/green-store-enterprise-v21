@@ -1,28 +1,34 @@
 import { Routes, Route } from 'react-router-dom';
-import { lazy, Suspense } from 'react';
+import { lazy, Suspense, type ComponentType } from 'react';
 import { AppProviders } from '@/providers/AppProviders';
 import { AppShell } from '@/components/layout/AppShell';
 import { HomePage } from '@/components/HomePage';
-import LoginPage from '@/features/auth/pages/LoginPage';
-import RegisterPage from '@/features/auth/pages/RegisterPage';
-import ForgotPasswordPage from '@/features/auth/pages/ForgotPasswordPage';
-import ResetPasswordPage from '@/features/auth/pages/ResetPasswordPage';
+const lazyNamed = <T extends Record<string, unknown>, K extends keyof T>(
+  loader: () => Promise<T>,
+  exportName: K,
+) => lazy(async () => ({
+  default: (await loader())[exportName] as ComponentType,
+}));
+
+const LoginPage = lazy(() => import('@/features/auth/pages/LoginPage'));
+const RegisterPage = lazyNamed(() => import('@/features/auth/pages/RegisterPage'), 'RegisterPage');
+const ForgotPasswordPage = lazyNamed(() => import('@/features/auth/pages/ForgotPasswordPage'), 'ForgotPasswordPage');
+const ResetPasswordPage = lazyNamed(() => import('@/features/auth/pages/ResetPasswordPage'), 'ResetPasswordPage');
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
-import DashboardPage from '@/features/dashboard/pages/DashboardPage';
-import CartPage from '@/features/cart/pages/CartPage';
-import ProfilePage from '@/features/profile/pages/ProfilePage';
-import {
-  AboutPage,
-  ContactPage,
-  SettingsPage,
-  HelpPage,
-  AdminUsersPage,
-  AdminRolesPage,
-  NotFound404Page,
-} from '@/components/PublicPages';
-import { ProductsListPage } from '@/features/products/pages/ProductsListPage';
-import { ProductDetailsPage } from '@/features/products/pages/ProductDetailsPage';
-import { StoreListPage, StoreProfilePage } from '@/features/marketplace/pages';
+const DashboardPage = lazyNamed(() => import('@/features/dashboard/pages/DashboardPage'), 'DashboardPage');
+const CartPage = lazyNamed(() => import('@/features/cart/pages/CartPage'), 'CartPage');
+const ProfilePage = lazyNamed(() => import('@/features/profile/pages/ProfilePage'), 'ProfilePage');
+const AboutPage = lazyNamed(() => import('@/components/PublicPages'), 'AboutPage');
+const ContactPage = lazyNamed(() => import('@/components/PublicPages'), 'ContactPage');
+const SettingsPage = lazyNamed(() => import('@/components/PublicPages'), 'SettingsPage');
+const HelpPage = lazyNamed(() => import('@/components/PublicPages'), 'HelpPage');
+const AdminUsersPage = lazyNamed(() => import('@/components/PublicPages'), 'AdminUsersPage');
+const AdminRolesPage = lazyNamed(() => import('@/components/PublicPages'), 'AdminRolesPage');
+const NotFound404Page = lazyNamed(() => import('@/components/PublicPages'), 'NotFound404Page');
+const ProductsListPage = lazyNamed(() => import('@/features/products/pages/ProductsListPage'), 'ProductsListPage');
+const ProductDetailsPage = lazyNamed(() => import('@/features/products/pages/ProductDetailsPage'), 'ProductDetailsPage');
+const StoreListPage = lazyNamed(() => import('@/features/marketplace/pages'), 'StoreListPage');
+const StoreProfilePage = lazyNamed(() => import('@/features/marketplace/pages'), 'StoreProfilePage');
 const CreateProductPage = lazy(() => import('@/features/products/pages/CreateProductPage').then((m) => ({ default: m.CreateProductPage })));
 const EditProductPage = lazy(() => import('@/features/products/pages/EditProductPage').then((m) => ({ default: m.EditProductPage })));
 const CategoriesPage = lazy(() => import('@/features/products/pages/CategoriesPage').then((m) => ({ default: m.CategoriesPage })));
@@ -68,14 +74,14 @@ const GoodsReceiving = lazy(() => import('@/features/purchasing/pages/GoodsRecei
 const PurchaseReturns = lazy(() => import('@/features/purchasing/pages/PurchaseReturns').then((m) => ({ default: m.PurchaseReturns })));
 const PurchaseReports = lazy(() => import('@/features/purchasing/pages/PurchaseReports').then((m) => ({ default: m.PurchaseReports })));
 const PurchaseAnalytics = lazy(() => import('@/features/purchasing/pages/PurchaseAnalytics').then((m) => ({ default: m.PurchaseAnalytics })));
-import { CheckoutPage } from '@/features/checkout/pages';
-import OrdersListPage from '@/features/orders/pages/OrdersListPage';
-import OrderDetailsPage from '@/features/orders/pages/OrderDetailsPage';
+const CheckoutPage = lazyNamed(() => import('@/features/checkout/pages'), 'CheckoutPage');
+const OrdersListPage = lazyNamed(() => import('@/features/orders/pages/OrdersListPage'), 'OrdersListPage');
+const OrderDetailsPage = lazyNamed(() => import('@/features/orders/pages/OrderDetailsPage'), 'OrderDetailsPage');
 
-import SupportCenterPage from '@/features/support/pages/SupportCenterPage';
-import EducationHubPage from '@/features/education/pages/EducationHubPage';
-import EducationArticlePage from '@/features/education/pages/EducationArticlePage';
-import ConsultationPage from '@/features/education/pages/ConsultationPage';
+const SupportCenterPage = lazyNamed(() => import('@/features/support/pages/SupportCenterPage'), 'SupportCenterPage');
+const EducationHubPage = lazy(() => import('@/features/education/pages/EducationHubPage'));
+const EducationArticlePage = lazy(() => import('@/features/education/pages/EducationArticlePage'));
+const ConsultationPage = lazy(() => import('@/features/education/pages/ConsultationPage'));
 
 export default function App() {
   return (

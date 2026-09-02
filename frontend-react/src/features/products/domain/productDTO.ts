@@ -25,8 +25,8 @@ export interface ProductDTO {
   nameAr?: string;
   sku: string;
   barcode: string;
-  category: { id: string; name: string };
-  brand: { id: string; name: string };
+  category: { id: string; name: string; slug?: string };
+  brand: { id: string; name: string; slug?: string };
   unit: { id: string; name: string; abbreviation: string };
   description: string;
   purchasePrice: number;
@@ -42,6 +42,9 @@ export interface ProductDTO {
   image?: string;
   status: ProductStatus;
   produceKey?: string;
+  originCountry?: string;
+  harvestDate?: string;
+  isSeasonal?: boolean;
   createdAt: string;
   updatedAt: string;
 }

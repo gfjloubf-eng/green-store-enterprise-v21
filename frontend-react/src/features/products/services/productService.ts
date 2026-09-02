@@ -59,6 +59,9 @@ function mapBackendProductToEntity(item: any): ProductEntity {
     image: String(item.image || item.imageUrl || item.url || ''),
     status: (item.status === 'inactive' || item.status === 'out_of_stock' || item.status === 'active') ? item.status : 'active',
     produceKey: String(item.produceKey || item.slug || ''),
+    originCountry: item.originCountry ? String(item.originCountry) : undefined,
+    harvestDate: item.harvestDate ? String(item.harvestDate) : undefined,
+    isSeasonal: item.isSeasonal === true,
     createdAt: String(item.createdAt || new Date().toISOString()),
     updatedAt: String(item.updatedAt || new Date().toISOString()),
   };
@@ -188,13 +191,16 @@ export const ProductService = {
         // Use the public catalog endpoint (no auth) so the customer-facing
         // storefront sees real products from the backend, not mock data.
         // Auth'd staff get the same list (published products only).
-        const res = await fetch(`${getApiBase()}/products/public`);
+        const apiBase = getApiBase();
+        const isLocalApi = apiBase.includes('127.0.0.1') || apiBase.includes('localhost');
+        const publicProductsUrl = isLocalApi ? `${apiBase}/products/public` : `${apiBase}/api/products/public`;
+        const res = await fetch(publicProductsUrl);
         if (res.ok) {
           const payload = await parseJsonSafe(res);
           const list = Array.isArray(payload) ? payload : (Array.isArray(payload?.data) ? payload.data : null);
-          if (list && list.length > 0) {
-            // Backend is the source of truth: replace the local store
-            // instead of accumulating, so deleted/updated items stay in sync.
+          if (list) {
+            // Backend is the source of truth, including a valid empty catalog.
+            // Never keep bundled demo products when the API successfully returns [].
             const next = new Map<string, ProductEntity>();
             for (const item of list) {
               const entity = mapBackendProductToEntity(item);
@@ -223,19 +229,7 @@ export const ProductService = {
    * Async fetch single product by ID from Backend API with local fallback.
    */
   async syncByIdFromBackend(id: string): Promise<ProductDTO | undefined> {
-    try {
-      const res = await fetch(`${getApiBase()}/products/${id}`);
-      if (res.ok) {
-        const payload = await parseJsonSafe(res);
-        const item = payload?.data || payload;
-        if (item && item.id && item.name) {
-          const entity = mapBackendProductToEntity(item);
-          store.add(entity);
-        }
-      }
-    } catch {
-      // Safe fallback: Local store remains active
-    }
+    await this.syncAllFromBackend();
     return this.getById(id);
   },
 
@@ -521,6 +515,11 @@ export const ProductService = {
     page: number;
     totalPages: number;
   }> {
+    if (!isAuthorizedStaffOrAdmin()) {
+      await this.syncAllFromBackend();
+      return this.getTableData(filters);
+    }
+
     const { fetchWithAuth } = await import('@/services/authClient');
     const params = new URLSearchParams();
     if (filters.rowsPerPage) params.set('limit', String(filters.rowsPerPage));
@@ -556,19 +555,12 @@ export const ProductService = {
       updatedAt: item.updatedAt ?? new Date().toISOString(),
     }));
 
-    // Trust the backend whenever the request succeeded: an authenticated
-    // staff/admin sees the real list (even if empty). Only fall back to the
-    // local mock store when the request itself failed (unauthenticated).
-    if (mapped.length > 0 || isAuthorizedStaffOrAdmin()) {
-      return {
-        products: mapped,
-        total: totalCount,
-        page: payload?.meta?.page ?? 1,
-        totalPages: payload?.meta?.totalPages ?? 1,
-      };
-    }
-
-    return this.getTableData(filters);
+    return {
+      products: mapped,
+      total: totalCount,
+      page: payload?.meta?.page ?? 1,
+      totalPages: payload?.meta?.totalPages ?? 1,
+    };
   },
 };
 
