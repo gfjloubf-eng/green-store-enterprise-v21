@@ -26,7 +26,6 @@ import { WhatsAppOrderAction } from '@/components/ui/WhatsAppOrderAction';
 import { useI18n } from '@/i18n/useI18n';
 import { useProductSearch } from '@/features/products/hooks/useProductService';
 import { useLocalStorageState } from '@/hooks/useLocalStorageState';
-import { addItemToCart } from '@/services/cartClient';
 import { useCart } from '@/features/marketplace/useCart';
 import { StoreService } from '@/features/marketplace/services/storeService';
 import {
@@ -44,9 +43,9 @@ const FAVORITES_KEY = 'qutoof-nature.favorites';
 
 const PRICE_FILTERS = [
   { id: 'all', label: 'كل الأسعار', min: 0, max: Number.POSITIVE_INFINITY },
-  { id: 'under3', label: 'أقل من ٣ ر.س', min: 0, max: 3 },
-  { id: '3to5', label: '٣ - ٥ ر.س', min: 3, max: 5 },
-  { id: 'over5', label: 'أكثر من ٥ ر.س', min: 5, max: 999 },
+  { id: 'under3', label: 'أقل من ٣ ر.ي', min: 0, max: 3 },
+  { id: '3to5', label: '٣ - ٥ ر.ي', min: 3, max: 5 },
+  { id: 'over5', label: 'أكثر من ٥ ر.ي', min: 5, max: 999 },
 ] as const;
 
 type PriceFilter = (typeof PRICE_FILTERS)[number]['id'];
@@ -190,33 +189,34 @@ export function HomePage() {
     };
   }, [products]);
 
-  const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [toastMessage, setToastMessage] = useState<{ text: string; kind: 'success' | 'error' } | null>(null);
   const dailyTip = useMemo(() => getDailyTip(), []);
 
+  const showToast = (text: string, kind: 'success' | 'error' = 'success') => {
+    setToastMessage({ text, kind });
+    setTimeout(() => setToastMessage(null), 3200);
+  };
+
+  /**
+   * Single add path through the unified cart context:
+   * - Success toast appears ONLY after the gateway confirmed the write.
+   * - Failure shows a clear Arabic error (no fake success, no local fallback
+   *   for signed-in users — that logic lives in cartClient).
+   */
   const handleQuickAdd = async (product: ProductDTO) => {
-    if (!Number.isFinite(product.sellingPrice) || product.sellingPrice <= 0 || product.stock <= 0) {
-      setToastMessage(product.stock <= 0 ? 'هذا المنتج غير متوفر حاليًا.' : 'لا يمكن طلب هذا المنتج قبل تحديد سعره.');
-      setTimeout(() => setToastMessage(null), 2500);
-      return;
-    }
+    if (addingId) return;
     setAddingId(product.id);
     try {
-      await addItemToCart(product.id, 1).catch(() => null);
-      add(product, 1);
-      setAddedIds((prev) => ({ ...prev, [product.id]: true }));
-      setToastMessage(`تمت إضافة "${product.name}" إلى السلة بنجاح ✓`);
-      setTimeout(() => {
-        setAddedIds((prev) => ({ ...prev, [product.id]: false }));
-        setToastMessage(null);
-      }, 2500);
-    } catch {
-      add(product, 1);
-      setAddedIds((prev) => ({ ...prev, [product.id]: true }));
-      setToastMessage(`تمت إضافة "${product.name}" إلى السلة بنجاح ✓`);
-      setTimeout(() => {
-        setAddedIds((prev) => ({ ...prev, [product.id]: false }));
-        setToastMessage(null);
-      }, 2500);
+      const result = await add(product, 1);
+      if (result.ok) {
+        setAddedIds((prev) => ({ ...prev, [product.id]: true }));
+        showToast(`\u062a\u0645\u062a \u0625\u0636\u0627\u0641\u0629 "${product.name}" \u0625\u0644\u0649 \u0627\u0644\u0633\u0644\u0629 \u0628\u0646\u062c\u0627\u062d \u2713`);
+        setTimeout(() => {
+          setAddedIds((prev) => ({ ...prev, [product.id]: false }));
+        }, 2200);
+      } else {
+        showToast(result.message || '\u062a\u0639\u0630\u0631\u062a \u0625\u0636\u0627\u0641\u0629 \u0627\u0644\u0645\u0646\u062a\u062c \u0625\u0644\u0649 \u0627\u0644\u0633\u0644\u0629.', 'error');
+      }
     } finally {
       setAddingId(null);
     }
@@ -652,9 +652,17 @@ export function HomePage() {
       </section>
 
       {toastMessage && (
-        <div className="fixed bottom-20 left-1/2 -translate-x-1/2 z-50 rounded-2xl bg-emerald-900/95 dark:bg-emerald-950/95 text-white px-5 py-3 text-xs font-extrabold shadow-2xl flex items-center gap-2 border border-emerald-500/40 backdrop-blur-md transition-all animate-bounce">
-          <Check className="h-4 w-4 text-emerald-400 shrink-0" />
-          <span>{toastMessage}</span>
+        <div
+          role={toastMessage.kind === 'error' ? 'alert' : 'status'}
+          aria-live={toastMessage.kind === 'error' ? 'assertive' : 'polite'}
+          className={`fixed bottom-20 left-1/2 -translate-x-1/2 z-50 rounded-2xl px-5 py-3 text-xs font-extrabold shadow-2xl flex items-center gap-2 border backdrop-blur-md transition-all ${
+            toastMessage.kind === 'error'
+              ? 'bg-rose-950/95 text-white border-rose-500/40'
+              : 'bg-emerald-900/95 dark:bg-emerald-950/95 text-white border-emerald-500/40'
+          }`}
+        >
+          <Check className={`h-4 w-4 shrink-0 ${toastMessage.kind === 'error' ? 'text-rose-300' : 'text-emerald-400'}`} />
+          <span>{toastMessage.text}</span>
         </div>
       )}
     </div>

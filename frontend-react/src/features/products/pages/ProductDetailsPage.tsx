@@ -36,7 +36,6 @@ import {
   buildSingleProductWhatsAppMessage,
   type WhatsAppTarget,
 } from '@/config/whatsapp';
-import { addItemToCart } from '@/services/cartClient';
 import { useCart } from '@/features/marketplace/useCart';
 import { StoreService } from '@/features/marketplace/services/storeService';
 import { ProductService } from '../services/productService';
@@ -70,6 +69,7 @@ export function ProductDetailsPage() {
   const { add } = useCart();
   const [added, setAdded] = useState(false);
   const [adding, setAdding] = useState(false);
+  const [addError, setAddError] = useState<string | null>(null);
   const [favorites, setFavorites] = useLocalStorageState<string[]>(FAVORITES_KEY, []);
   const [, setRecentlyViewed] = useLocalStorageState<string[]>(RECENTLY_VIEWED_KEY, []);
 
@@ -79,19 +79,19 @@ export function ProductDetailsPage() {
   }, [product]);
 
   const handleAddToCart = async () => {
-    if (!product || adding || product.stock <= 0) return;
-    const priceInfo = calculateEffectivePrice(product);
-    if (!Number.isFinite(product.sellingPrice) || product.sellingPrice <= 0 || !Number.isFinite(priceInfo.finalPrice) || priceInfo.finalPrice <= 0) return;
+    if (!product || adding) return;
+    setAddError(null);
     setAdding(true);
     try {
-      await addItemToCart(product.id, quantity).catch(() => null);
-      add(product, quantity);
-      setAdded(true);
-      setTimeout(() => setAdded(false), 2500);
-    } catch {
-      add(product, quantity);
-      setAdded(true);
-      setTimeout(() => setAdded(false), 2500);
+      // Single add path through the unified cart context/gateway. The success
+      // state below is only reached after the gateway confirmed the write.
+      const result = await add(product, quantity);
+      if (result.ok) {
+        setAdded(true);
+        setTimeout(() => setAdded(false), 2500);
+      } else {
+        setAddError(result.message || 'تعذرت إضافة المنتج إلى السلة.');
+      }
     } finally {
       setAdding(false);
     }
@@ -402,6 +402,16 @@ export function ProductDetailsPage() {
                   </div>
 
                   {/* Primary Action: Add to Cart */}
+                  {addError && (
+                    <div
+                      role="alert"
+                      aria-live="assertive"
+                      className="rounded-xl border border-rose-500/30 bg-rose-500/10 px-3 py-2 text-xs font-bold text-rose-700 dark:text-rose-300"
+                    >
+                      {addError}
+                    </div>
+                  )}
+
                   {(() => {
                     const priceInfo = calculateEffectivePrice(product);
                     const isOutOfStock = product.stock <= 0;

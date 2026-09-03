@@ -6,7 +6,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { MapPin, Clock, Tag, ShoppingBag, AlertCircle, CheckCircle2, ArrowRight, Store, Eye, Package, Copy, Check, FileText, ExternalLink } from 'lucide-react';
 import { createOrder, type Order } from '@/services/orderClient';
-import { getCart, type Cart } from '@/services/cartClient';
+import { useCartContext } from '@/features/marketplace/cartState';
 import { SupportTeamCards } from '@/components/support/SupportTeamCards';
 import { formatPrice } from '@/lib/formatters';
 import { useI18n } from '@/i18n/useI18n';
@@ -15,9 +15,15 @@ import { StoreService } from '@/features/marketplace/services/storeService';
 export function CheckoutPage() {
   const navigate = useNavigate();
   const { locale } = useI18n();
-  const [cart, setCart] = useState<Cart | null>(null);
+  const {
+    items: cartItems,
+    totals,
+    loading,
+    error: cartSyncError,
+    authMode,
+    refresh,
+  } = useCartContext();
   const [paymentMethod, setPaymentMethod] = useState<'CASH_ON_DELIVERY' | 'CARD'>('CASH_ON_DELIVERY');
-  const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [notes, setNotes] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -26,16 +32,22 @@ export function CheckoutPage() {
   const [copiedCode, setCopiedCode] = useState(false);
 
   useEffect(() => {
-    getCart()
-      .then((c) => setCart(c))
-      .catch(() => {})
-      .finally(() => setLoading(false));
+    if (cartSyncError && authMode === 'account') {
+      // Re-sync once on mount so the checkout never finalizes from stale data.
+      void refresh();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handlePlaceOrder = async () => {
     if (submitting) return;
-    if (!cart || !cart.items || cart.items.length === 0) {
+    if (!cartItems || cartItems.length === 0) {
       setError('سلة التسوق فارغة');
+      return;
+    }
+    // A signed-in user must never create an order from an unsynced cart.
+    if (authMode === 'account' && cartSyncError) {
+      setError('تعذر مزامنة سلة حسابك مع الخادم. لم يتم إنشاء الطلب؛ حاول مرة أخرى.');
       return;
     }
 
@@ -43,13 +55,14 @@ export function CheckoutPage() {
     setError(null);
     try {
       const order = await createOrder({ notes: notes.trim() || undefined });
-      
+      await refresh();
+
       // Initiate / Attach Payment Transaction
       const { createPayment } = await import('@/services/paymentClient');
       await createPayment({
         orderId: order.id,
         amount: order.total,
-        currency: order.currency || 'SAR',
+        currency: order.currency || 'YER',
         paymentMethod,
         idempotencyKey: `IDEM-${order.id}-${Date.now()}`,
       });
@@ -74,7 +87,7 @@ export function CheckoutPage() {
     }
   };
 
-  if (loading) {
+  if (loading && cartItems.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[50vh] gap-3" dir="rtl">
         <div className="h-8 w-8 animate-spin rounded-full border-3 border-emerald-500 border-t-transparent" />
@@ -122,7 +135,7 @@ export function CheckoutPage() {
 
             <div className="rounded-2xl bg-[var(--gs-background)] p-3 border border-[var(--gs-border-subtle)] space-y-1">
               <span className="text-[10px] font-bold text-[var(--gs-foreground-muted)] block">الإجمالي النهائي</span>
-              <strong className="text-xs sm:text-sm text-emerald-600 block">{formatPrice(createdOrder.total || cart?.grandTotal, locale)}</strong>
+              <strong className="text-xs sm:text-sm text-emerald-600 block">{formatPrice(createdOrder.total || totals.grandTotal, locale)}</strong>
             </div>
 
             <div className="rounded-2xl bg-[var(--gs-background)] p-3 border border-[var(--gs-border-subtle)] space-y-1">
@@ -189,7 +202,7 @@ export function CheckoutPage() {
     );
   }
 
-  const items = cart?.items ?? [];
+  const items = cartItems ?? [];
 
   return (
     <div className="flex flex-col gap-6 pb-12" dir="rtl">
@@ -323,21 +336,40 @@ export function CheckoutPage() {
             <div className="border-t border-[var(--gs-border)] pt-3 space-y-1 text-xs">
               <div className="flex justify-between text-[var(--gs-foreground-secondary)]">
                 <span>المجموع الفرعي:</span>
-                <strong className="text-[var(--gs-foreground)]">{formatPrice(cart?.subtotal, locale)}</strong>
+                <strong className="text-[var(--gs-foreground)]">{formatPrice(totals.subtotal, locale)}</strong>
+              </div>
+              {totals.savings > 0 && (
+                <div className="flex justify-between text-[var(--gs-foreground-secondary)] text-emerald-600">
+                  <span>خصم العروض:</span>
+                  <strong>-{formatPrice(totals.savings, locale)}</strong>
+                </div>
+              )}
+              <div className="flex justify-between text-[var(--gs-foreground-secondary)]">
+                <span>الضريبة (15%):</span>
+                <strong className="text-[var(--gs-foreground)]">{formatPrice(totals.taxTotal, locale)}</strong>
               </div>
               <div className="flex justify-between text-[var(--gs-foreground-secondary)]">
-                <span>رسوم التوصيل والضريبة:</span>
-                <strong className="text-[var(--gs-foreground)]">{formatPrice(0, locale)}</strong>
+                <span>التوصيل (مرة واحدة):</span>
+                <strong className="text-[var(--gs-foreground)]">{formatPrice(totals.deliveryTotal, locale)}</strong>
               </div>
               <div className="flex justify-between text-sm font-bold text-emerald-600 pt-2 border-t border-[var(--gs-border-subtle)]">
                 <span>الإجمالي النهائي:</span>
-                <span>{formatPrice(cart?.grandTotal, locale)}</span>
+                <span>{formatPrice(totals.grandTotal, locale)}</span>
               </div>
             </div>
 
+            {authMode === 'account' && cartSyncError && (
+              <div
+                role="alert"
+                className="rounded-2xl border border-rose-500/30 bg-rose-500/10 px-3 py-2.5 text-[11px] font-bold text-rose-700 dark:text-rose-300"
+              >
+                تعذر مزامنة سلة حسابك مع الخادم. لم يتم إنشاء الطلب؛ حاول مرة أخرى بعد تحديث السلة.
+              </div>
+            )}
+
             <button
               type="button"
-              disabled={submitting}
+              disabled={submitting || (authMode === 'account' && Boolean(cartSyncError))}
               onClick={handlePlaceOrder}
               className="gsd-btn gsd-btn--primary gsd-btn--lg w-full rounded-2xl py-3 text-xs font-bold flex items-center justify-center gap-2 mt-4 disabled:opacity-50 disabled:cursor-not-allowed"
             >

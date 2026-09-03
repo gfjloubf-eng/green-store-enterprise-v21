@@ -6,7 +6,7 @@ import { useI18n } from '@/i18n/useI18n';
 import { useAuth } from '@/hooks/useAuth';
 import { BreadcrumbEngine } from './BreadcrumbEngine';
 import { LogoPlaceholder } from '@/components/ui/LogoPlaceholder';
-import { getCart } from '@/services/cartClient';
+import { useCartContext } from '@/features/marketplace/cartState';
 import { useTheme } from '@/hooks/useTheme';
 import {
   getUserNotifications,
@@ -38,7 +38,9 @@ export function Topbar({ onMenuClick, mobileOpen = false, storefront = false, cl
   const { t } = useI18n();
   const { user, logout } = useAuth();
   const { isDark, toggle: toggleTheme } = useTheme();
-  const [cartCount, setCartCount] = useState(0);
+  // Cart badge reads the unified cart context (same source as drawer/page).
+  const { items: cartItems } = useCartContext();
+  const cartCount = cartItems.reduce((acc, item) => acc + item.quantity, 0);
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
@@ -49,33 +51,6 @@ export function Topbar({ onMenuClick, mobileOpen = false, storefront = false, cl
       !storefront &&
       (isManagementRole(user.role) || (Array.isArray(user.roles) && user.roles.some(isManagementRole))),
   );
-
-  useEffect(() => {
-    let active = true;
-    const fetchCartCount = () => {
-      getCart()
-        .then((c) => {
-          if (!active) return;
-          if (c?.items) {
-            const total = c.items.reduce((acc, item) => acc + item.quantity, 0);
-            setCartCount(total);
-          } else {
-            setCartCount(0);
-          }
-        })
-        .catch(() => {
-          if (active) setCartCount(0);
-        });
-    };
-
-    fetchCartCount();
-    window.addEventListener(CART_UPDATED_EVENT, fetchCartCount);
-
-    return () => {
-      active = false;
-      window.removeEventListener(CART_UPDATED_EVENT, fetchCartCount);
-    };
-  }, [location.pathname]);
 
   useEffect(() => {
     if (!managementUser) return;
