@@ -11,7 +11,6 @@ import { StoreService } from '../services/storeService';
 import { formatPrice } from '@/lib/formatters';
 import { useI18n } from '@/i18n/useI18n';
 import { useCart } from '../useCart';
-import { addItemToCart } from '@/services/cartClient';
 import { calculateEffectivePrice } from '@/features/products/services/offerService';
 
 const reviews = [
@@ -394,20 +393,24 @@ function ProductTile({ product, onClick }: { product: ProductDTO; onClick: () =>
   const { add } = useCart();
   const [added, setAdded] = useState(false);
   const [adding, setAdding] = useState(false);
+  const [addError, setAddError] = useState<string | null>(null);
 
   const handleAddToCart = async (e: React.MouseEvent) => {
     e.stopPropagation();
     if (adding || product.stock <= 0) return;
     setAdding(true);
+    setAddError(null);
     try {
-      await addItemToCart(product.id, 1).catch(() => null);
-      add(product, 1);
-      setAdded(true);
-      setTimeout(() => setAdded(false), 2000);
-    } catch {
-      add(product, 1);
-      setAdded(true);
-      setTimeout(() => setAdded(false), 2000);
+      // Single add path through the unified cart gateway/context — success is
+      // shown only after the gateway confirmed the write (no fake success).
+      const result = await add(product, 1);
+      if (result.ok) {
+        setAdded(true);
+        setTimeout(() => setAdded(false), 2000);
+      } else {
+        setAddError(result.message || 'تعذرت إضافة المنتج إلى السلة.');
+        setTimeout(() => setAddError(null), 4000);
+      }
     } finally {
       setAdding(false);
     }
@@ -446,6 +449,15 @@ function ProductTile({ product, onClick }: { product: ProductDTO; onClick: () =>
       </div>
 
       <div className="mt-3 pt-2 border-t border-[var(--gs-border-subtle)]">
+        {addError && (
+          <div
+            role="alert"
+            aria-live="assertive"
+            className="mb-2 rounded-lg border border-rose-500/30 bg-rose-500/10 px-2 py-1.5 text-[10px] font-bold text-rose-700 dark:text-rose-300"
+          >
+            {addError}
+          </div>
+        )}
         <button
           type="button"
           onClick={handleAddToCart}
@@ -465,6 +477,8 @@ function ProductTile({ product, onClick }: { product: ProductDTO; onClick: () =>
             </>
           ) : product.stock <= 0 ? (
             'نفدت الكمية'
+          ) : adding ? (
+            'جاري الإضافة...'
           ) : (
             <>
               <Plus className="h-3.5 w-3.5" />
