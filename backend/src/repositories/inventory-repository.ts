@@ -68,9 +68,11 @@ export class InventoryRepository extends BaseRepository {
       },
     });
 
-    if (!inv) {
-      throw new ValidationException(`inventory_not_found_for_product_${productId}`);
-    }
+    // A product without an inventory record is not stock-tracked: there is
+    // nothing to reserve, so ordering must proceed (consistent with
+    // releaseStockForOrder/deductStockForShipment, which already no-op when
+    // no inventory exists). Only tracked products enforce stock limits below.
+    if (!inv) return;
 
     if (inv.available < qty) {
       throw new ValidationException(`insufficient_stock_for_product_${productId}`);

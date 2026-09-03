@@ -73,7 +73,16 @@ export class OrderRepository extends BaseRepository implements OrderRepositoryCo
       include: {
         items: {
           include: {
-            product: true,
+            // variants are the pricing source of truth (products table has no
+            // price column) — used below when a cart line has no stored price.
+            product: {
+              include: {
+                variants: {
+                  orderBy: { createdAt: 'asc' as const },
+                  take: 1,
+                },
+              },
+            },
           },
         },
       },
@@ -98,7 +107,27 @@ export class OrderRepository extends BaseRepository implements OrderRepositoryCo
     const now = new Date();
     const preparedItems = cart.items.map((item) => {
       const p = item.product as any;
-      let unitPrice = typeof p.price === 'number' ? p.price : (item.unitPrice || 0);
+
+      // Products have no price column: the selling price lives on
+      // product_variants (mirrors the public catalog's default-variant
+      // pricing). Prefer a positive stored line price; otherwise snapshot the
+      // first variant price as the order's authoritative unit price.
+      const defaultVariantPrice =
+        Array.isArray(p?.variants) && p.variants.length > 0
+          ? Number(p.variants[0].price)
+          : NaN;
+      let unitPrice =
+        typeof item.unitPrice === 'number' && item.unitPrice > 0
+          ? item.unitPrice
+          : Number.isFinite(defaultVariantPrice) && defaultVariantPrice > 0
+            ? defaultVariantPrice
+            : 0;
+
+      // A line without a computable positive price must never be charged at
+      // zero: fail loudly instead of silently completing a free order.
+      if (!(unitPrice > 0)) {
+        throw new ValidationException(`unpriced_product_in_cart_${item.productId}`);
+      }
 
       // Offer snapshot evaluation
       if (p.offer && p.offer.active) {
